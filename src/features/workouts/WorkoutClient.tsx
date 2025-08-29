@@ -107,8 +107,13 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 		try {
 			console.log("Refreshujem workouts sa servera");
-			const { data } = await axiosInstance.get("/api/workouts");
-
+			const { data } = await axiosInstance.get(
+				`/api/workouts?t=${Date.now()}`,
+				{
+					withCredentials: true,
+					headers: { "Cache-Control": "no-cache" },
+				}
+			);
 			console.log("Učitao workouts sa servera:", data.workouts.length);
 
 			if (pendingWorkouts.length > 0) {

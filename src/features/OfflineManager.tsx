@@ -1,5 +1,8 @@
+// features/OfflineManager.tsx
+"use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
+import axiosInstance from "@/services/axios-public.instance";
 
 interface OfflineWorkout {
 	id: string;
@@ -16,7 +19,6 @@ interface OfflineUser {
 // Utility funkcije - van hook-a
 export const saveUserOffline = (userData: any) => {
 	if (typeof window === "undefined") return;
-
 	try {
 		localStorage.setItem("offlineUser", JSON.stringify(userData));
 		localStorage.setItem("isLoggedInOffline", "true");
@@ -27,7 +29,6 @@ export const saveUserOffline = (userData: any) => {
 
 export const getOfflineUser = (): OfflineUser | null => {
 	if (typeof window === "undefined") return null;
-
 	try {
 		const userData = localStorage.getItem("offlineUser");
 		const isLoggedIn = localStorage.getItem("isLoggedInOffline");
@@ -40,7 +41,6 @@ export const getOfflineUser = (): OfflineUser | null => {
 
 export const clearOfflineUser = () => {
 	if (typeof window === "undefined") return;
-
 	try {
 		localStorage.removeItem("offlineUser");
 		localStorage.removeItem("isLoggedInOffline");
@@ -55,66 +55,9 @@ export const useOfflineWorkouts = () => {
 	const [isClient, setIsClient] = useState(false);
 	const [syncCallbacks, setSyncCallbacks] = useState<Array<() => void>>([]);
 
-	useEffect(() => {
-		setIsClient(true);
-		setIsOnline(navigator.onLine);
-
-		// Učitaj pending workouts iz localStorage
-		loadPendingWorkouts();
-
-		// Online/offline event listeners
-		const handleOnline = () => {
-			console.log("Povratila se konekcija - pokrećemo sync");
-			setIsOnline(true);
-			// Dodajemo kratku pauzu da se konekcija stabilizuje
-			setTimeout(() => {
-				syncPendingWorkouts();
-			}, 1000);
-		};
-
-		const handleOffline = () => {
-			console.log("Izguljena konekcija");
-			setIsOnline(false);
-		};
-
-		// Service Worker message listener
-		const handleSWMessage = (event: MessageEvent) => {
-			if (event.data?.type === "SYNC_WORKOUTS") {
-				console.log("Primljena poruka od SW za sync");
-				syncPendingWorkouts();
-			}
-		};
-
-		window.addEventListener("online", handleOnline);
-		window.addEventListener("offline", handleOffline);
-
-		// Registruj SW message listener
-		if ("serviceWorker" in navigator) {
-			navigator.serviceWorker.addEventListener("message", handleSWMessage);
-		}
-
-		// Takođe pokretaj sync periodično kada smo online
-		const syncInterval = setInterval(() => {
-			if (navigator.onLine && pendingWorkouts.length > 0) {
-				console.log("Periodični sync check");
-				syncPendingWorkouts();
-			}
-		}, 30000); // Svakih 30 sekundi
-
-		return () => {
-			window.removeEventListener("online", handleOnline);
-			window.removeEventListener("offline", handleOffline);
-			if ("serviceWorker" in navigator) {
-				navigator.serviceWorker.removeEventListener("message", handleSWMessage);
-			}
-			clearInterval(syncInterval);
-		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [pendingWorkouts.length]); // Dodaj dependency
-
+	// loadPendingWorkouts defined before useEffect so we can call it there
 	const loadPendingWorkouts = () => {
 		if (!isClient) return;
-
 		try {
 			const stored = localStorage.getItem("pendingWorkouts");
 			if (stored) {
@@ -127,6 +70,58 @@ export const useOfflineWorkouts = () => {
 		}
 	};
 
+	useEffect(() => {
+		setIsClient(true);
+		setIsOnline(navigator.onLine);
+
+		// Učitaj pending workouts iz localStorage
+		loadPendingWorkouts();
+
+		const handleOnline = () => {
+			console.log("Povratila se konekcija - pokrećemo sync");
+			setIsOnline(true);
+			setTimeout(() => {
+				syncPendingWorkouts();
+			}, 1000);
+		};
+
+		const handleOffline = () => {
+			console.log("Izguljena konekcija");
+			setIsOnline(false);
+		};
+
+		const handleSWMessage = (event: MessageEvent) => {
+			if (event.data?.type === "SYNC_WORKOUTS") {
+				console.log("Primljena poruka od SW za sync");
+				syncPendingWorkouts();
+			}
+		};
+
+		window.addEventListener("online", handleOnline);
+		window.addEventListener("offline", handleOffline);
+
+		if ("serviceWorker" in navigator) {
+			navigator.serviceWorker.addEventListener("message", handleSWMessage);
+		}
+
+		const syncInterval = setInterval(() => {
+			if (navigator.onLine && pendingWorkouts.length > 0) {
+				console.log("Periodični sync check");
+				syncPendingWorkouts();
+			}
+		}, 30000); // 30s
+
+		return () => {
+			window.removeEventListener("online", handleOnline);
+			window.removeEventListener("offline", handleOffline);
+			if ("serviceWorker" in navigator) {
+				navigator.serviceWorker.removeEventListener("message", handleSWMessage);
+			}
+			clearInterval(syncInterval);
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [pendingWorkouts.length, isClient]);
+
 	const saveWorkoutOffline = async (workoutData: any) => {
 		if (!isClient) return null;
 
@@ -134,7 +129,7 @@ export const useOfflineWorkouts = () => {
 			id: Date.now().toString(),
 			data: {
 				...workoutData,
-				synced: false, // Eksplicitno markiranje kao nesinhovano
+				synced: false,
 			},
 			timestamp: Date.now(),
 		};
@@ -142,7 +137,6 @@ export const useOfflineWorkouts = () => {
 		const newPending = [...pendingWorkouts, offlineWorkout];
 		setPendingWorkouts(newPending);
 
-		// Sačuvaj u localStorage
 		try {
 			localStorage.setItem("pendingWorkouts", JSON.stringify(newPending));
 			console.log("Workout sačuvan offline:", offlineWorkout);
@@ -153,7 +147,6 @@ export const useOfflineWorkouts = () => {
 				"sync" in window.ServiceWorkerRegistration.prototype
 			) {
 				const registration = await navigator.serviceWorker.ready;
-				// Type assertion to allow 'sync' property
 				await (
 					registration as ServiceWorkerRegistration & { sync: any }
 				).sync.register("workout-sync");
@@ -179,32 +172,31 @@ export const useOfflineWorkouts = () => {
 		for (const workout of pendingWorkouts) {
 			try {
 				console.log("Sinhronizujemo workout:", workout.id);
-				const response = await fetch("/api/workouts", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(workout.data),
-				});
 
-				if (response.ok) {
-					console.log("Workout uspešno sinhronizovan:", workout.id);
+				// Koristimo axiosInstance sa withCredentials: true
+				const resp = await axiosInstance.post(
+					"/api/workouts",
+					{ ...workout.data, synced: true },
+					{
+						headers: { "Cache-Control": "no-cache" },
+					}
+				);
+
+				// resp.data očekivano: { message, workoutId }
+				console.log("SYNC response json:", resp.data);
+
+				if (resp.status >= 200 && resp.status < 300) {
 					successfulSyncs.push(workout.id);
 				} else {
-					console.error(
-						"Sync neuspešan:",
-						response.status,
-						response.statusText
-					);
+					console.error("Sync neuspešan:", resp.status, resp.statusText);
 					failedSyncs.push(workout);
 				}
-			} catch (error) {
+			} catch (error: any) {
 				console.error("Greška pri sinhronizaciji:", error);
 				failedSyncs.push(workout);
 			}
 		}
 
-		// Ažuriraj pending workouts - ukloni uspešno sinhronizovane
 		const remaining = pendingWorkouts.filter(
 			(w) => !successfulSyncs.includes(w.id)
 		);
@@ -225,11 +217,8 @@ export const useOfflineWorkouts = () => {
 		syncCallbacks.forEach((callback) => callback());
 	};
 
-	// Dodaj callback funkciju koji će komponente moći da registruju
 	const onSyncComplete = (callback: () => void) => {
 		setSyncCallbacks((prev) => [...prev, callback]);
-
-		// Vrati cleanup funkciju
 		return () => {
 			setSyncCallbacks((prev) => prev.filter((cb) => cb !== callback));
 		};
@@ -241,41 +230,33 @@ export const useOfflineWorkouts = () => {
 		}
 
 		if (isOnline) {
-			// Online - slanje direktno
 			try {
-				const response = await fetch("/api/workouts", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						...workoutData,
-						synced: true, // Online je odmah sinhronizovano
-					}),
-				});
+				const resp = await axiosInstance.post(
+					"/api/workouts",
+					{ ...workoutData, synced: true },
+					{
+						headers: { "Cache-Control": "no-cache" },
+					}
+				);
 
-				if (!response.ok) {
+				if (resp.status < 200 || resp.status >= 300) {
 					throw new Error("Network error");
 				}
 
-				const result = await response.json();
-				console.log("Workout uspešno poslat online:", result);
-				return result;
+				console.log("Workout uspešno poslat online:", resp.data);
+				return resp.data;
 			} catch (error) {
 				console.log("Online slanje neuspešno, čuvam offline:", error);
-				// Ako ne uspe online, sačuvaj offline
 				const offlineId = await saveWorkoutOffline(workoutData);
 				return { id: offlineId, offline: true };
 			}
 		} else {
-			// Offline - sačuvaj lokalno
 			console.log("Offline mode - čuvam lokalno");
 			const offlineId = await saveWorkoutOffline(workoutData);
 			return { id: offlineId, offline: true };
 		}
 	};
 
-	// Dodaj funkciju za manuelni sync
 	const manualSync = async () => {
 		console.log("Manualni sync pokrenut");
 		await syncPendingWorkouts();
@@ -286,11 +267,11 @@ export const useOfflineWorkouts = () => {
 		pendingWorkouts,
 		submitWorkout,
 		syncPendingWorkouts,
-		manualSync, // Dodaj za testiranje
+		manualSync,
 		isClient,
 		saveUserOffline,
 		getOfflineUser,
 		clearOfflineUser,
-		onSyncComplete, // Dodaj callback registraciju
+		onSyncComplete,
 	};
 };
