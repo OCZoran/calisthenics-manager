@@ -90,7 +90,7 @@ const Login = () => {
 	const handleLogin = async (email: string, password: string) => {
 		try {
 			// Pokušaj online login preko axios instance
-			const response = await axiosInstance.post("/api/login", {
+			const response = await axiosInstance.post("/api/auth/login", {
 				email,
 				password,
 			});
