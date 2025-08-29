@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { EmailOutlined, LockOutline } from "@mui/icons-material";
 import theme from "@/theme";
 import { getOfflineUser, saveUserOffline } from "@/features/OfflineManager";
+import axiosInstance from "@/services/axios-public.instance";
 
 export interface ValidationErrors {
 	email?: string;
@@ -88,34 +89,40 @@ const Login = () => {
 
 	const handleLogin = async (email: string, password: string) => {
 		try {
-			// Pokušaj online login
-			const response = await fetch("/api/login", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ email, password }),
+			// Pokušaj online login preko axios instance
+			const response = await axiosInstance.post("/api/login", {
+				email,
+				password,
 			});
 
-			if (response.ok) {
-				const userData = await response.json();
+			if (response.status === 200) {
+				const userData = response.data;
 				// Sačuvaj i offline za budući pristup
 				saveUserOffline(userData.user);
 				return userData;
 			} else {
-				// Ako server vrati grešku, probaj offline
 				throw new Error("Server error");
 			}
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		} catch (error) {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} catch (error: any) {
 			console.log("Offline mode - checking local credentials");
 
-			// Proveri da li su kredencijali već sačuvani offline
+			// Ako nema neta ili server vrati grešku -> probaj offline
 			const offlineUser = getOfflineUser();
 			if (offlineUser && offlineUser.email === email) {
-				// U stvarnoj app, ovde bi trebalo da imaš hash password-a
 				return { user: offlineUser, offline: true };
 			}
 
-			throw new Error("Login failed - no offline data");
+			// Ako ni offline nema
+			if (error.response) {
+				// Server error (npr. 401)
+				throw new Error(error.response.data?.message || "Login failed");
+			} else if (error.request) {
+				// Network error
+				throw new Error("Network error - check connection");
+			} else {
+				throw new Error(error.message || "Login failed");
+			}
 		}
 	};
 

@@ -19,6 +19,7 @@ import { Workout } from "@/global/interfaces/workout.interface";
 import WorkoutList from "./WorkoutList";
 import WorkoutForm from "./WorkoutForm";
 import { useOfflineWorkouts } from "@/features/OfflineManager";
+import axiosInstance from "@/services/axios-public.instance";
 
 interface WorkoutClientProps {
 	initialWorkouts: Workout[];
@@ -106,26 +107,23 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 		try {
 			console.log("Refreshujem workouts sa servera");
-			const response = await fetch("/api/workouts");
-			if (response.ok) {
-				const { workouts: serverWorkouts } = await response.json();
-				console.log("Učitao workouts sa servera:", serverWorkouts.length);
+			const { data } = await axiosInstance.get("/api/workouts");
 
-				// Kombinuj server workouts sa offline workouts
-				if (pendingWorkouts.length > 0) {
-					const offlineWorkouts: Workout[] = pendingWorkouts.map((pending) => ({
-						_id: pending.id,
-						userId: pending.id,
-						...pending.data,
-						createdAt: new Date(pending.timestamp),
-						updatedAt: new Date(pending.timestamp),
-						synced: false,
-					}));
+			console.log("Učitao workouts sa servera:", data.workouts.length);
 
-					setWorkouts([...offlineWorkouts, ...serverWorkouts]);
-				} else {
-					setWorkouts(serverWorkouts);
-				}
+			if (pendingWorkouts.length > 0) {
+				const offlineWorkouts: Workout[] = pendingWorkouts.map((pending) => ({
+					_id: pending.id,
+					userId: pending.id,
+					...pending.data,
+					createdAt: new Date(pending.timestamp),
+					updatedAt: new Date(pending.timestamp),
+					synced: false,
+				}));
+
+				setWorkouts([...offlineWorkouts, ...data.workouts]);
+			} else {
+				setWorkouts(data.workouts);
 			}
 		} catch (error) {
 			console.error("Greška pri refresh workouts:", error);
@@ -205,20 +203,12 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			setIsLoading(true);
 			try {
 				if (editingWorkout) {
-					// Za edit - pokušaj online prvo
+					// EDIT workout
 					if (isOnline) {
-						const response = await fetch("/api/workouts", {
-							method: "PUT",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({
-								workoutId: editingWorkout._id,
-								...formData,
-							}),
+						await axiosInstance.put("/api/workouts", {
+							workoutId: editingWorkout._id,
+							...formData,
 						});
-
-						if (!response.ok) {
-							throw new Error("Failed to update workout");
-						}
 
 						await refreshWorkouts();
 						showSnackbar("Trening je uspešno ažuriran!", "success");
@@ -227,7 +217,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 						return;
 					}
 				} else {
-					// Za novi workout - koristi offline hook
+					// NOVI workout ide kroz offline hook
 					const result = await submitWorkout(formData);
 
 					if (result.offline) {
@@ -235,7 +225,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							"Trening sačuvan offline - sinhronizaće se kad se vrati internet",
 							"warning"
 						);
-						// Ne dodajemo ručno u workouts - useEffect će to uraditi
 					} else {
 						await refreshWorkouts();
 						showSnackbar("Trening je uspešno dodat!", "success");
@@ -244,12 +233,12 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 				setShowForm(false);
 				setEditingWorkout(null);
-			} catch (error) {
+			} catch (error: any) {
 				console.error("Error saving workout:", error);
 				showSnackbar(
-					error instanceof Error
-						? error.message
-						: "Greška pri čuvanju treninga",
+					error.response?.data?.message ||
+						error.message ||
+						"Greška pri čuvanju treninga",
 					"error"
 				);
 			} finally {
@@ -262,11 +251,10 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 	const handleDeleteWorkout = useCallback(
 		async (workoutId: string) => {
-			// Pronađi workout da vidiš da li je offline
 			const workout = workouts.find((w) => w._id === workoutId);
 
 			if (workout && !workout.synced) {
-				// Ovo je offline workout - obriši iz localStorage
+				// Brisanje offline workout-a (isto kao kod tebe)
 				try {
 					const storedPending = localStorage.getItem("pendingWorkouts");
 					if (storedPending) {
@@ -274,8 +262,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 						const updated = pending.filter((p: any) => p.id !== workoutId);
 						localStorage.setItem("pendingWorkouts", JSON.stringify(updated));
 					}
-
-					// Ukloni iz lokalne liste
 					setWorkouts((prev) => prev.filter((w) => w._id !== workoutId));
 					showSnackbar("Offline trening je obrisan!", "success");
 					return;
@@ -286,30 +272,24 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				}
 			}
 
-			// Standardno brisanje online workout-a
 			if (!isOnline) {
 				showSnackbar("Brisanje nije dostupno offline", "warning");
 				throw new Error("Offline mode - delete not available");
 			}
 
 			try {
-				const response = await fetch(`/api/workouts?id=${workoutId}`, {
-					method: "DELETE",
+				await axiosInstance.delete(`/api/workouts`, {
+					params: { id: workoutId },
 				});
-
-				if (!response.ok) {
-					const errorData = await response.json();
-					throw new Error(errorData.error || "Failed to delete workout");
-				}
 
 				setWorkouts((prev) => prev.filter((w) => w._id !== workoutId));
 				showSnackbar("Trening je uspešno obrisan!", "success");
-			} catch (error) {
+			} catch (error: any) {
 				console.error("Error deleting workout:", error);
 				showSnackbar(
-					error instanceof Error
-						? error.message
-						: "Greška pri brisanju treninga",
+					error.response?.data?.message ||
+						error.message ||
+						"Greška pri brisanju treninga",
 					"error"
 				);
 				throw error;
