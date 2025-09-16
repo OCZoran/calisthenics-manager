@@ -58,6 +58,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		manualSync,
 		isClient,
 		onSyncComplete,
+		updateOfflineWorkout, // Dodaj ovu funkciju
 	} = useOfflineWorkouts();
 
 	// Registruj callback za kada se završi sync
@@ -149,12 +150,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	};
 
 	const handleEditWorkout = (workout: Workout) => {
-		// Ne dozvoljavaj edit offline workouts
-		if (!workout.synced) {
-			showSnackbar("Ne možete editovati nesinhronizovane treninge", "warning");
-			return;
-		}
-
+		// Dozvoli editovanje i offline workouts
 		setEditingWorkout(workout);
 		setShowForm(true);
 		window.scrollTo({ top: 0, behavior: "smooth" });
@@ -209,7 +205,8 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			try {
 				if (editingWorkout) {
 					// EDIT workout
-					if (isOnline) {
+					if (editingWorkout.synced && isOnline) {
+						// Sinhronizovan workout - normalno slanje na server
 						await axiosInstance.put("/api/workouts", {
 							workoutId: editingWorkout._id,
 							...formData,
@@ -217,8 +214,37 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 						await refreshWorkouts();
 						showSnackbar("Trening je uspešno ažuriran!", "success");
+					} else if (!editingWorkout.synced) {
+						// Offline workout - ažuriraj u localStorage
+						if (!editingWorkout._id) {
+							showSnackbar(
+								"Greška: Nedostaje ID treninga za offline ažuriranje",
+								"error"
+							);
+							return;
+						}
+						const success = updateOfflineWorkout(editingWorkout._id, formData);
+
+						if (success) {
+							// Ažuriraj lokalnu listu
+							setWorkouts((prev) =>
+								prev.map((w) =>
+									w._id === editingWorkout._id
+										? { ...w, ...formData, updatedAt: new Date() }
+										: w
+								)
+							);
+							showSnackbar("Offline trening je ažuriran!", "success");
+						} else {
+							showSnackbar("Greška pri ažuriranju offline treninga", "error");
+							return;
+						}
 					} else {
-						showSnackbar("Offline mode - edit nije dostupan", "warning");
+						// Offline mode ali trening je sinhronizovan
+						showSnackbar(
+							"Editovanje sinhronizovanih treninga nije dostupno offline",
+							"warning"
+						);
 						return;
 					}
 				} else {
@@ -251,7 +277,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			}
 		},
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[editingWorkout, isOnline, submitWorkout]
+		[editingWorkout, isOnline, submitWorkout, updateOfflineWorkout]
 	);
 
 	const handleDeleteWorkout = useCallback(
@@ -259,7 +285,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			const workout = workouts.find((w) => w._id === workoutId);
 
 			if (workout && !workout.synced) {
-				// Brisanje offline workout-a (isto kao kod tebe)
+				// Brisanje offline workout-a
 				try {
 					const storedPending = localStorage.getItem("pendingWorkouts");
 					if (storedPending) {

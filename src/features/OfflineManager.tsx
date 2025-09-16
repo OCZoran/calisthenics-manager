@@ -159,6 +159,49 @@ export const useOfflineWorkouts = () => {
 		return offlineWorkout.id;
 	};
 
+	// NOVA FUNKCIJA ZA AŽURIRANJE OFFLINE WORKOUTS
+	const updateOfflineWorkout = (workoutId: string, updatedData: any) => {
+		if (!isClient) return false;
+
+		try {
+			const stored = localStorage.getItem("pendingWorkouts");
+			if (!stored) return false;
+
+			const pending = JSON.parse(stored);
+			const workoutIndex = pending.findIndex(
+				(w: OfflineWorkout) => w.id === workoutId
+			);
+
+			if (workoutIndex === -1) {
+				console.error("Offline workout sa ID", workoutId, "nije pronađen");
+				return false;
+			}
+
+			// Ažuriraj workout podaci
+			pending[workoutIndex] = {
+				...pending[workoutIndex],
+				data: {
+					...pending[workoutIndex].data,
+					...updatedData,
+					synced: false, // Ensure it stays marked as unsynced
+				},
+				timestamp: Date.now(), // Update timestamp for latest changes
+			};
+
+			// Sačuvaj u localStorage
+			localStorage.setItem("pendingWorkouts", JSON.stringify(pending));
+
+			// Ažuriraj state
+			setPendingWorkouts(pending);
+
+			console.log("Offline workout ažuriran:", pending[workoutIndex]);
+			return true;
+		} catch (error) {
+			console.error("Greška pri ažuriranju offline workout:", error);
+			return false;
+		}
+	};
+
 	const syncPendingWorkouts = async () => {
 		if (!isOnline || pendingWorkouts.length === 0 || !isClient) {
 			console.log("Sync preskočen - offline ili nema pending workouts");
@@ -273,5 +316,6 @@ export const useOfflineWorkouts = () => {
 		getOfflineUser,
 		clearOfflineUser,
 		onSyncComplete,
+		updateOfflineWorkout, // Izvezemo novu funkciju
 	};
 };
