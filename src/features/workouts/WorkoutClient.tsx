@@ -409,6 +409,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 					onSubmit={handleSubmitWorkout}
 					onCancel={handleCancelForm}
 					isLoading={isLoading}
+					workouts={workouts}
 				/>
 			)}
 

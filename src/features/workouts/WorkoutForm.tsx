@@ -21,6 +21,14 @@ import {
 	FormControlLabel,
 	Alert,
 	Collapse,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	List,
+	ListItem,
+	ListItemText,
+	ListItemButton,
 } from "@mui/material";
 import {
 	Add,
@@ -30,7 +38,10 @@ import {
 	Cancel,
 	ExpandMore,
 	ExpandLess,
+	ContentCopy,
+	Close,
 } from "@mui/icons-material";
+import { format, parseISO } from "date-fns";
 import { Workout } from "@/global/interfaces/workout.interface";
 
 interface WorkoutFormProps {
@@ -38,6 +49,7 @@ interface WorkoutFormProps {
 	onSubmit: (workout: any) => Promise<void>;
 	onCancel: () => void;
 	isLoading?: boolean;
+	workouts: Workout[]; // Dodajemo workouts prop
 }
 
 const workoutTypes = [
@@ -56,6 +68,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	onSubmit,
 	onCancel,
 	isLoading = false,
+	workouts = [], // Default empty array
 }) => {
 	// Inicijalizuj sa default vrednostima da izbegneš undefined->defined problem
 	const [formData, setFormData] = useState({
@@ -68,6 +81,8 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 
 	const [errors, setErrors] = useState<string[]>([]);
 	const [expandedExercises, setExpandedExercises] = useState<number[]>([]);
+	const [showCopyDialog, setShowCopyDialog] = useState(false);
+	const [availableWorkouts, setAvailableWorkouts] = useState<Workout[]>([]);
 
 	// Ažuriraj form data kad se workout promeni
 	useEffect(() => {
@@ -82,6 +97,47 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 			setExpandedExercises(workout.exercises?.map((_, index) => index) || []);
 		}
 	}, [workout]);
+
+	// Kada se promeni tip treninga, pripremi listu dostupnih treninga za kopiranje
+	useEffect(() => {
+		if (formData.type && !workout) {
+			// Samo za nove treninge
+			const filteredWorkouts = workouts
+				.filter((w) => w.type === formData.type && w.synced === true) // Samo sinhronizovane
+				.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Najnoviji prvi
+				.slice(0, 5); // Maksimalno 5 najnovijih
+
+			setAvailableWorkouts(filteredWorkouts);
+		}
+	}, [formData.type, workouts, workout]);
+
+	const handleTypeChange = (newType: string) => {
+		setFormData({ ...formData, type: newType });
+	};
+
+	const copyWorkout = (workoutToCopy: Workout) => {
+		setFormData({
+			...formData,
+			exercises: workoutToCopy.exercises.map((exercise) => ({
+				name: exercise.name,
+				sets: exercise.sets.map((set) => ({ ...set })), // Deep copy setova
+			})),
+			notes: `Kopirano iz treninga od ${format(
+				parseISO(workoutToCopy.date),
+				"dd.MM.yyyy"
+			)}`,
+		});
+		setExpandedExercises(workoutToCopy.exercises.map((_, index) => index));
+		setShowCopyDialog(false);
+	};
+
+	const formatDate = (dateString: string) => {
+		try {
+			return format(parseISO(dateString), "dd.MM.yyyy");
+		} catch {
+			return dateString;
+		}
+	};
 
 	const addExercise = () => {
 		const newExercises = [
@@ -182,159 +238,137 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	};
 
 	return (
-		<Card sx={{ mb: 3, boxShadow: 3 }}>
-			<CardContent>
-				<Typography
-					variant="h5"
-					gutterBottom
-					sx={{ display: "flex", alignItems: "center", mb: 3 }}
-				>
-					<FitnessCenter sx={{ mr: 1, color: "primary.main" }} />
-					{workout ? "Uredi trening" : "Dodaj novi trening"}
-				</Typography>
-
-				<Collapse in={errors.length > 0}>
-					<Alert severity="error" sx={{ mb: 2 }}>
-						{errors.map((error, index) => (
-							<div key={index}>{error}</div>
-						))}
-					</Alert>
-				</Collapse>
-
-				<form onSubmit={handleSubmit}>
-					<Grid container spacing={3}>
-						<Grid size={{ xs: 12, md: 6 }}>
-							<TextField
-								fullWidth
-								type="date"
-								label="Datum"
-								value={formData.date}
-								onChange={(e) =>
-									setFormData({ ...formData, date: e.target.value })
-								}
-								InputLabelProps={{ shrink: true }}
-								required
-							/>
-						</Grid>
-
-						<Grid size={{ xs: 12, md: 6 }}>
-							<FormControl fullWidth required>
-								<InputLabel>Tip treninga</InputLabel>
-								<Select
-									value={formData.type}
-									label="Tip treninga"
-									onChange={(e) =>
-										setFormData({ ...formData, type: e.target.value })
-									}
-								>
-									{workoutTypes.map((type) => (
-										<MenuItem key={type} value={type}>
-											{type.charAt(0).toUpperCase() + type.slice(1)}
-										</MenuItem>
-									))}
-								</Select>
-							</FormControl>
-						</Grid>
-
-						<Grid size={{ xs: 12 }}>
-							<TextField
-								fullWidth
-								multiline
-								rows={3}
-								label="Napomene"
-								value={formData.notes}
-								onChange={(e) =>
-									setFormData({ ...formData, notes: e.target.value })
-								}
-								placeholder="Kako se osjećaš, napomene o treningu..."
-							/>
-						</Grid>
-
-						<Grid size={{ xs: 12 }}>
-							<FormControlLabel
-								control={
-									<Switch
-										checked={formData.synced}
-										onChange={(e) =>
-											setFormData({ ...formData, synced: e.target.checked })
-										}
-									/>
-								}
-								label="Sinhronizovano"
-							/>
-						</Grid>
-					</Grid>
-
-					<Divider sx={{ my: 3 }} />
-
-					<Box
-						sx={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-							mb: 2,
-						}}
+		<>
+			<Card sx={{ mb: 3, boxShadow: 3 }}>
+				<CardContent>
+					<Typography
+						variant="h5"
+						gutterBottom
+						sx={{ display: "flex", alignItems: "center", mb: 3 }}
 					>
-						<Typography variant="h6">Vježbe</Typography>
-						<Button
-							variant="outlined"
-							startIcon={<Add />}
-							onClick={addExercise}
-							color="primary"
-						>
-							Dodaj vježbu
-						</Button>
-					</Box>
+						<FitnessCenter sx={{ mr: 1, color: "primary.main" }} />
+						{workout ? "Uredi trening" : "Dodaj novi trening"}
+					</Typography>
 
-					{formData.exercises.map((exercise, exerciseIndex) => (
-						<Card
-							key={exerciseIndex}
-							variant="outlined"
+					<Collapse in={errors.length > 0}>
+						<Alert severity="error" sx={{ mb: 2 }}>
+							{errors.map((error, index) => (
+								<div key={index}>{error}</div>
+							))}
+						</Alert>
+					</Collapse>
+
+					<form onSubmit={handleSubmit}>
+						<Grid container spacing={3}>
+							<Grid size={{ xs: 12, md: 6 }}>
+								<TextField
+									fullWidth
+									type="date"
+									label="Datum"
+									value={formData.date}
+									onChange={(e) =>
+										setFormData({ ...formData, date: e.target.value })
+									}
+									InputLabelProps={{ shrink: true }}
+									required
+								/>
+							</Grid>
+
+							<Grid size={{ xs: 12, md: 6 }}>
+								<FormControl fullWidth required>
+									<InputLabel>Tip treninga</InputLabel>
+									<Select
+										value={formData.type}
+										label="Tip treninga"
+										onChange={(e) => handleTypeChange(e.target.value)}
+									>
+										{workoutTypes.map((type) => (
+											<MenuItem key={type} value={type}>
+												{type.charAt(0).toUpperCase() + type.slice(1)}
+											</MenuItem>
+										))}
+									</Select>
+								</FormControl>
+							</Grid>
+
+							<Grid size={{ xs: 12 }}>
+								<TextField
+									fullWidth
+									multiline
+									rows={3}
+									label="Napomene"
+									value={formData.notes}
+									onChange={(e) =>
+										setFormData({ ...formData, notes: e.target.value })
+									}
+									placeholder="Kako se osjećaš, napomene o treningu..."
+								/>
+							</Grid>
+
+							<Grid size={{ xs: 12 }}>
+								<FormControlLabel
+									control={
+										<Switch
+											checked={formData.synced}
+											onChange={(e) =>
+												setFormData({ ...formData, synced: e.target.checked })
+											}
+										/>
+									}
+									label="Sinhronizovano"
+								/>
+							</Grid>
+						</Grid>
+
+						<Divider sx={{ my: 3 }} />
+
+						<Box
 							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
 								mb: 2,
-								border: "2px solid",
-								borderColor: "primary.light",
-								backgroundColor: "background.paper",
+								flexWrap: "wrap",
+								gap: 2,
 							}}
 						>
-							<CardContent>
-								<Box
-									sx={{
-										display: "flex",
-										justifyContent: "space-between",
-										alignItems: "center",
-										mb: 2,
-									}}
+							<Typography variant="h6">Vježbe</Typography>
+							<Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+								{/* Copy dugme - prikazuje se samo za nove treninge i kad je izabran tip */}
+								{!workout && formData.type && availableWorkouts.length > 0 && (
+									<Button
+										variant="outlined"
+										startIcon={<ContentCopy />}
+										onClick={() => setShowCopyDialog(true)}
+										color="secondary"
+										size="small"
+									>
+										Kopiraj prethodni {formData.type.toUpperCase()}
+									</Button>
+								)}
+								<Button
+									variant="outlined"
+									startIcon={<Add />}
+									onClick={addExercise}
+									color="primary"
 								>
-									<TextField
-										label={`Naziv vježbe ${exerciseIndex + 1}`}
-										value={exercise.name || ""} // Eksplicitno "" za kontroliran input
-										onChange={(e) =>
-											updateExercise(exerciseIndex, "name", e.target.value)
-										}
-										sx={{ flexGrow: 1, mr: 2 }}
-										required
-									/>
-									<IconButton
-										onClick={() => toggleExerciseExpansion(exerciseIndex)}
-										color="primary"
-									>
-										{expandedExercises.includes(exerciseIndex) ? (
-											<ExpandLess />
-										) : (
-											<ExpandMore />
-										)}
-									</IconButton>
-									<IconButton
-										onClick={() => removeExercise(exerciseIndex)}
-										color="error"
-									>
-										<Delete />
-									</IconButton>
-								</Box>
+									Dodaj vježbu
+								</Button>
+							</Box>
+						</Box>
 
-								<Collapse in={expandedExercises.includes(exerciseIndex)}>
-									<Divider sx={{ mb: 2 }} />
+						{formData.exercises.map((exercise, exerciseIndex) => (
+							<Card
+								key={exerciseIndex}
+								variant="outlined"
+								sx={{
+									mb: 2,
+									border: "2px solid",
+									borderColor: "primary.light",
+									backgroundColor: "background.paper",
+								}}
+							>
+								<CardContent>
 									<Box
 										sx={{
 											display: "flex",
@@ -343,107 +377,255 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 											mb: 2,
 										}}
 									>
-										<Typography variant="subtitle1">
-											Setovi ({exercise.sets?.length || 0})
-										</Typography>
-										<Button
-											size="small"
-											variant="outlined"
-											startIcon={<Add />}
-											onClick={() => addSet(exerciseIndex)}
+										<TextField
+											label={`Naziv vježbe ${exerciseIndex + 1}`}
+											value={exercise.name || ""} // Eksplicitno "" za kontroliran input
+											onChange={(e) =>
+												updateExercise(exerciseIndex, "name", e.target.value)
+											}
+											sx={{ flexGrow: 1, mr: 2 }}
+											required
+										/>
+										<IconButton
+											onClick={() => toggleExerciseExpansion(exerciseIndex)}
+											color="primary"
 										>
-											Dodaj set
-										</Button>
+											{expandedExercises.includes(exerciseIndex) ? (
+												<ExpandLess />
+											) : (
+												<ExpandMore />
+											)}
+										</IconButton>
+										<IconButton
+											onClick={() => removeExercise(exerciseIndex)}
+											color="error"
+										>
+											<Delete />
+										</IconButton>
 									</Box>
 
-									{(exercise.sets || []).map((set, setIndex) => (
+									<Collapse in={expandedExercises.includes(exerciseIndex)}>
+										<Divider sx={{ mb: 2 }} />
 										<Box
-											key={setIndex}
 											sx={{
 												display: "flex",
+												justifyContent: "space-between",
 												alignItems: "center",
-												gap: 2,
-												mb: 1,
-												p: 2,
-												backgroundColor: "grey.50",
-												borderRadius: 1,
+												mb: 2,
 											}}
 										>
-											<Chip
-												label={`Set ${setIndex + 1}`}
+											<Typography variant="subtitle1">
+												Setovi ({exercise.sets?.length || 0})
+											</Typography>
+											<Button
 												size="small"
-												color="primary"
-											/>
-											<TextField
-												type="number"
-												label="Ponavljanja"
-												value={set.reps || 0} // Default 0 za kontroliran input
-												onChange={(e) =>
-													updateSet(
-														exerciseIndex,
-														setIndex,
-														"reps",
-														parseInt(e.target.value) || 0
-													)
-												}
-												inputProps={{ min: 0 }}
-												sx={{ width: 120 }}
-											/>
-											<TextField
-												type="number"
-												label="Odmor (s)"
-												value={set.rest || 60} // Default 60 za kontroliran input
-												onChange={(e) =>
-													updateSet(
-														exerciseIndex,
-														setIndex,
-														"rest",
-														parseInt(e.target.value) || 0
-													)
-												}
-												inputProps={{ min: 0 }}
-												sx={{ width: 120 }}
-											/>
-											{exercise.sets.length > 1 && (
-												<IconButton
-													size="small"
-													onClick={() => removeSet(exerciseIndex, setIndex)}
-													color="error"
-												>
-													<Delete />
-												</IconButton>
-											)}
+												variant="outlined"
+												startIcon={<Add />}
+												onClick={() => addSet(exerciseIndex)}
+											>
+												Dodaj set
+											</Button>
 										</Box>
-									))}
-								</Collapse>
-							</CardContent>
-						</Card>
-					))}
 
-					<Divider sx={{ my: 3 }} />
+										{(exercise.sets || []).map((set, setIndex) => (
+											<Box
+												key={setIndex}
+												sx={{
+													display: "flex",
+													alignItems: "center",
+													gap: 2,
+													mb: 1,
+													p: 2,
+													backgroundColor: "grey.50",
+													borderRadius: 1,
+												}}
+											>
+												<Chip
+													label={`Set ${setIndex + 1}`}
+													size="small"
+													color="primary"
+												/>
+												<TextField
+													type="number"
+													label="Ponavljanja"
+													value={set.reps || 0} // Default 0 za kontroliran input
+													onChange={(e) =>
+														updateSet(
+															exerciseIndex,
+															setIndex,
+															"reps",
+															parseInt(e.target.value) || 0
+														)
+													}
+													inputProps={{ min: 0 }}
+													sx={{ width: 120 }}
+												/>
+												<TextField
+													type="number"
+													label="Odmor (s)"
+													value={set.rest || 60} // Default 60 za kontroliran input
+													onChange={(e) =>
+														updateSet(
+															exerciseIndex,
+															setIndex,
+															"rest",
+															parseInt(e.target.value) || 0
+														)
+													}
+													inputProps={{ min: 0 }}
+													sx={{ width: 120 }}
+												/>
+												{exercise.sets.length > 1 && (
+													<IconButton
+														size="small"
+														onClick={() => removeSet(exerciseIndex, setIndex)}
+														color="error"
+													>
+														<Delete />
+													</IconButton>
+												)}
+											</Box>
+										))}
+									</Collapse>
+								</CardContent>
+							</Card>
+						))}
 
-					<Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
-						<Button
-							variant="outlined"
-							startIcon={<Cancel />}
-							onClick={onCancel}
-							disabled={isLoading}
-						>
-							Otkaži
-						</Button>
-						<Button
-							type="submit"
-							variant="contained"
-							startIcon={<Save />}
-							disabled={isLoading}
-							size="large"
-						>
-							{isLoading ? "Čuvam..." : "Sačuvaj trening"}
-						</Button>
+						<Divider sx={{ my: 3 }} />
+
+						<Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+							<Button
+								variant="outlined"
+								startIcon={<Cancel />}
+								onClick={onCancel}
+								disabled={isLoading}
+							>
+								Otkaži
+							</Button>
+							<Button
+								type="submit"
+								variant="contained"
+								startIcon={<Save />}
+								disabled={isLoading}
+								size="large"
+							>
+								{isLoading ? "Čuvam..." : "Sačuvaj trening"}
+							</Button>
+						</Box>
+					</form>
+				</CardContent>
+			</Card>
+
+			{/* Copy Dialog */}
+			<Dialog
+				open={showCopyDialog}
+				onClose={() => setShowCopyDialog(false)}
+				maxWidth="sm"
+				fullWidth
+				PaperProps={{
+					sx: { borderRadius: 3 },
+				}}
+			>
+				<DialogTitle>
+					<Box
+						sx={{
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "center",
+						}}
+					>
+						<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+							<ContentCopy color="primary" />
+							<Typography>
+								Kopiraj {formData.type.toUpperCase()} trening
+							</Typography>
+						</Box>
+						<IconButton onClick={() => setShowCopyDialog(false)} size="small">
+							<Close />
+						</IconButton>
 					</Box>
-				</form>
-			</CardContent>
-		</Card>
+				</DialogTitle>
+				<DialogContent>
+					<Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+						Izaberite trening koji želite kopirati. Sve vježbe, setovi i odmor
+						će biti kopirani.
+					</Typography>
+
+					{availableWorkouts.length === 0 ? (
+						<Alert severity="info">
+							Nema prethodnih {formData.type} treninga za kopiranje.
+						</Alert>
+					) : (
+						<List sx={{ maxHeight: 300, overflow: "auto" }}>
+							{availableWorkouts.map((w) => (
+								<ListItemButton
+									key={w._id}
+									onClick={() => copyWorkout(w)}
+									sx={{
+										border: "1px solid",
+										borderColor: "divider",
+										borderRadius: 2,
+										mb: 1,
+										"&:hover": {
+											borderColor: "primary.main",
+											backgroundColor: "primary.50",
+										},
+									}}
+								>
+									<ListItemText
+										primary={
+											<Box
+												sx={{
+													display: "flex",
+													justifyContent: "space-between",
+													alignItems: "center",
+												}}
+											>
+												<Typography fontWeight="medium">
+													{formatDate(w.date)}
+												</Typography>
+												<Chip
+													label={`${w.exercises.length} vježbi`}
+													size="small"
+													color="primary"
+													variant="outlined"
+												/>
+											</Box>
+										}
+										secondary={
+											<Box>
+												<Typography variant="body2" color="textSecondary">
+													{w.exercises
+														.map((e) => e.name)
+														.slice(0, 3)
+														.join(", ")}
+													{w.exercises.length > 3 && "..."}
+												</Typography>
+												<Typography variant="caption" color="textSecondary">
+													Ukupno setova:{" "}
+													{w.exercises.reduce(
+														(total, ex) => total + ex.sets.length,
+														0
+													)}
+												</Typography>
+											</Box>
+										}
+									/>
+								</ListItemButton>
+							))}
+						</List>
+					)}
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2 }}>
+					<Button
+						onClick={() => setShowCopyDialog(false)}
+						sx={{ borderRadius: 2 }}
+					>
+						Otkaži
+					</Button>
+				</DialogActions>
+			</Dialog>
+		</>
 	);
 };
 
