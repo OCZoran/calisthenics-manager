@@ -111,7 +111,10 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 			return workout.exercises.reduce(
 				(total, exercise) =>
 					total +
-					exercise.sets.reduce((setTotal, set) => setTotal + set.reps, 0),
+					exercise.sets.reduce(
+						(setTotal, set) => setTotal + Number(set.reps),
+						0
+					),
 				0
 			);
 		};
@@ -772,7 +775,7 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 																Ukupno:{" "}
 																<strong>
 																	{exercise.sets.reduce(
-																		(total, set) => total + set.reps,
+																		(total, set) => total + Number(set.reps),
 																		0
 																	)}{" "}
 																	ponavljanja

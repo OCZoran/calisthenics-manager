@@ -230,7 +230,18 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							setWorkouts((prev) =>
 								prev.map((w) =>
 									w._id === editingWorkout._id
-										? { ...w, ...formData, updatedAt: new Date() }
+										? {
+												...w,
+												...formData,
+												exercises: formData.exercises.map((ex) => ({
+													...ex,
+													sets: ex.sets.map((set) => ({
+														reps: set.reps.toString(),
+														rest: set.rest.toString(),
+													})),
+												})),
+												updatedAt: new Date(),
+										  }
 										: w
 								)
 							);

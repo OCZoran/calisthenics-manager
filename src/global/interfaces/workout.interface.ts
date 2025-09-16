@@ -1,6 +1,6 @@
 export interface WorkoutSet {
-	reps: number;
-	rest: number;
+	reps: string;
+	rest: string;
 }
 
 export interface Exercise {

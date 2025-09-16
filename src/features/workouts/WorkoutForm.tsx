@@ -120,7 +120,10 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 			...formData,
 			exercises: workoutToCopy.exercises.map((exercise) => ({
 				name: exercise.name,
-				sets: exercise.sets.map((set) => ({ ...set })), // Deep copy setova
+				sets: exercise.sets.map((set) => ({
+					reps: set.reps.toString(), // Promjena: konverzija u string
+					rest: set.rest.toString(), // Promjena: konverzija u string
+				})),
 			})),
 			notes: `Kopirano iz treninga od ${format(
 				parseISO(workoutToCopy.date),
@@ -142,57 +145,32 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	const addExercise = () => {
 		const newExercises = [
 			...formData.exercises,
-			{ name: "", sets: [{ reps: 0, rest: 60 }] },
+			{ name: "", sets: [{ reps: "", rest: "" }] }, // Promjena: prazan string umjesto brojeva
 		];
 		setFormData({ ...formData, exercises: newExercises });
 		setExpandedExercises([...expandedExercises, newExercises.length - 1]);
 	};
 
-	const removeExercise = (index: number) => {
-		const newExercises = formData.exercises.filter((_, i) => i !== index);
-		setFormData({ ...formData, exercises: newExercises });
-		setExpandedExercises(expandedExercises.filter((i) => i !== index));
-	};
-
-	const updateExercise = (index: number, field: string, value: any) => {
-		const newExercises = [...formData.exercises];
-		newExercises[index] = { ...newExercises[index], [field]: value };
-		setFormData({ ...formData, exercises: newExercises });
-	};
-
+	// 2. Ažuriranje addSet funkcije - line oko 120
 	const addSet = (exerciseIndex: number) => {
 		const newExercises = [...formData.exercises];
-		newExercises[exerciseIndex].sets.push({ reps: 0, rest: 60 });
+		newExercises[exerciseIndex].sets.push({ reps: "", rest: "" }); // Promjena: prazan string
 		setFormData({ ...formData, exercises: newExercises });
 	};
 
-	const removeSet = (exerciseIndex: number, setIndex: number) => {
-		const newExercises = [...formData.exercises];
-		newExercises[exerciseIndex].sets = newExercises[exerciseIndex].sets.filter(
-			(_, i) => i !== setIndex
-		);
-		setFormData({ ...formData, exercises: newExercises });
-	};
-
+	// 3. Ažuriranje updateSet funkcije - line oko 130
 	const updateSet = (
 		exerciseIndex: number,
 		setIndex: number,
 		field: "reps" | "rest",
-		value: number
+		value: string // Promjena: string umjesto number
 	) => {
 		const newExercises = [...formData.exercises];
 		newExercises[exerciseIndex].sets[setIndex][field] = value;
 		setFormData({ ...formData, exercises: newExercises });
 	};
 
-	const toggleExerciseExpansion = (index: number) => {
-		if (expandedExercises.includes(index)) {
-			setExpandedExercises(expandedExercises.filter((i) => i !== index));
-		} else {
-			setExpandedExercises([...expandedExercises, index]);
-		}
-	};
-
+	// 4. Ažuriranje validacije - line oko 150
 	const validateForm = () => {
 		const newErrors: string[] = [];
 
@@ -209,12 +187,17 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				newErrors.push(`Vježba ${i + 1} mora imati barem jedan set`);
 			}
 			exercise.sets.forEach((set, j) => {
-				if (set.reps <= 0) {
+				const reps = parseInt(set.reps) || 0; // Konverzija u broj za validaciju
+				const rest = parseInt(set.rest) || 0;
+
+				if (!set.reps || reps <= 0) {
+					// Promjena: provjeri da li je prazan ili ≤ 0
 					newErrors.push(
-						`Set ${j + 1} vježbe ${i + 1} mora imati više od 0 ponavljanja`
+						`Set ${j + 1} vježbe ${i + 1} mora imati broj ponavljanja veći od 0`
 					);
 				}
-				if (set.rest < 0) {
+				if (set.rest && rest < 0) {
+					// Promjena: provjeri samo ako nije prazan
 					newErrors.push(
 						`Set ${j + 1} vježbe ${i + 1} ne može imati negativan odmor`
 					);
@@ -224,6 +207,33 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 
 		setErrors(newErrors);
 		return newErrors.length === 0;
+	};
+	const removeExercise = (index: number) => {
+		const newExercises = formData.exercises.filter((_, i) => i !== index);
+		setFormData({ ...formData, exercises: newExercises });
+		setExpandedExercises(expandedExercises.filter((i) => i !== index));
+	};
+
+	const updateExercise = (index: number, field: string, value: any) => {
+		const newExercises = [...formData.exercises];
+		newExercises[index] = { ...newExercises[index], [field]: value };
+		setFormData({ ...formData, exercises: newExercises });
+	};
+
+	const removeSet = (exerciseIndex: number, setIndex: number) => {
+		const newExercises = [...formData.exercises];
+		newExercises[exerciseIndex].sets = newExercises[exerciseIndex].sets.filter(
+			(_, i) => i !== setIndex
+		);
+		setFormData({ ...formData, exercises: newExercises });
+	};
+
+	const toggleExerciseExpansion = (index: number) => {
+		if (expandedExercises.includes(index)) {
+			setExpandedExercises(expandedExercises.filter((i) => i !== index));
+		} else {
+			setExpandedExercises([...expandedExercises, index]);
+		}
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -448,13 +458,13 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 												<TextField
 													type="number"
 													label="Ponavljanja"
-													value={set.reps || 0} // Default 0 za kontroliran input
+													value={set.reps || ""} // Promjena: prazan string kao fallback
 													onChange={(e) =>
 														updateSet(
 															exerciseIndex,
 															setIndex,
 															"reps",
-															parseInt(e.target.value) || 0
+															e.target.value // Promjena: direktno string vrijednost
 														)
 													}
 													inputProps={{ min: 0 }}
@@ -463,13 +473,13 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 												<TextField
 													type="number"
 													label="Odmor (s)"
-													value={set.rest || 60} // Default 60 za kontroliran input
+													value={set.rest || ""} // Promjena: prazan string kao fallback
 													onChange={(e) =>
 														updateSet(
 															exerciseIndex,
 															setIndex,
 															"rest",
-															parseInt(e.target.value) || 0
+															e.target.value // Promjena: direktno string vrijednost
 														)
 													}
 													inputProps={{ min: 0 }}
