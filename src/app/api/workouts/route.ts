@@ -1,3 +1,5 @@
+/* eslint-disable prefer-const */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { getDatabase } from "@/global/mongodb";
 import jwt from "jsonwebtoken";
@@ -6,6 +8,7 @@ import {
 	Exercise,
 	WorkoutFormData,
 } from "@/global/interfaces/workout.interface";
+import { StatisticsCalculator } from "../progress/route";
 
 async function getUserFromToken(request: Request) {
 	const cookieHeader = request.headers.get("cookie");
@@ -26,14 +29,30 @@ async function getUserFromToken(request: Request) {
 	return decoded;
 }
 
+// Funkcija za pronalaženje aktivnog trening plana
+async function getActiveTrainingPlan(db: any, userId: string) {
+	return await db.collection("trainingPlans").findOne({
+		userId: userId,
+		status: "active",
+	});
+}
+
 export async function GET(request: Request) {
 	try {
 		const user = await getUserFromToken(request);
 		const { db } = await getDatabase();
 
+		const url = new URL(request.url);
+		const planId = url.searchParams.get("planId");
+
+		let query: any = { userId: user.id };
+		if (planId) {
+			query.planId = planId;
+		}
+
 		const workouts = await db
 			.collection("workouts")
-			.find({ userId: user.id })
+			.find(query)
 			.sort({ date: -1, createdAt: -1 })
 			.toArray();
 
@@ -48,11 +67,11 @@ export async function GET(request: Request) {
 }
 
 // POST - Create new workout
-// POST - Create new workout
 export async function POST(request: Request) {
 	try {
 		const user = await getUserFromToken(request);
-		const workoutData: Omit<WorkoutFormData, "userId"> = await request.json();
+		const workoutData: Omit<WorkoutFormData, "userId"> & { planId?: string } =
+			await request.json();
 
 		// Basic validation
 		if (!workoutData.date || !workoutData.type || !workoutData.exercises) {
@@ -68,7 +87,18 @@ export async function POST(request: Request) {
 			);
 		}
 
-		// Sanitization & validation of sets (convert strings to numbers, weight -> number | null)
+		const { db } = await getDatabase();
+
+		// Ako planId nije proslijeđen, pokušaj pronaći aktivni plan
+		let planId = workoutData.planId;
+		if (!planId) {
+			const activePlan = await getActiveTrainingPlan(db, user.id);
+			if (activePlan) {
+				planId = activePlan._id.toString();
+			}
+		}
+
+		// Sanitization & validation of sets
 		const sanitizeExercises = (exs: any[]) =>
 			exs.map((ex) => ({
 				name: ex.name,
@@ -112,8 +142,6 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: errorMessage }, { status: 400 });
 		}
 
-		const { db } = await getDatabase();
-
 		const workout = {
 			date: workoutData.date,
 			type: workoutData.type,
@@ -121,15 +149,33 @@ export async function POST(request: Request) {
 			synced: workoutData.synced ?? true,
 			exercises: sanitizedExercises,
 			userId: user.id,
+			planId: planId || null,
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		};
 
 		const result = await db.collection("workouts").insertOne(workout);
+		const insertedWorkout = { ...workout, _id: result.insertedId };
+
+		// Kreiranje statistika samo ako je workout dio plana
+		if (planId) {
+			try {
+				const workoutStats = StatisticsCalculator.calculateWorkoutStats(
+					insertedWorkout,
+					planId
+				);
+				await StatisticsCalculator.saveWorkoutStatistics(db, workoutStats);
+				console.log("Workout statistics created successfully");
+			} catch (statsError) {
+				console.error("Error creating workout statistics:", statsError);
+				// Ne prekidamo proces ako statistike ne uspiju, samo logujemo grešku
+			}
+		}
 
 		return NextResponse.json({
 			message: "Workout created successfully",
 			workoutId: result.insertedId,
+			planId: planId,
 		});
 	} catch (error) {
 		console.error("Error creating workout:", error);
@@ -151,6 +197,18 @@ export async function PUT(request: Request) {
 				{ error: "Workout ID is required" },
 				{ status: 400 }
 			);
+		}
+
+		const { db } = await getDatabase();
+
+		// Pronađi postojeći workout da bismo dobili planId
+		const existingWorkout = await db.collection("workouts").findOne({
+			_id: new ObjectId(workoutId),
+			userId: user.id,
+		});
+
+		if (!existingWorkout) {
+			return NextResponse.json({ error: "Workout not found" }, { status: 404 });
 		}
 
 		if (updateData.exercises) {
@@ -200,8 +258,6 @@ export async function PUT(request: Request) {
 			}
 		}
 
-		const { db } = await getDatabase();
-
 		const result = await db.collection("workouts").updateOne(
 			{
 				_id: new ObjectId(workoutId),
@@ -217,6 +273,28 @@ export async function PUT(request: Request) {
 
 		if (result.matchedCount === 0) {
 			return NextResponse.json({ error: "Workout not found" }, { status: 404 });
+		}
+
+		// Ažuriraj statistike ako je workout dio plana i ako su vježbe ažurirane
+		if (existingWorkout.planId && (updateData.exercises || updateData.date)) {
+			try {
+				// Dobij ažurirani workout
+				const updatedWorkout = await db.collection("workouts").findOne({
+					_id: new ObjectId(workoutId),
+					userId: user.id,
+				});
+
+				if (updatedWorkout) {
+					const workoutStats = StatisticsCalculator.calculateWorkoutStats(
+						updatedWorkout,
+						existingWorkout.planId
+					);
+					await StatisticsCalculator.saveWorkoutStatistics(db, workoutStats);
+					console.log("Workout statistics updated successfully");
+				}
+			} catch (statsError) {
+				console.error("Error updating workout statistics:", statsError);
+			}
 		}
 
 		return NextResponse.json({
@@ -245,6 +323,12 @@ export async function DELETE(request: Request) {
 		}
 
 		const { db } = await getDatabase();
+
+		// Prvo obriši povezane statistike
+		await db.collection("workoutStatistics").deleteMany({
+			workoutId: workoutId,
+			userId: user.id,
+		});
 
 		const result = await db.collection("workouts").deleteOne({
 			_id: new ObjectId(workoutId),

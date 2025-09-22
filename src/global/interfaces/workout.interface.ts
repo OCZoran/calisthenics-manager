@@ -19,6 +19,7 @@ export interface Workout {
 	exercises: Exercise[];
 	createdAt?: Date;
 	updatedAt?: Date;
+	planId?: string;
 }
 
 export interface WorkoutFormData {

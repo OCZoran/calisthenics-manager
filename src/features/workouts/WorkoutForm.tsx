@@ -26,7 +26,6 @@ import {
 	DialogContent,
 	DialogActions,
 	List,
-	ListItem,
 	ListItemText,
 	ListItemButton,
 	InputAdornment,
@@ -48,6 +47,7 @@ import {
 } from "@mui/icons-material";
 import { format, parseISO } from "date-fns";
 import { Workout } from "@/global/interfaces/workout.interface";
+import { TrainingPlan } from "@/global/interfaces/training-plan.interface";
 
 interface WorkoutFormProps {
 	workout?: Workout;
@@ -55,6 +55,8 @@ interface WorkoutFormProps {
 	onCancel: () => void;
 	isLoading?: boolean;
 	workouts: Workout[];
+	trainingPlans?: TrainingPlan[];
+	activePlanId?: string;
 }
 
 const workoutTypes = [
@@ -74,18 +76,20 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	onCancel,
 	isLoading = false,
 	workouts = [],
+	trainingPlans = [],
+	activePlanId,
 }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-	const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
-	// Updated initial state with weight field
+	// Updated initial state with planId
 	const [formData, setFormData] = useState({
 		date: workout?.date || new Date().toISOString().split("T")[0],
 		type: workout?.type || "",
 		notes: workout?.notes || "",
 		synced: workout?.synced ?? true,
 		exercises: workout?.exercises || [],
+		planId: workout?.planId || activePlanId || "",
 	});
 
 	const [errors, setErrors] = useState<string[]>([]);
@@ -101,10 +105,11 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				notes: workout.notes || "",
 				synced: workout.synced ?? true,
 				exercises: workout.exercises || [],
+				planId: workout.planId || activePlanId || "",
 			});
 			setExpandedExercises(workout.exercises?.map((_, index) => index) || []);
 		}
-	}, [workout]);
+	}, [workout, activePlanId]);
 
 	useEffect(() => {
 		if (formData.type && !workout) {
@@ -121,6 +126,10 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		setFormData({ ...formData, type: newType });
 	};
 
+	const handlePlanChange = (newPlanId: string) => {
+		setFormData({ ...formData, planId: newPlanId });
+	};
+
 	const copyWorkout = (workoutToCopy: Workout) => {
 		setFormData({
 			...formData,
@@ -129,7 +138,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				sets: exercise.sets.map((set) => ({
 					reps: set.reps.toString(),
 					rest: set.rest.toString(),
-					weight: set.weight?.toString() || "", // Handle optional weight
+					weight: set.weight?.toString() || "",
 				})),
 			})),
 			notes: `Kopirano iz treninga od ${format(
@@ -162,7 +171,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		const newExercises = [...formData.exercises];
 		const currentExercise = newExercises[exerciseIndex];
 
-		// Ako postoji prethodni set, kopiraj njegove vrednosti
 		let newSet = { reps: "", rest: "", weight: "" };
 
 		if (currentExercise.sets.length > 0) {
@@ -269,6 +277,11 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 			console.error("Error submitting workout:", error);
 		}
 	};
+
+	const activePlan = trainingPlans.find((plan) => plan.status === "active");
+	const availablePlans = trainingPlans.filter(
+		(plan) => plan.status === "active" || plan._id === formData.planId
+	);
 
 	return (
 		<>
@@ -492,7 +505,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 													</Box>
 
 													<Grid container spacing={1.5} alignItems="center">
-														{/* Reps field */}
 														<Grid size={{ xs: 6, sm: 4, md: 3 }}>
 															<TextField
 																fullWidth
@@ -513,7 +525,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 															/>
 														</Grid>
 
-														{/* Weight field - optional */}
 														<Grid size={{ xs: 6, sm: 4, md: 3 }}>
 															<TextField
 																fullWidth
@@ -548,7 +559,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 															/>
 														</Grid>
 
-														{/* Rest field */}
 														<Grid size={{ xs: 8, sm: 4, md: 3 }}>
 															<TextField
 																fullWidth
@@ -568,7 +578,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 															/>
 														</Grid>
 
-														{/* Delete button */}
 														<Grid size={{ xs: 4, sm: 12, md: 3 }}>
 															<Box
 																sx={{
@@ -603,7 +612,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 														</Grid>
 													</Grid>
 
-													{/* Set summary for mobile */}
 													{isMobile && (
 														<Box
 															sx={{

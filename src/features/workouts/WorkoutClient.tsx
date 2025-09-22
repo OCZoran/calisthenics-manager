@@ -14,12 +14,21 @@ import {
 	Badge,
 	IconButton,
 } from "@mui/material";
-import { Add, KeyboardArrowUp, WifiOff, Wifi, Sync } from "@mui/icons-material";
+import {
+	Add,
+	KeyboardArrowUp,
+	WifiOff,
+	Wifi,
+	Sync,
+	Timeline,
+} from "@mui/icons-material";
 import { Workout } from "@/global/interfaces/workout.interface";
 import WorkoutList from "./WorkoutList";
 import WorkoutForm from "./WorkoutForm";
 import { useOfflineWorkouts } from "@/features/OfflineManager";
 import axiosInstance from "@/services/axios-public.instance";
+import { TrainingPlan } from "@/global/interfaces/training-plan.interface";
+import TrainingPlans from "./TrainingPlan";
 
 interface WorkoutClientProps {
 	initialWorkouts: Workout[];
@@ -41,6 +50,7 @@ function HideOnScroll({ children }: HideOnScrollProps) {
 const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	const [workouts, setWorkouts] = useState<Workout[]>(initialWorkouts);
 	const [showForm, setShowForm] = useState(false);
+	const [showPlanManager, setShowPlanManager] = useState(false); // New state for plan management
 	const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isSyncing, setIsSyncing] = useState(false);
@@ -49,6 +59,8 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		message: string;
 		severity: "success" | "error" | "warning";
 	}>({ open: false, message: "", severity: "success" });
+	const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>([]);
+	const [activePlan, setActivePlan] = useState<TrainingPlan | null>(null);
 
 	const {
 		isOnline,
@@ -59,6 +71,28 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		onSyncComplete,
 		updateOfflineWorkout,
 	} = useOfflineWorkouts();
+
+	// Load training plans
+	useEffect(() => {
+		fetchTrainingPlans();
+	}, []);
+
+	const fetchTrainingPlans = async () => {
+		try {
+			const response = await axiosInstance.get("/api/training-plans", {
+				withCredentials: true,
+			});
+			setTrainingPlans(response.data.plans || []);
+
+			// Set active plan
+			const active = response.data.plans?.find(
+				(p: TrainingPlan) => p.status === "active"
+			);
+			setActivePlan(active || null);
+		} catch (error) {
+			console.error("Error fetching training plans:", error);
+		}
+	};
 
 	useEffect(() => {
 		const unregister = onSyncComplete(() => {
@@ -139,6 +173,12 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	};
 
 	const handleAddWorkout = () => {
+		if (!activePlan) {
+			setShowPlanManager(true);
+			showSnackbar("Potrebno je prvo kreirati trening plan", "warning");
+			return;
+		}
+
 		setEditingWorkout(null);
 		setShowForm(true);
 		window.scrollTo({ top: 0, behavior: "smooth" });
@@ -153,6 +193,31 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	const handleCancelForm = () => {
 		setShowForm(false);
 		setEditingWorkout(null);
+	};
+
+	const handleCreatePlan = () => {
+		setShowPlanManager(true);
+	};
+
+	const handleCreateWorkout = () => {
+		if (!activePlan) {
+			setShowPlanManager(true);
+			showSnackbar("Potrebno je prvo kreirati aktivni trening plan", "warning");
+			return;
+		}
+		handleAddWorkout();
+	};
+
+	const handlePlanSelect = (planId: string | null) => {
+		// Refresh training plans when a plan is selected/deselected
+		fetchTrainingPlans();
+	};
+
+	const handleClosePlanManager = () => {
+		setShowPlanManager(false);
+		// Refresh plans and workouts after closing plan manager
+		fetchTrainingPlans();
+		refreshWorkouts();
 	};
 
 	// Manualni sync
@@ -371,6 +436,48 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		);
 	};
 
+	// If showing plan manager, render it
+	if (showPlanManager) {
+		return (
+			<Box>
+				<ConnectionStatus />
+
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+						mb: 4,
+					}}
+				>
+					<Box>
+						<Typography
+							variant="h3"
+							component="h1"
+							gutterBottom
+							fontWeight="bold"
+						>
+							Trening planovi
+						</Typography>
+						<Typography variant="subtitle1" color="textSecondary">
+							Upravljajte svojim trening planovima
+						</Typography>
+					</Box>
+
+					<Button
+						variant="outlined"
+						onClick={handleClosePlanManager}
+						size="large"
+					>
+						Nazad na treninge
+					</Button>
+				</Box>
+
+				<TrainingPlans onPlanSelect={handlePlanSelect} />
+			</Box>
+		);
+	}
+
 	return (
 		<Box>
 			<ConnectionStatus />
@@ -398,27 +505,42 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				</Box>
 
 				{!showForm && (
-					<Badge badgeContent={pendingWorkouts.length} color="warning">
+					<Box sx={{ display: "flex", gap: 2 }}>
 						<Button
-							variant="contained"
-							startIcon={<Add />}
-							onClick={handleAddWorkout}
+							variant="outlined"
+							startIcon={<Timeline />}
+							onClick={handleCreatePlan}
 							size="large"
 							sx={{
 								px: 3,
 								py: 1.5,
 								fontSize: "1.1rem",
-								boxShadow: 3,
-								"&:hover": {
-									boxShadow: 6,
-									transform: "translateY(-2px)",
-								},
-								transition: "all 0.2s ease-in-out",
 							}}
 						>
-							Dodaj trening
+							Planovi
 						</Button>
-					</Badge>
+						<Badge badgeContent={pendingWorkouts.length} color="warning">
+							<Button
+								variant="contained"
+								startIcon={<Add />}
+								onClick={handleAddWorkout}
+								size="large"
+								sx={{
+									px: 3,
+									py: 1.5,
+									fontSize: "1.1rem",
+									boxShadow: 3,
+									"&:hover": {
+										boxShadow: 6,
+										transform: "translateY(-2px)",
+									},
+									transition: "all 0.2s ease-in-out",
+								}}
+							>
+								Dodaj trening
+							</Button>
+						</Badge>
+					</Box>
 				)}
 			</Box>
 
@@ -437,7 +559,11 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 					workouts={workouts}
 					onEdit={handleEditWorkout}
 					onDelete={handleDeleteWorkout}
-					isLoading={false}
+					onCreateWorkout={handleCreateWorkout}
+					onCreatePlan={handleCreatePlan}
+					trainingPlans={trainingPlans}
+					activePlan={activePlan}
+					isLoading={isLoading}
 				/>
 			)}
 

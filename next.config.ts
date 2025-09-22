@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-	// PWA konfiguracija
+	turbopack: false,
 	headers: async () => {
 		return [
 			{

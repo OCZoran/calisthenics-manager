@@ -50,14 +50,23 @@ import {
 	SwipeLeft,
 	SwipeRight,
 	MonitorWeight,
+	Add,
+	Timeline,
+	Warning,
 } from "@mui/icons-material";
 import { format, parseISO } from "date-fns";
 import { Workout } from "@/global/interfaces/workout.interface";
+import { TrainingPlan } from "@/global/interfaces/training-plan.interface";
+import WorkoutStatisticsDashboard from "./WorkoutStatisticsDashboard";
 
 interface WorkoutListProps {
 	workouts: Workout[];
 	onEdit: (workout: Workout) => void;
 	onDelete: (workoutId: string) => Promise<void>;
+	onCreateWorkout?: () => void;
+	onCreatePlan?: () => void;
+	trainingPlans?: TrainingPlan[];
+	activePlan?: TrainingPlan | null;
 	isLoading?: boolean;
 }
 
@@ -79,6 +88,10 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 	workouts,
 	onEdit,
 	onDelete,
+	onCreateWorkout,
+	onCreatePlan,
+	trainingPlans = [],
+	activePlan,
 	isLoading = false,
 }) => {
 	const theme = useTheme();
@@ -96,6 +109,10 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 	const [sortBy, setSortBy] = useState<SortOption>("date-desc");
 	const [filterBy, setFilterBy] = useState<FilterOption>("all");
 	const [showFilters, setShowFilters] = useState(false);
+
+	// Check if user has any training plans
+	const hasTrainingPlans = trainingPlans.length > 0;
+	const hasActivePlan = activePlan !== null;
 
 	// Memoized calculations for performance
 	const getTotalSets = useMemo(() => {
@@ -269,6 +286,208 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 		</Stack>
 	);
 
+	// Render empty state with proper call-to-action
+	const renderEmptyState = () => {
+		// No training plans at all
+		if (!hasTrainingPlans) {
+			return (
+				<Card
+					sx={{
+						textAlign: "center",
+						py: 6,
+						border: "2px dashed",
+						borderColor: "warning.light",
+						backgroundColor: "warning.50",
+					}}
+				>
+					<CardContent>
+						<Zoom in timeout={500}>
+							<Timeline sx={{ fontSize: 64, color: "warning.main", mb: 2 }} />
+						</Zoom>
+						<Fade in timeout={800}>
+							<Typography
+								variant="h5"
+								color="warning.dark"
+								gutterBottom
+								fontWeight="bold"
+							>
+								Potreban vam je trening plan
+							</Typography>
+						</Fade>
+						<Fade in timeout={1000}>
+							<Typography
+								variant="body1"
+								color="text.secondary"
+								sx={{ mb: 3, maxWidth: 500, mx: "auto" }}
+							>
+								Da biste dodali treninge, prvo morate kreirati trening plan.
+								Plan vam pomaže da organizujete treninge i pratite napredak.
+							</Typography>
+						</Fade>
+						<Fade in timeout={1200}>
+							<Box
+								sx={{
+									display: "flex",
+									gap: 2,
+									justifyContent: "center",
+									flexDirection: { xs: "column", sm: "row" },
+								}}
+							>
+								<Button
+									variant="contained"
+									size="large"
+									startIcon={<Timeline />}
+									onClick={onCreatePlan}
+									sx={{
+										minWidth: 200,
+										bgcolor: "warning.main",
+										"&:hover": { bgcolor: "warning.dark" },
+									}}
+								>
+									Kreiraj trening plan
+								</Button>
+							</Box>
+						</Fade>
+					</CardContent>
+				</Card>
+			);
+		}
+
+		// Has plans but no active plan
+		if (hasTrainingPlans && !hasActivePlan) {
+			return (
+				<Card
+					sx={{
+						textAlign: "center",
+						py: 6,
+						border: "2px dashed",
+						borderColor: "info.light",
+						backgroundColor: "info.50",
+					}}
+				>
+					<CardContent>
+						<Zoom in timeout={500}>
+							<Warning sx={{ fontSize: 64, color: "info.main", mb: 2 }} />
+						</Zoom>
+						<Fade in timeout={800}>
+							<Typography
+								variant="h5"
+								color="info.dark"
+								gutterBottom
+								fontWeight="bold"
+							>
+								Nema aktivnog plana
+							</Typography>
+						</Fade>
+						<Fade in timeout={1000}>
+							<Typography
+								variant="body1"
+								color="text.secondary"
+								sx={{ mb: 3, maxWidth: 500, mx: "auto" }}
+							>
+								Imate {trainingPlans.length} trening plan
+								{trainingPlans.length > 1 ? "ova" : ""}, ali nijedan nije
+								aktivan. Aktivirajte postojeći plan ili kreirajte novi.
+							</Typography>
+						</Fade>
+						<Fade in timeout={1200}>
+							<Box
+								sx={{
+									display: "flex",
+									gap: 2,
+									justifyContent: "center",
+									flexDirection: { xs: "column", sm: "row" },
+								}}
+							>
+								<Button
+									variant="contained"
+									size="large"
+									startIcon={<Add />}
+									onClick={onCreatePlan}
+									sx={{ minWidth: 200 }}
+								>
+									Kreiraj novi plan
+								</Button>
+								<Button
+									variant="outlined"
+									size="large"
+									startIcon={<Timeline />}
+									onClick={() => {
+										/* Otvori listu postojećih planova */
+									}}
+								>
+									Pogledaj postojeće planove
+								</Button>
+							</Box>
+						</Fade>
+					</CardContent>
+				</Card>
+			);
+		}
+
+		// Has active plan but no workouts
+		return (
+			<Card
+				sx={{
+					textAlign: "center",
+					py: 6,
+					border: "2px dashed",
+					borderColor: "success.light",
+					backgroundColor: "success.50",
+				}}
+			>
+				<CardContent>
+					<Zoom in timeout={500}>
+						<FitnessCenter
+							sx={{ fontSize: 64, color: "success.main", mb: 2 }}
+						/>
+					</Zoom>
+					<Fade in timeout={800}>
+						<Typography
+							variant="h5"
+							color="success.dark"
+							gutterBottom
+							fontWeight="bold"
+						>
+							Spremni za prvi trening?
+						</Typography>
+					</Fade>
+					<Fade in timeout={1000}>
+						<>
+							<Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+								Odlično! Imate aktivan plan:
+							</Typography>
+							<Chip
+								label={activePlan?.name || "Aktivni plan"}
+								color="success"
+								variant="filled"
+								sx={{ mb: 2, fontSize: "1rem", py: 2 }}
+							/>
+							<Typography
+								variant="body1"
+								color="text.secondary"
+								sx={{ mb: 3, maxWidth: 500, mx: "auto" }}
+							>
+								Sada možete dodati svoj prvi trening i početi praćenje napretka.
+							</Typography>
+						</>
+					</Fade>
+					<Fade in timeout={1200}>
+						<Button
+							variant="contained"
+							size="large"
+							startIcon={<Add />}
+							onClick={onCreateWorkout}
+							sx={{ minWidth: 200 }}
+						>
+							Dodaj prvi trening
+						</Button>
+					</Fade>
+				</CardContent>
+			</Card>
+		);
+	};
+
 	if (isLoading) {
 		return (
 			<Box>
@@ -287,36 +506,67 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 
 	if (workouts.length === 0) {
 		return (
-			<Card
-				sx={{
-					textAlign: "center",
-					py: 6,
-					border: "1px solid",
-					borderColor: "divider",
-				}}
-			>
-				<CardContent>
-					<Zoom in timeout={500}>
-						<FitnessCenter sx={{ fontSize: 64, color: "grey.400", mb: 2 }} />
-					</Zoom>
-					<Fade in timeout={800}>
-						<Typography variant="h6" color="textSecondary" gutterBottom>
-							Nema treninga
-						</Typography>
-					</Fade>
-					<Fade in timeout={1000}>
-						<Typography variant="body2" color="textSecondary">
-							Dodajte svoj prvi trening da biste počeli praćenje.
-						</Typography>
-					</Fade>
-				</CardContent>
-			</Card>
+			<Box>
+				<Typography
+					variant="h5"
+					gutterBottom
+					sx={{ mb: 3, display: "flex", alignItems: "center" }}
+				>
+					<FitnessCenter sx={{ mr: 1, color: "primary.main" }} />
+					Moji treninzi
+				</Typography>
+
+				{/* Status Alert */}
+				{hasActivePlan && (
+					<Alert severity="success" sx={{ mb: 2 }} icon={<Timeline />}>
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								flexWrap: "wrap",
+								gap: 1,
+							}}
+						>
+							<Box>
+								<Typography variant="subtitle2" fontWeight="bold">
+									Aktivan plan: {activePlan?.name}
+								</Typography>
+								<Typography variant="body2">
+									Startovao:{" "}
+									{activePlan?.startDate
+										? formatDate(activePlan.startDate)
+										: "N/A"}
+								</Typography>
+							</Box>
+							{onCreateWorkout && (
+								<Button
+									variant="contained"
+									size="small"
+									startIcon={<Add />}
+									onClick={onCreateWorkout}
+									sx={{
+										bgcolor: "success.main",
+										"&:hover": { bgcolor: "success.dark" },
+									}}
+								>
+									Dodaj trening
+								</Button>
+							)}
+						</Box>
+					</Alert>
+				)}
+
+				{renderEmptyState()}
+			</Box>
 		);
 	}
 
+	// Regular workout list when there are workouts
 	return (
 		<>
 			<Box>
+				<WorkoutStatisticsDashboard />
 				{/* Header with improved spacing */}
 				<Box
 					sx={{
@@ -336,14 +586,56 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 						Moji treninzi ({filteredAndSortedWorkouts.length})
 					</Typography>
 
-					<IconButton
-						onClick={() => setShowFilters(!showFilters)}
-						color={showFilters ? "primary" : "default"}
-						aria-label="Prikaži filtere"
-					>
-						<FilterList />
-					</IconButton>
+					<Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+						{onCreateWorkout && hasActivePlan && (
+							<Button
+								variant="contained"
+								startIcon={<Add />}
+								onClick={onCreateWorkout}
+								size={isMobile ? "small" : "medium"}
+							>
+								Dodaj trening
+							</Button>
+						)}
+						<IconButton
+							onClick={() => setShowFilters(!showFilters)}
+							color={showFilters ? "primary" : "default"}
+							aria-label="Prikaži filtere"
+						>
+							<FilterList />
+						</IconButton>
+					</Box>
 				</Box>
+
+				{/* Active Plan Info */}
+				{hasActivePlan && (
+					<Alert severity="info" sx={{ mb: 2 }}>
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								flexWrap: "wrap",
+								gap: 1,
+							}}
+						>
+							<Box>
+								<Typography variant="subtitle2" fontWeight="bold">
+									Aktivni plan: {activePlan?.name}
+								</Typography>
+								<Typography variant="body2">
+									{activePlan?.description || "Nema opisa"}
+								</Typography>
+							</Box>
+							<Chip
+								label="AKTIVAN"
+								color="success"
+								size="small"
+								icon={<Timeline />}
+							/>
+						</Box>
+					</Alert>
+				)}
 
 				{/* Enhanced Filters Toolbar */}
 				<Collapse in={showFilters} timeout={300}>
