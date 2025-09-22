@@ -50,7 +50,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		severity: "success" | "error" | "warning";
 	}>({ open: false, message: "", severity: "success" });
 
-	// Koristi offline hook
 	const {
 		isOnline,
 		pendingWorkouts,
@@ -58,10 +57,9 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		manualSync,
 		isClient,
 		onSyncComplete,
-		updateOfflineWorkout, // Dodaj ovu funkciju
+		updateOfflineWorkout,
 	} = useOfflineWorkouts();
 
-	// Registruj callback za kada se završi sync
 	useEffect(() => {
 		const unregister = onSyncComplete(() => {
 			console.log("Sync završen - refreshujemo workouts");
@@ -72,22 +70,19 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// Dodaj offline workouts u listu kada se učitaju
 	useEffect(() => {
 		if (pendingWorkouts.length > 0 && isClient) {
 			console.log("Dodajem offline workouts u listu:", pendingWorkouts);
 
-			// Kreiraj workout objekte iz pending workouts
 			const offlineWorkouts: Workout[] = pendingWorkouts.map((pending) => ({
 				_id: pending.id,
-				userId: pending.id, // Koristimo temporary ID
+				userId: pending.id,
 				...pending.data,
 				createdAt: new Date(pending.timestamp),
 				updatedAt: new Date(pending.timestamp),
-				synced: false, // Označava da nije sinhronizovano
+				synced: false,
 			}));
 
-			// Dodaj ih na početak liste ali samo ako već nisu tu
 			setWorkouts((prev) => {
 				const existingIds = new Set(prev.map((w) => w._id));
 				const newWorkouts = offlineWorkouts.filter(
@@ -150,7 +145,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	};
 
 	const handleEditWorkout = (workout: Workout) => {
-		// Dozvoli editovanje i offline workouts
 		setEditingWorkout(workout);
 		setShowForm(true);
 		window.scrollTo({ top: 0, behavior: "smooth" });
@@ -169,7 +163,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		}
 
 		if (pendingWorkouts.length === 0) {
-			// showSnackbar("Nema treninga za sinhronizaciju", "info");
 			return;
 		}
 
@@ -204,9 +197,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			setIsLoading(true);
 			try {
 				if (editingWorkout) {
-					// EDIT workout
 					if (editingWorkout.synced && isOnline) {
-						// Sinhronizovan workout - normalno slanje na server
 						await axiosInstance.put("/api/workouts", {
 							workoutId: editingWorkout._id,
 							...formData,
@@ -215,7 +206,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 						await refreshWorkouts();
 						showSnackbar("Trening je uspešno ažuriran!", "success");
 					} else if (!editingWorkout.synced) {
-						// Offline workout - ažuriraj u localStorage
 						if (!editingWorkout._id) {
 							showSnackbar(
 								"Greška: Nedostaje ID treninga za offline ažuriranje",
@@ -226,7 +216,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 						const success = updateOfflineWorkout(editingWorkout._id, formData);
 
 						if (success) {
-							// Ažuriraj lokalnu listu
 							setWorkouts((prev) =>
 								prev.map((w) =>
 									w._id === editingWorkout._id
@@ -251,7 +240,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							return;
 						}
 					} else {
-						// Offline mode ali trening je sinhronizovan
 						showSnackbar(
 							"Editovanje sinhronizovanih treninga nije dostupno offline",
 							"warning"
@@ -259,7 +247,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 						return;
 					}
 				} else {
-					// NOVI workout ide kroz offline hook
 					const result = await submitWorkout(formData);
 
 					if (result.offline) {
@@ -296,7 +283,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			const workout = workouts.find((w) => w._id === workoutId);
 
 			if (workout && !workout.synced) {
-				// Brisanje offline workout-a
 				try {
 					const storedPending = localStorage.getItem("pendingWorkouts");
 					if (storedPending) {
@@ -344,7 +330,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		window.scrollTo({ top: 0, behavior: "smooth" });
 	};
 
-	// Online/Offline status indicator
 	const ConnectionStatus = () => {
 		if (!isClient) return null;
 
@@ -388,10 +373,8 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 	return (
 		<Box>
-			{/* Connection Status */}
 			<ConnectionStatus />
 
-			{/* Header */}
 			<Box
 				sx={{
 					display: "flex",
@@ -439,7 +422,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				)}
 			</Box>
 
-			{/* Workout Form */}
 			{showForm && (
 				<WorkoutForm
 					workout={editingWorkout || undefined}
@@ -450,7 +432,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				/>
 			)}
 
-			{/* Workout List */}
 			{!showForm && (
 				<WorkoutList
 					workouts={workouts}
@@ -460,7 +441,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				/>
 			)}
 
-			{/* Floating Action Button for Add */}
 			{!showForm && (
 				<HideOnScroll>
 					<Badge badgeContent={pendingWorkouts.length} color="warning">
@@ -487,7 +467,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				</HideOnScroll>
 			)}
 
-			{/* Scroll to top button */}
 			<Fab
 				size="medium"
 				color="secondary"
@@ -509,7 +488,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				<KeyboardArrowUp />
 			</Fab>
 
-			{/* Snackbar for notifications */}
 			<Snackbar
 				open={snackbar.open}
 				autoHideDuration={6000}
