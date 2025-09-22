@@ -49,6 +49,7 @@ import {
 	Sort,
 	SwipeLeft,
 	SwipeRight,
+	MonitorWeight,
 } from "@mui/icons-material";
 import { format, parseISO } from "date-fns";
 import { Workout } from "@/global/interfaces/workout.interface";
@@ -113,6 +114,20 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 					total +
 					exercise.sets.reduce(
 						(setTotal, set) => setTotal + Number(set.reps),
+						0
+					),
+				0
+			);
+		};
+	}, []);
+
+	const getTotalWeight = useMemo(() => {
+		return (workout: Workout) => {
+			return workout.exercises.reduce(
+				(total, exercise) =>
+					total +
+					exercise.sets.reduce(
+						(setTotal, set) => setTotal + (Number(set.weight) || 0),
 						0
 					),
 				0
@@ -559,6 +574,19 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 															"&:hover": { backgroundColor: "secondary.50" },
 														}}
 													/>
+													{getTotalWeight(workout) > 0 && (
+														<Chip
+															icon={<MonitorWeight />}
+															label={`${getTotalWeight(workout)}kg`}
+															size="small"
+															variant="outlined"
+															color="success"
+															sx={{
+																transition: "all 0.2s",
+																"&:hover": { backgroundColor: "success.50" },
+															}}
+														/>
+													)}
 												</Box>
 											</Grid>
 
@@ -746,7 +774,9 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 																	<Grid key={setIndex}>
 																		<Zoom in timeout={1000 + setIndex * 100}>
 																			<Chip
-																				label={`${set.reps} x ${set.rest}s`}
+																				label={`${set.reps}${
+																					set.weight ? ` × ${set.weight}kg` : ""
+																				} | ${set.rest}s`}
 																				size="small"
 																				variant="outlined"
 																				sx={{
@@ -781,6 +811,19 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 																	ponavljanja
 																</strong>{" "}
 																u <strong>{exercise.sets.length} setova</strong>
+																{exercise.sets.some((set) => set.weight) && (
+																	<>
+																		{" • "}
+																		<strong>
+																			{exercise.sets.reduce(
+																				(total, set) =>
+																					total + (Number(set.weight) || 0),
+																				0
+																			)}
+																			kg ukupno
+																		</strong>
+																	</>
+																)}
 															</Typography>
 														</CardContent>
 													</Card>
@@ -836,6 +879,29 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 															{getTotalReps(workout)}
 														</Typography>
 													</Grid>
+													{getTotalWeight(workout) > 0 && (
+														<Grid size={{ xs: 6, sm: 3 }}>
+															<Typography
+																variant="caption"
+																color="textSecondary"
+															>
+																Ukupna težina
+															</Typography>
+															<Typography
+																variant="h6"
+																color="success.main"
+																fontWeight="bold"
+																sx={{
+																	display: "flex",
+																	alignItems: "center",
+																	gap: 0.5,
+																}}
+															>
+																<MonitorWeight sx={{ fontSize: 20 }} />
+																{getTotalWeight(workout)}kg
+															</Typography>
+														</Grid>
+													)}
 													<Grid size={{ xs: 6, sm: 3 }}>
 														<Typography variant="caption" color="textSecondary">
 															Status
@@ -910,9 +976,10 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 				}
 				maxWidth="sm"
 				fullWidth
+				fullScreen={isMobile}
 				PaperProps={{
 					sx: {
-						borderRadius: 3,
+						borderRadius: isMobile ? 0 : 3,
 					},
 				}}
 			>
@@ -983,6 +1050,16 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 											{getTotalReps(deleteDialog.workout)}
 										</Typography>
 									</Grid>
+									{getTotalWeight(deleteDialog.workout) > 0 && (
+										<Grid size={{ xs: 12, md: 6 }}>
+											<Typography variant="body2">
+												<Typography component="span" fontWeight="medium">
+													Ukupna težina:
+												</Typography>{" "}
+												{getTotalWeight(deleteDialog.workout)}kg
+											</Typography>
+										</Grid>
+									)}
 								</Grid>
 							</CardContent>
 						</Card>
@@ -993,6 +1070,7 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 						onClick={() => setDeleteDialog({ open: false, workout: null })}
 						disabled={isDeleting}
 						sx={{ borderRadius: 2 }}
+						fullWidth={isMobile}
 					>
 						Otkaži
 					</Button>
@@ -1003,6 +1081,7 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 						disabled={isDeleting}
 						startIcon={isDeleting ? <CircularProgress size={16} /> : <Delete />}
 						sx={{ borderRadius: 2 }}
+						fullWidth={isMobile}
 					>
 						{isDeleting ? "Brišem..." : "Obriši"}
 					</Button>

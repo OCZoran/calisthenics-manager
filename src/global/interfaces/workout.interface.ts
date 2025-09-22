@@ -1,6 +1,7 @@
 export interface WorkoutSet {
 	reps: string;
 	rest: string;
+	weight?: string;
 }
 
 export interface Exercise {
@@ -21,6 +22,7 @@ export interface Workout {
 }
 
 export interface WorkoutFormData {
+	userId?: string;
 	date: string;
 	type: string;
 	notes?: string;

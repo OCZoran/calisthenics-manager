@@ -1,25 +1,12 @@
-// app/api/workouts/route.ts
 import { NextResponse } from "next/server";
 import { getDatabase } from "@/global/mongodb";
 import jwt from "jsonwebtoken";
 import { ObjectId } from "mongodb";
+import {
+	Exercise,
+	WorkoutFormData,
+} from "@/global/interfaces/workout.interface";
 
-interface WorkoutData {
-	userId: string;
-	date: string;
-	type: string;
-	notes?: string;
-	synced: boolean;
-	exercises: {
-		name: string;
-		sets: {
-			reps: number;
-			rest: number;
-		}[];
-	}[];
-}
-
-// Helper function to get user from token
 async function getUserFromToken(request: Request) {
 	const cookieHeader = request.headers.get("cookie");
 	if (!cookieHeader) {
@@ -39,7 +26,6 @@ async function getUserFromToken(request: Request) {
 	return decoded;
 }
 
-// GET - Fetch all workouts for user
 export async function GET(request: Request) {
 	try {
 		const user = await getUserFromToken(request);
@@ -62,19 +48,19 @@ export async function GET(request: Request) {
 }
 
 // POST - Create new workout
+// POST - Create new workout
 export async function POST(request: Request) {
 	try {
 		const user = await getUserFromToken(request);
-		const workoutData: Omit<WorkoutData, "userId"> = await request.json();
+		const workoutData: Omit<WorkoutFormData, "userId"> = await request.json();
 
-		// Validation
+		// Basic validation
 		if (!workoutData.date || !workoutData.type || !workoutData.exercises) {
 			return NextResponse.json(
 				{ error: "Missing required fields" },
 				{ status: 400 }
 			);
 		}
-
 		if (workoutData.exercises.length === 0) {
 			return NextResponse.json(
 				{ error: "At least one exercise is required" },
@@ -82,10 +68,58 @@ export async function POST(request: Request) {
 			);
 		}
 
+		// Sanitization & validation of sets (convert strings to numbers, weight -> number | null)
+		const sanitizeExercises = (exs: any[]) =>
+			exs.map((ex) => ({
+				name: ex.name,
+				sets: (ex.sets || []).map((set: any) => {
+					const reps =
+						set.reps !== undefined && set.reps !== ""
+							? parseInt(set.reps, 10)
+							: 0;
+					const rest =
+						set.rest !== undefined && set.rest !== ""
+							? parseInt(set.rest, 10)
+							: 0;
+					const weight =
+						set.weight !== undefined && set.weight !== null && set.weight !== ""
+							? parseFloat(set.weight)
+							: null;
+
+					// validate parsed numbers
+					if (isNaN(reps) || reps < 0) {
+						throw new Error(`Invalid reps value for exercise "${ex.name}"`);
+					}
+					if (isNaN(rest) || rest < 0) {
+						throw new Error(`Invalid rest value for exercise "${ex.name}"`);
+					}
+					if (weight !== null && (isNaN(weight) || weight < 0)) {
+						throw new Error(`Invalid weight value for exercise "${ex.name}"`);
+					}
+
+					return { reps, rest, weight };
+				}),
+			}));
+
+		let sanitizedExercises;
+		try {
+			sanitizedExercises = sanitizeExercises(workoutData.exercises);
+		} catch (err: unknown) {
+			const errorMessage =
+				typeof err === "object" && err !== null && "message" in err
+					? (err as { message?: string }).message
+					: "Invalid sets data";
+			return NextResponse.json({ error: errorMessage }, { status: 400 });
+		}
+
 		const { db } = await getDatabase();
 
 		const workout = {
-			...workoutData,
+			date: workoutData.date,
+			type: workoutData.type,
+			notes: workoutData.notes || "",
+			synced: workoutData.synced ?? true,
+			exercises: sanitizedExercises,
 			userId: user.id,
 			createdAt: new Date(),
 			updatedAt: new Date(),
@@ -119,12 +153,59 @@ export async function PUT(request: Request) {
 			);
 		}
 
+		if (updateData.exercises) {
+			try {
+				const sanitizeExercises = (exs: Exercise[]) =>
+					exs.map((ex) => ({
+						name: ex.name,
+						sets: (ex.sets || []).map((set) => {
+							const reps =
+								set.reps !== undefined && set.reps !== ""
+									? parseInt(set.reps, 10)
+									: 0;
+							const rest =
+								set.rest !== undefined && set.rest !== ""
+									? parseInt(set.rest, 10)
+									: 0;
+							const weight =
+								set.weight !== undefined &&
+								set.weight !== null &&
+								set.weight !== ""
+									? parseFloat(set.weight)
+									: null;
+
+							if (isNaN(reps) || reps < 0) {
+								throw new Error(`Invalid reps value for exercise "${ex.name}"`);
+							}
+							if (isNaN(rest) || rest < 0) {
+								throw new Error(`Invalid rest value for exercise "${ex.name}"`);
+							}
+							if (weight !== null && (isNaN(weight) || weight < 0)) {
+								throw new Error(
+									`Invalid weight value for exercise "${ex.name}"`
+								);
+							}
+
+							return { reps, rest, weight };
+						}),
+					}));
+
+				updateData.exercises = sanitizeExercises(updateData.exercises);
+			} catch (err: unknown) {
+				const errorMessage =
+					typeof err === "object" && err !== null && "message" in err
+						? (err as { message?: string }).message
+						: "Invalid sets data";
+				return NextResponse.json({ error: errorMessage }, { status: 400 });
+			}
+		}
+
 		const { db } = await getDatabase();
 
 		const result = await db.collection("workouts").updateOne(
 			{
 				_id: new ObjectId(workoutId),
-				userId: user.id, // Ensure user can only update their own workouts
+				userId: user.id,
 			},
 			{
 				$set: {
@@ -150,7 +231,6 @@ export async function PUT(request: Request) {
 	}
 }
 
-// DELETE - Delete workout
 export async function DELETE(request: Request) {
 	try {
 		const user = await getUserFromToken(request);
@@ -168,7 +248,7 @@ export async function DELETE(request: Request) {
 
 		const result = await db.collection("workouts").deleteOne({
 			_id: new ObjectId(workoutId),
-			userId: user.id, // Ensure user can only delete their own workouts
+			userId: user.id,
 		});
 
 		if (result.deletedCount === 0) {

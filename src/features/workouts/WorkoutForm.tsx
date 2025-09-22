@@ -29,6 +29,10 @@ import {
 	ListItem,
 	ListItemText,
 	ListItemButton,
+	InputAdornment,
+	useTheme,
+	useMediaQuery,
+	Stack,
 } from "@mui/material";
 import {
 	Add,
@@ -40,6 +44,7 @@ import {
 	ExpandLess,
 	ContentCopy,
 	Close,
+	MonitorWeight,
 } from "@mui/icons-material";
 import { format, parseISO } from "date-fns";
 import { Workout } from "@/global/interfaces/workout.interface";
@@ -49,7 +54,7 @@ interface WorkoutFormProps {
 	onSubmit: (workout: any) => Promise<void>;
 	onCancel: () => void;
 	isLoading?: boolean;
-	workouts: Workout[]; // Dodajemo workouts prop
+	workouts: Workout[];
 }
 
 const workoutTypes = [
@@ -68,11 +73,15 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	onSubmit,
 	onCancel,
 	isLoading = false,
-	workouts = [], // Default empty array
+	workouts = [],
 }) => {
-	// Inicijalizuj sa default vrednostima da izbegneš undefined->defined problem
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+	const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+
+	// Updated initial state with weight field
 	const [formData, setFormData] = useState({
-		date: workout?.date || new Date().toISOString().split("T")[0], // Default današnji datum
+		date: workout?.date || new Date().toISOString().split("T")[0],
 		type: workout?.type || "",
 		notes: workout?.notes || "",
 		synced: workout?.synced ?? true,
@@ -84,7 +93,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	const [showCopyDialog, setShowCopyDialog] = useState(false);
 	const [availableWorkouts, setAvailableWorkouts] = useState<Workout[]>([]);
 
-	// Ažuriraj form data kad se workout promeni
 	useEffect(() => {
 		if (workout) {
 			setFormData({
@@ -98,14 +106,12 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		}
 	}, [workout]);
 
-	// Kada se promeni tip treninga, pripremi listu dostupnih treninga za kopiranje
 	useEffect(() => {
 		if (formData.type && !workout) {
-			// Samo za nove treninge
 			const filteredWorkouts = workouts
-				.filter((w) => w.type === formData.type && w.synced === true) // Samo sinhronizovane
-				.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Najnoviji prvi
-				.slice(0, 5); // Maksimalno 5 najnovijih
+				.filter((w) => w.type === formData.type && w.synced === true)
+				.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+				.slice(0, 5);
 
 			setAvailableWorkouts(filteredWorkouts);
 		}
@@ -121,8 +127,9 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 			exercises: workoutToCopy.exercises.map((exercise) => ({
 				name: exercise.name,
 				sets: exercise.sets.map((set) => ({
-					reps: set.reps.toString(), // Promjena: konverzija u string
-					rest: set.rest.toString(), // Promjena: konverzija u string
+					reps: set.reps.toString(),
+					rest: set.rest.toString(),
+					weight: set.weight?.toString() || "", // Handle optional weight
 				})),
 			})),
 			notes: `Kopirano iz treninga od ${format(
@@ -145,32 +152,43 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	const addExercise = () => {
 		const newExercises = [
 			...formData.exercises,
-			{ name: "", sets: [{ reps: "", rest: "" }] }, // Promjena: prazan string umjesto brojeva
+			{ name: "", sets: [{ reps: "", rest: "", weight: "" }] },
 		];
 		setFormData({ ...formData, exercises: newExercises });
 		setExpandedExercises([...expandedExercises, newExercises.length - 1]);
 	};
 
-	// 2. Ažuriranje addSet funkcije - line oko 120
 	const addSet = (exerciseIndex: number) => {
 		const newExercises = [...formData.exercises];
-		newExercises[exerciseIndex].sets.push({ reps: "", rest: "" }); // Promjena: prazan string
+		const currentExercise = newExercises[exerciseIndex];
+
+		// Ako postoji prethodni set, kopiraj njegove vrednosti
+		let newSet = { reps: "", rest: "", weight: "" };
+
+		if (currentExercise.sets.length > 0) {
+			const lastSet = currentExercise.sets[currentExercise.sets.length - 1];
+			newSet = {
+				reps: lastSet.reps || "",
+				rest: lastSet.rest || "",
+				weight: lastSet.weight || "",
+			};
+		}
+
+		newExercises[exerciseIndex].sets.push(newSet);
 		setFormData({ ...formData, exercises: newExercises });
 	};
 
-	// 3. Ažuriranje updateSet funkcije - line oko 130
 	const updateSet = (
 		exerciseIndex: number,
 		setIndex: number,
-		field: "reps" | "rest",
-		value: string // Promjena: string umjesto number
+		field: "reps" | "rest" | "weight",
+		value: string
 	) => {
 		const newExercises = [...formData.exercises];
 		newExercises[exerciseIndex].sets[setIndex][field] = value;
 		setFormData({ ...formData, exercises: newExercises });
 	};
 
-	// 4. Ažuriranje validacije - line oko 150
 	const validateForm = () => {
 		const newErrors: string[] = [];
 
@@ -187,19 +205,23 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				newErrors.push(`Vježba ${i + 1} mora imati barem jedan set`);
 			}
 			exercise.sets.forEach((set, j) => {
-				const reps = parseInt(set.reps) || 0; // Konverzija u broj za validaciju
+				const reps = parseInt(set.reps) || 0;
 				const rest = parseInt(set.rest) || 0;
+				const weight = set.weight ? parseFloat(set.weight) : null;
 
 				if (!set.reps || reps <= 0) {
-					// Promjena: provjeri da li je prazan ili ≤ 0
 					newErrors.push(
 						`Set ${j + 1} vježbe ${i + 1} mora imati broj ponavljanja veći od 0`
 					);
 				}
 				if (set.rest && rest < 0) {
-					// Promjena: provjeri samo ako nije prazan
 					newErrors.push(
 						`Set ${j + 1} vježbe ${i + 1} ne može imati negativan odmor`
+					);
+				}
+				if (weight !== null && weight < 0) {
+					newErrors.push(
+						`Set ${j + 1} vježbe ${i + 1} ne može imati negativnu težinu`
 					);
 				}
 			});
@@ -208,6 +230,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		setErrors(newErrors);
 		return newErrors.length === 0;
 	};
+
 	const removeExercise = (index: number) => {
 		const newExercises = formData.exercises.filter((_, i) => i !== index);
 		setFormData({ ...formData, exercises: newExercises });
@@ -344,16 +367,17 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 						>
 							<Typography variant="h6">Vježbe</Typography>
 							<Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-								{/* Copy dugme - prikazuje se samo za nove treninge i kad je izabran tip */}
 								{!workout && formData.type && availableWorkouts.length > 0 && (
 									<Button
 										variant="outlined"
 										startIcon={<ContentCopy />}
 										onClick={() => setShowCopyDialog(true)}
 										color="secondary"
-										size="small"
+										size={isMobile ? "small" : "medium"}
 									>
-										Kopiraj prethodni {formData.type.toUpperCase()}
+										{isMobile
+											? "Kopiraj"
+											: `Kopiraj prethodni ${formData.type.toUpperCase()}`}
 									</Button>
 								)}
 								<Button
@@ -361,6 +385,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 									startIcon={<Add />}
 									onClick={addExercise}
 									color="primary"
+									size={isMobile ? "small" : "medium"}
 								>
 									Dodaj vježbu
 								</Button>
@@ -385,33 +410,39 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 											justifyContent: "space-between",
 											alignItems: "center",
 											mb: 2,
+											gap: 1,
 										}}
 									>
 										<TextField
 											label={`Naziv vježbe ${exerciseIndex + 1}`}
-											value={exercise.name || ""} // Eksplicitno "" za kontroliran input
+											value={exercise.name || ""}
 											onChange={(e) =>
 												updateExercise(exerciseIndex, "name", e.target.value)
 											}
-											sx={{ flexGrow: 1, mr: 2 }}
+											sx={{ flexGrow: 1 }}
 											required
+											size={isMobile ? "small" : "medium"}
 										/>
-										<IconButton
-											onClick={() => toggleExerciseExpansion(exerciseIndex)}
-											color="primary"
-										>
-											{expandedExercises.includes(exerciseIndex) ? (
-												<ExpandLess />
-											) : (
-												<ExpandMore />
-											)}
-										</IconButton>
-										<IconButton
-											onClick={() => removeExercise(exerciseIndex)}
-											color="error"
-										>
-											<Delete />
-										</IconButton>
+										<Box sx={{ display: "flex", gap: 0.5 }}>
+											<IconButton
+												onClick={() => toggleExerciseExpansion(exerciseIndex)}
+												color="primary"
+												size={isMobile ? "small" : "medium"}
+											>
+												{expandedExercises.includes(exerciseIndex) ? (
+													<ExpandLess />
+												) : (
+													<ExpandMore />
+												)}
+											</IconButton>
+											<IconButton
+												onClick={() => removeExercise(exerciseIndex)}
+												color="error"
+												size={isMobile ? "small" : "medium"}
+											>
+												<Delete />
+											</IconButton>
+										</Box>
 									</Box>
 
 									<Collapse in={expandedExercises.includes(exerciseIndex)}>
@@ -422,6 +453,8 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 												justifyContent: "space-between",
 												alignItems: "center",
 												mb: 2,
+												flexWrap: "wrap",
+												gap: 1,
 											}}
 										>
 											<Typography variant="subtitle1">
@@ -437,65 +470,162 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 											</Button>
 										</Box>
 
-										{(exercise.sets || []).map((set, setIndex) => (
-											<Box
-												key={setIndex}
-												sx={{
-													display: "flex",
-													alignItems: "center",
-													gap: 2,
-													mb: 1,
-													p: 2,
-													backgroundColor: "grey.50",
-													borderRadius: 1,
-												}}
-											>
-												<Chip
-													label={`Set ${setIndex + 1}`}
-													size="small"
-													color="primary"
-												/>
-												<TextField
-													type="number"
-													label="Ponavljanja"
-													value={set.reps || ""} // Promjena: prazan string kao fallback
-													onChange={(e) =>
-														updateSet(
-															exerciseIndex,
-															setIndex,
-															"reps",
-															e.target.value // Promjena: direktno string vrijednost
-														)
-													}
-													inputProps={{ min: 0 }}
-													sx={{ width: 120 }}
-												/>
-												<TextField
-													type="number"
-													label="Odmor (s)"
-													value={set.rest || ""} // Promjena: prazan string kao fallback
-													onChange={(e) =>
-														updateSet(
-															exerciseIndex,
-															setIndex,
-															"rest",
-															e.target.value // Promjena: direktno string vrijednost
-														)
-													}
-													inputProps={{ min: 0 }}
-													sx={{ width: 120 }}
-												/>
-												{exercise.sets.length > 1 && (
-													<IconButton
-														size="small"
-														onClick={() => removeSet(exerciseIndex, setIndex)}
-														color="error"
-													>
-														<Delete />
-													</IconButton>
-												)}
-											</Box>
-										))}
+										<Stack spacing={1.5}>
+											{(exercise.sets || []).map((set, setIndex) => (
+												<Card
+													key={setIndex}
+													sx={{
+														p: 2,
+														backgroundColor: "grey.50",
+														border: "1px solid",
+														borderColor: "grey.200",
+														borderRadius: 2,
+													}}
+												>
+													<Box sx={{ mb: 1.5 }}>
+														<Chip
+															label={`Set ${setIndex + 1}`}
+															size="small"
+															color="primary"
+															icon={<FitnessCenter />}
+														/>
+													</Box>
+
+													<Grid container spacing={1.5} alignItems="center">
+														{/* Reps field */}
+														<Grid size={{ xs: 6, sm: 4, md: 3 }}>
+															<TextField
+																fullWidth
+																type="number"
+																label="Ponavljanja"
+																value={set.reps || ""}
+																onChange={(e) =>
+																	updateSet(
+																		exerciseIndex,
+																		setIndex,
+																		"reps",
+																		e.target.value
+																	)
+																}
+																inputProps={{ min: 0 }}
+																size="small"
+																required
+															/>
+														</Grid>
+
+														{/* Weight field - optional */}
+														<Grid size={{ xs: 6, sm: 4, md: 3 }}>
+															<TextField
+																fullWidth
+																type="number"
+																label="Težina (kg) - Opciono"
+																value={set.weight || ""}
+																onChange={(e) =>
+																	updateSet(
+																		exerciseIndex,
+																		setIndex,
+																		"weight",
+																		e.target.value
+																	)
+																}
+																inputProps={{
+																	min: 0,
+																	step: "0.5",
+																}}
+																size="small"
+																InputProps={{
+																	startAdornment: (
+																		<InputAdornment position="start">
+																			<MonitorWeight
+																				sx={{
+																					fontSize: 18,
+																					color: "text.secondary",
+																				}}
+																			/>
+																		</InputAdornment>
+																	),
+																}}
+															/>
+														</Grid>
+
+														{/* Rest field */}
+														<Grid size={{ xs: 8, sm: 4, md: 3 }}>
+															<TextField
+																fullWidth
+																type="number"
+																label="Odmor (s)"
+																value={set.rest || ""}
+																onChange={(e) =>
+																	updateSet(
+																		exerciseIndex,
+																		setIndex,
+																		"rest",
+																		e.target.value
+																	)
+																}
+																inputProps={{ min: 0 }}
+																size="small"
+															/>
+														</Grid>
+
+														{/* Delete button */}
+														<Grid size={{ xs: 4, sm: 12, md: 3 }}>
+															<Box
+																sx={{
+																	display: "flex",
+																	justifyContent: {
+																		xs: "flex-end",
+																		sm: "flex-start",
+																		md: "flex-end",
+																	},
+																	alignItems: "center",
+																	height: "100%",
+																}}
+															>
+																{exercise.sets.length > 1 && (
+																	<IconButton
+																		size="small"
+																		onClick={() =>
+																			removeSet(exerciseIndex, setIndex)
+																		}
+																		color="error"
+																		sx={{
+																			backgroundColor: "error.50",
+																			"&:hover": {
+																				backgroundColor: "error.100",
+																			},
+																		}}
+																	>
+																		<Delete />
+																	</IconButton>
+																)}
+															</Box>
+														</Grid>
+													</Grid>
+
+													{/* Set summary for mobile */}
+													{isMobile && (
+														<Box
+															sx={{
+																mt: 1,
+																pt: 1,
+																borderTop: "1px solid",
+																borderColor: "grey.300",
+															}}
+														>
+															<Typography
+																variant="caption"
+																color="text.secondary"
+															>
+																{set.reps} reps
+																{set.weight && ` × ${set.weight}kg`}
+																{set.rest && ` • ${set.rest}s odmor`}
+															</Typography>
+														</Box>
+													)}
+												</Card>
+											))}
+										</Stack>
 									</Collapse>
 								</CardContent>
 							</Card>
@@ -503,12 +633,21 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 
 						<Divider sx={{ my: 3 }} />
 
-						<Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+						<Box
+							sx={{
+								display: "flex",
+								gap: 2,
+								justifyContent: "flex-end",
+								flexDirection: { xs: "column", sm: "row" },
+							}}
+						>
 							<Button
 								variant="outlined"
 								startIcon={<Cancel />}
 								onClick={onCancel}
 								disabled={isLoading}
+								fullWidth={isMobile}
+								size="large"
 							>
 								Otkaži
 							</Button>
@@ -518,6 +657,10 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 								startIcon={<Save />}
 								disabled={isLoading}
 								size="large"
+								fullWidth={isMobile}
+								sx={{
+									minWidth: { sm: 200 },
+								}}
 							>
 								{isLoading ? "Čuvam..." : "Sačuvaj trening"}
 							</Button>
@@ -532,8 +675,12 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				onClose={() => setShowCopyDialog(false)}
 				maxWidth="sm"
 				fullWidth
+				fullScreen={isMobile}
 				PaperProps={{
-					sx: { borderRadius: 3 },
+					sx: {
+						borderRadius: isMobile ? 0 : 3,
+						m: isMobile ? 0 : 2,
+					},
 				}}
 			>
 				<DialogTitle>
@@ -546,7 +693,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 					>
 						<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 							<ContentCopy color="primary" />
-							<Typography>
+							<Typography variant={isMobile ? "h6" : "h6"}>
 								Kopiraj {formData.type.toUpperCase()} trening
 							</Typography>
 						</Box>
@@ -630,6 +777,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 					<Button
 						onClick={() => setShowCopyDialog(false)}
 						sx={{ borderRadius: 2 }}
+						fullWidth={isMobile}
 					>
 						Otkaži
 					</Button>
