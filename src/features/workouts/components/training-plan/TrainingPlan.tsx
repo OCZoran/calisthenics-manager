@@ -6,8 +6,6 @@ import {
 	Typography,
 	Button,
 	Grid,
-	Chip,
-	IconButton,
 	Dialog,
 	DialogTitle,
 	DialogContent,
@@ -20,35 +18,25 @@ import {
 	Alert,
 	CircularProgress,
 	Stack,
-	Divider,
-	Accordion,
-	AccordionSummary,
-	AccordionDetails,
 	useTheme,
 	useMediaQuery,
 	Fade,
-	LinearProgress,
 	Skeleton,
-	Tooltip,
 	Avatar,
 	Collapse,
+	IconButton,
 } from "@mui/material";
 import {
 	Add,
-	Edit,
 	Delete,
-	PlayArrow,
-	Pause,
-	Stop,
-	Assessment,
-	CalendarToday,
-	FitnessCenter,
-	ExpandMore,
+	Timeline,
 	Save,
 	CheckCircle,
-	Timeline,
 	Flag,
 	Close,
+	Pause,
+	FitnessCenter,
+	TrendingUp,
 } from "@mui/icons-material";
 import {
 	format,
@@ -57,6 +45,8 @@ import {
 	isAfter,
 	isBefore,
 } from "date-fns";
+import { formatDate } from "@/global/utils/format-date";
+import TrainingPlanCard from "./TrainingPlanCard";
 
 interface TrainingPlan {
 	_id?: string;
@@ -176,20 +166,6 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 		const completedDays = differenceInDays(today, start) + 1;
 
 		return Math.round((completedDays / totalDays) * 100);
-	};
-
-	// Status color mapping
-	const getStatusColor = (status: string) => {
-		switch (status) {
-			case "active":
-				return "success";
-			case "completed":
-				return "primary";
-			case "paused":
-				return "warning";
-			default:
-				return "default";
-		}
 	};
 
 	// Form validation
@@ -379,38 +355,38 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 		);
 	};
 
-	// Format dates
-	const formatDate = (dateString: string) => {
-		try {
-			return format(parseISO(dateString), "dd.MM.yyyy");
-		} catch {
-			return dateString;
-		}
-	};
-
 	// Loading skeleton
 	if (isLoading) {
 		return (
 			<Box>
 				<Typography
-					variant="h5"
+					variant="h4"
 					gutterBottom
-					sx={{ display: "flex", alignItems: "center", mb: 3 }}
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						mb: 4,
+						fontWeight: "700",
+						background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+						backgroundClip: "text",
+						WebkitBackgroundClip: "text",
+						WebkitTextFillColor: "transparent",
+					}}
 				>
-					<Timeline sx={{ mr: 1, color: "primary.main" }} />
+					<Timeline sx={{ mr: 2, color: "primary.main" }} />
 					Trening planovi
 				</Typography>
-				<Stack spacing={2}>
+				<Stack spacing={3}>
 					{[1, 2, 3].map((i) => (
-						<Card key={i}>
-							<CardContent>
-								<Skeleton variant="text" width="60%" height={32} />
-								<Skeleton variant="text" width="40%" height={24} />
+						<Card key={i} sx={{ borderRadius: 3 }}>
+							<CardContent sx={{ p: 3 }}>
+								<Skeleton variant="text" width="60%" height={40} />
+								<Skeleton variant="text" width="40%" height={28} />
 								<Skeleton
 									variant="rectangular"
 									width="100%"
-									height={60}
-									sx={{ mt: 2 }}
+									height={80}
+									sx={{ mt: 2, borderRadius: 2 }}
 								/>
 							</CardContent>
 						</Card>
@@ -423,29 +399,57 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 	return (
 		<>
 			<Box>
-				{/* Header */}
+				{/* Enhanced Header */}
 				<Box
 					sx={{
 						display: "flex",
 						justifyContent: "space-between",
 						alignItems: "center",
-						mb: 3,
+						mb: 4,
 						flexWrap: "wrap",
 						gap: 2,
 					}}
 				>
-					<Typography
-						variant="h5"
-						sx={{ display: "flex", alignItems: "center" }}
-					>
-						<Timeline sx={{ mr: 1, color: "primary.main" }} />
-						Trening planovi ({planStats.total})
-					</Typography>
+					<Box>
+						<Typography
+							variant="h4"
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								fontWeight: "700",
+								background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+								backgroundClip: "text",
+								WebkitBackgroundClip: "text",
+								WebkitTextFillColor: "transparent",
+								mb: 1,
+							}}
+						>
+							<Timeline sx={{ mr: 2, color: "primary.main" }} />
+							Trening planovi
+						</Typography>
+						<Typography variant="subtitle1" color="text.secondary">
+							Upravljajte vašim trening planovima i pratite napredak
+						</Typography>
+					</Box>
+
 					<Button
 						variant="contained"
 						startIcon={<Add />}
 						onClick={() => handleOpenForm()}
-						size={isMobile ? "small" : "medium"}
+						size={isMobile ? "medium" : "large"}
+						sx={{
+							borderRadius: 3,
+							px: 3,
+							py: 1.5,
+							textTransform: "none",
+							fontWeight: "600",
+							background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+							boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)",
+							"&:hover": {
+								boxShadow: "0 6px 20px rgba(102, 126, 234, 0.6)",
+								transform: "translateY(-2px)",
+							},
+						}}
 					>
 						Novi plan
 					</Button>
@@ -453,40 +457,67 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 
 				{/* Error Alert */}
 				<Collapse in={!!error}>
-					<Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+					<Alert
+						severity="error"
+						sx={{ mb: 3, borderRadius: 2 }}
+						onClose={() => setError(null)}
+					>
 						{error}
 					</Alert>
 				</Collapse>
 
-				{/* Stats Overview */}
+				{/* Enhanced Stats Overview */}
 				{planStats.total > 0 && (
 					<Card
 						sx={{
-							mb: 3,
+							mb: 4,
 							background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
 							color: "white",
+							borderRadius: 3,
+							overflow: "hidden",
+							position: "relative",
+							"&:before": {
+								content: '""',
+								position: "absolute",
+								top: 0,
+								left: 0,
+								right: 0,
+								bottom: 0,
+								background:
+									'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" fill-opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>\')',
+								opacity: 0.3,
+							},
 						}}
 					>
-						<CardContent>
-							<Typography variant="h6" gutterBottom>
-								Pregled planova
+						<CardContent sx={{ p: 4, position: "relative", zIndex: 1 }}>
+							<Typography
+								variant="h5"
+								gutterBottom
+								sx={{ fontWeight: "600", mb: 3 }}
+							>
+								📊 Pregled planova
 							</Typography>
-							<Grid container spacing={2}>
+							<Grid container spacing={3}>
 								<Grid size={{ xs: 6, sm: 3 }}>
 									<Box sx={{ textAlign: "center" }}>
 										<Avatar
 											sx={{
 												bgcolor: "rgba(255,255,255,0.2)",
 												mx: "auto",
-												mb: 1,
+												mb: 2,
+												width: 60,
+												height: 60,
+												backdropFilter: "blur(10px)",
 											}}
 										>
-											<CheckCircle />
+											<TrendingUp sx={{ fontSize: 28 }} />
 										</Avatar>
-										<Typography variant="h4" fontWeight="bold">
+										<Typography variant="h3" fontWeight="bold" sx={{ mb: 1 }}>
 											{planStats.active}
 										</Typography>
-										<Typography variant="caption">Aktivni</Typography>
+										<Typography variant="body2" sx={{ opacity: 0.9 }}>
+											Aktivni planovi
+										</Typography>
 									</Box>
 								</Grid>
 								<Grid size={{ xs: 6, sm: 3 }}>
@@ -495,15 +526,20 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 											sx={{
 												bgcolor: "rgba(255,255,255,0.2)",
 												mx: "auto",
-												mb: 1,
+												mb: 2,
+												width: 60,
+												height: 60,
+												backdropFilter: "blur(10px)",
 											}}
 										>
-											<Flag />
+											<CheckCircle sx={{ fontSize: 28 }} />
 										</Avatar>
-										<Typography variant="h4" fontWeight="bold">
+										<Typography variant="h3" fontWeight="bold" sx={{ mb: 1 }}>
 											{planStats.completed}
 										</Typography>
-										<Typography variant="caption">Završeno</Typography>
+										<Typography variant="body2" sx={{ opacity: 0.9 }}>
+											Završenih
+										</Typography>
 									</Box>
 								</Grid>
 								<Grid size={{ xs: 6, sm: 3 }}>
@@ -512,15 +548,20 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 											sx={{
 												bgcolor: "rgba(255,255,255,0.2)",
 												mx: "auto",
-												mb: 1,
+												mb: 2,
+												width: 60,
+												height: 60,
+												backdropFilter: "blur(10px)",
 											}}
 										>
-											<Pause />
+											<Pause sx={{ fontSize: 28 }} />
 										</Avatar>
-										<Typography variant="h4" fontWeight="bold">
+										<Typography variant="h3" fontWeight="bold" sx={{ mb: 1 }}>
 											{planStats.paused}
 										</Typography>
-										<Typography variant="caption">Pauzirano</Typography>
+										<Typography variant="body2" sx={{ opacity: 0.9 }}>
+											Pauziranih
+										</Typography>
 									</Box>
 								</Grid>
 								<Grid size={{ xs: 6, sm: 3 }}>
@@ -529,15 +570,20 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 											sx={{
 												bgcolor: "rgba(255,255,255,0.2)",
 												mx: "auto",
-												mb: 1,
+												mb: 2,
+												width: 60,
+												height: 60,
+												backdropFilter: "blur(10px)",
 											}}
 										>
-											<FitnessCenter />
+											<FitnessCenter sx={{ fontSize: 28 }} />
 										</Avatar>
-										<Typography variant="h4" fontWeight="bold">
+										<Typography variant="h3" fontWeight="bold" sx={{ mb: 1 }}>
 											{planStats.total}
 										</Typography>
-										<Typography variant="caption">Ukupno</Typography>
+										<Typography variant="body2" sx={{ opacity: 0.9 }}>
+											Ukupno planova
+										</Typography>
 									</Box>
 								</Grid>
 							</Grid>
@@ -545,297 +591,97 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 					</Card>
 				)}
 
-				{/* Plans List */}
-				{plans.length === 0 ? (
-					<Card sx={{ textAlign: "center", py: 6 }}>
-						<CardContent>
-							<Timeline sx={{ fontSize: 64, color: "grey.400", mb: 2 }} />
-							<Typography variant="h6" color="textSecondary" gutterBottom>
-								Nema trening planova
-							</Typography>
-							<Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-								Kreirajte svoj prvi trening plan da biste počeli praćenje
-								napretka.
-							</Typography>
-							<Button
-								variant="contained"
-								startIcon={<Add />}
-								onClick={() => handleOpenForm()}
-							>
-								Kreiraj prvi plan
-							</Button>
-						</CardContent>
+				{/* No Plans State */}
+				{planStats.total === 0 && (
+					<Card
+						sx={{
+							textAlign: "center",
+							p: 6,
+							borderRadius: 3,
+							background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+						}}
+					>
+						<FitnessCenter
+							sx={{
+								fontSize: 80,
+								color: "text.secondary",
+								mb: 2,
+								opacity: 0.5,
+							}}
+						/>
+						<Typography variant="h5" gutterBottom color="text.secondary">
+							Nemate trening planove
+						</Typography>
+						<Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+							Kreirajte svoj prvi trening plan i počnite da pratite napredak
+						</Typography>
+						<Button
+							variant="contained"
+							startIcon={<Add />}
+							onClick={() => handleOpenForm()}
+							size="large"
+							sx={{
+								borderRadius: 3,
+								px: 4,
+								py: 2,
+								textTransform: "none",
+								fontWeight: "600",
+							}}
+						>
+							Kreiraj prvi plan
+						</Button>
 					</Card>
-				) : (
-					<Stack spacing={2}>
-						{plans.map((plan, index) => {
-							const progress = getPlanProgress(plan);
-							const duration = getPlanDuration(plan);
-							const isExpanded = expandedPlans.includes(plan._id!);
-
-							return (
-								<Fade in timeout={300 + index * 100} key={plan._id}>
-									<Card
-										sx={{
-											border: "1px solid",
-											borderColor:
-												plan.status === "active" ? "success.light" : "divider",
-											position: "relative",
-											overflow: "hidden",
-											"&:hover": {
-												boxShadow: 4,
-												transform: "translateY(-2px)",
-												transition: "all 0.3s ease",
-											},
-										}}
-									>
-										{/* Status indicator */}
-										<Box
-											sx={{
-												position: "absolute",
-												top: 0,
-												left: 0,
-												right: 0,
-												height: 4,
-												bgcolor:
-													plan.status === "active"
-														? "success.main"
-														: plan.status === "completed"
-														? "primary.main"
-														: "warning.main",
-											}}
-										/>
-
-										<Accordion
-											expanded={isExpanded}
-											onChange={() => toggleExpanded(plan._id!)}
-											sx={{
-												boxShadow: "none",
-												"&.Mui-expanded": { margin: 0 },
-											}}
-										>
-											<AccordionSummary expandIcon={<ExpandMore />}>
-												<Grid container alignItems="center" spacing={2}>
-													<Grid size={{ xs: 12, sm: 6, md: 4 }}>
-														<Typography variant="h6" fontWeight="bold">
-															{plan.name}
-														</Typography>
-														<Box
-															sx={{
-																display: "flex",
-																alignItems: "center",
-																gap: 1,
-																mt: 0.5,
-															}}
-														>
-															<CalendarToday
-																sx={{ fontSize: 16, color: "text.secondary" }}
-															/>
-															<Typography
-																variant="body2"
-																color="text.secondary"
-															>
-																{formatDate(plan.startDate)}
-																{plan.endDate &&
-																	` - ${formatDate(plan.endDate)}`}
-															</Typography>
-														</Box>
-													</Grid>
-
-													<Grid size={{ xs: 12, sm: 6, md: 3 }}>
-														<Chip
-															label={plan.status.toUpperCase()}
-															color={getStatusColor(plan.status)}
-															variant="filled"
-															size="small"
-														/>
-														{duration && (
-															<Typography
-																variant="caption"
-																sx={{ display: "block", mt: 0.5 }}
-															>
-																{duration} dana
-															</Typography>
-														)}
-													</Grid>
-
-													<Grid size={{ xs: 12, md: 3 }}>
-														{progress !== null && (
-															<Box>
-																<Typography variant="body2" gutterBottom>
-																	Napredak: {progress}%
-																</Typography>
-																<LinearProgress
-																	variant="determinate"
-																	value={progress}
-																	sx={{ height: 8, borderRadius: 4 }}
-																/>
-															</Box>
-														)}
-													</Grid>
-
-													<Grid size={{ xs: 12, md: 2 }}>
-														<Box
-															sx={{
-																display: "flex",
-																gap: 0.5,
-																justifyContent: "flex-end",
-															}}
-														>
-															{plan.status === "active" && (
-																<>
-																	<Tooltip title="Pauziraj">
-																		<IconButton
-																			size="small"
-																			onClick={(e) => {
-																				e.stopPropagation();
-																				handleStatusChange(plan, "paused");
-																			}}
-																			color="warning"
-																		>
-																			<Pause />
-																		</IconButton>
-																	</Tooltip>
-																	<Tooltip title="Završi">
-																		<IconButton
-																			size="small"
-																			onClick={(e) => {
-																				e.stopPropagation();
-																				handleStatusChange(plan, "completed");
-																			}}
-																			color="primary"
-																		>
-																			<Stop />
-																		</IconButton>
-																	</Tooltip>
-																</>
-															)}
-															{plan.status === "paused" && (
-																<Tooltip title="Nastavi">
-																	<IconButton
-																		size="small"
-																		onClick={(e) => {
-																			e.stopPropagation();
-																			handleStatusChange(plan, "active");
-																		}}
-																		color="success"
-																	>
-																		<PlayArrow />
-																	</IconButton>
-																</Tooltip>
-															)}
-															<Tooltip title="Uredi">
-																<IconButton
-																	size="small"
-																	onClick={(e) => {
-																		e.stopPropagation();
-																		handleOpenForm(plan);
-																	}}
-																	color="primary"
-																>
-																	<Edit />
-																</IconButton>
-															</Tooltip>
-															<Tooltip title="Obriši">
-																<IconButton
-																	size="small"
-																	onClick={(e) => {
-																		e.stopPropagation();
-																		setDeleteDialog({ open: true, plan });
-																	}}
-																	color="error"
-																>
-																	<Delete />
-																</IconButton>
-															</Tooltip>
-														</Box>
-													</Grid>
-												</Grid>
-											</AccordionSummary>
-
-											<AccordionDetails>
-												<Divider sx={{ mb: 2 }} />
-
-												{plan.goal && (
-													<Box sx={{ mb: 2 }}>
-														<Typography
-															variant="subtitle2"
-															gutterBottom
-															sx={{
-																display: "flex",
-																alignItems: "center",
-																gap: 1,
-															}}
-														>
-															<Flag sx={{ fontSize: 18 }} />
-															Cilj
-														</Typography>
-														<Typography variant="body2" color="text.secondary">
-															{plan.goal}
-														</Typography>
-													</Box>
-												)}
-
-												{plan.description && (
-													<Box sx={{ mb: 2 }}>
-														<Typography variant="subtitle2" gutterBottom>
-															Opis
-														</Typography>
-														<Typography variant="body2" color="text.secondary">
-															{plan.description}
-														</Typography>
-													</Box>
-												)}
-
-												<Box
-													sx={{
-														display: "flex",
-														gap: 2,
-														flexWrap: "wrap",
-														mt: 2,
-													}}
-												>
-													{onViewProgress && (
-														<Button
-															variant="outlined"
-															startIcon={<Assessment />}
-															onClick={() =>
-																onViewProgress(plan._id!, plan.name)
-															}
-															size="small"
-														>
-															Prikaži napredak
-														</Button>
-													)}
-													{plan.status === "completed" && (
-														<Chip
-															icon={<CheckCircle />}
-															label="Završeno"
-															color="success"
-															variant="outlined"
-															size="small"
-														/>
-													)}
-												</Box>
-											</AccordionDetails>
-										</Accordion>
-									</Card>
-								</Fade>
-							);
-						})}
-					</Stack>
 				)}
+
+				{/* Plans List */}
+				<Stack spacing={3}>
+					{plans.map((plan, index) => {
+						const progress = getPlanProgress(plan);
+						const duration = getPlanDuration(plan);
+						const isExpanded = expandedPlans.includes(plan._id!);
+
+						return (
+							<Fade in timeout={300 + index * 100} key={plan._id}>
+								<Box>
+									<TrainingPlanCard
+										plan={plan}
+										isExpanded={isExpanded}
+										progress={progress}
+										duration={duration}
+										onToggleExpanded={toggleExpanded}
+										onStatusChange={handleStatusChange}
+										onEdit={handleOpenForm}
+										onDelete={(plan) => setDeleteDialog({ open: true, plan })}
+										onViewProgress={onViewProgress}
+									/>
+								</Box>
+							</Fade>
+						);
+					})}
+				</Stack>
 			</Box>
 
-			{/* Plan Form Dialog */}
+			{/* Enhanced Plan Form Dialog */}
 			<Dialog
 				open={showForm}
 				onClose={handleCloseForm}
 				maxWidth="md"
 				fullWidth
 				fullScreen={isMobile}
+				PaperProps={{
+					sx: {
+						borderRadius: isMobile ? 0 : 3,
+						background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+					},
+				}}
 			>
-				<DialogTitle>
+				<DialogTitle
+					sx={{
+						background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+						color: "white",
+						p: 3,
+					}}
+				>
 					<Box
 						sx={{
 							display: "flex",
@@ -843,28 +689,41 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							alignItems: "center",
 						}}
 					>
-						<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-							<Timeline color="primary" />
-							<Typography variant="h6">
-								{editingPlan ? "Uredi plan" : "Novi trening plan"}
-							</Typography>
+						<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+							<Avatar sx={{ bgcolor: "rgba(255,255,255,0.2)" }}>
+								<Timeline />
+							</Avatar>
+							<Box>
+								<Typography variant="h5" fontWeight="600">
+									{editingPlan ? "Uredi plan" : "Novi trening plan"}
+								</Typography>
+								<Typography variant="body2" sx={{ opacity: 0.9 }}>
+									{editingPlan
+										? "Ažurirajte informacije o planu"
+										: "Kreirajte novi plan za vaš trening"}
+								</Typography>
+							</Box>
 						</Box>
-						<IconButton onClick={handleCloseForm} size="small">
+						<IconButton
+							onClick={handleCloseForm}
+							sx={{ color: "white" }}
+							size="large"
+						>
 							<Close />
 						</IconButton>
 					</Box>
 				</DialogTitle>
 
-				<DialogContent>
+				<DialogContent sx={{ p: 4, background: "white" }}>
 					<Collapse in={formErrors.length > 0}>
-						<Alert severity="error" sx={{ mb: 2 }}>
+						<Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
 							{formErrors.map((error, index) => (
 								<div key={index}>{error}</div>
 							))}
 						</Alert>
 					</Collapse>
 
-					<Grid container spacing={2} sx={{ mt: 1 }}>
+					<Grid container spacing={3} sx={{ mt: 0 }}>
 						<Grid size={{ xs: 12 }}>
 							<TextField
 								fullWidth
@@ -874,6 +733,12 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 									setFormData({ ...formData, name: e.target.value })
 								}
 								required
+								variant="outlined"
+								sx={{
+									"& .MuiOutlinedInput-root": {
+										borderRadius: 2,
+									},
+								}}
 							/>
 						</Grid>
 
@@ -882,12 +747,18 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 								fullWidth
 								label="Opis"
 								multiline
-								rows={3}
+								rows={4}
 								value={formData.description}
 								onChange={(e) =>
 									setFormData({ ...formData, description: e.target.value })
 								}
 								placeholder="Kratak opis plana, ciljevi, napomene..."
+								variant="outlined"
+								sx={{
+									"& .MuiOutlinedInput-root": {
+										borderRadius: 2,
+									},
+								}}
 							/>
 						</Grid>
 
@@ -902,6 +773,12 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 								}
 								InputLabelProps={{ shrink: true }}
 								required
+								variant="outlined"
+								sx={{
+									"& .MuiOutlinedInput-root": {
+										borderRadius: 2,
+									},
+								}}
 							/>
 						</Grid>
 
@@ -915,11 +792,17 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 									setFormData({ ...formData, endDate: e.target.value })
 								}
 								InputLabelProps={{ shrink: true }}
+								variant="outlined"
+								sx={{
+									"& .MuiOutlinedInput-root": {
+										borderRadius: 2,
+									},
+								}}
 							/>
 						</Grid>
 
 						<Grid size={{ xs: 12, sm: 6 }}>
-							<FormControl fullWidth>
+							<FormControl fullWidth variant="outlined">
 								<InputLabel>Status</InputLabel>
 								<Select
 									value={formData.status}
@@ -927,6 +810,9 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 									onChange={(e) =>
 										setFormData({ ...formData, status: e.target.value })
 									}
+									sx={{
+										borderRadius: 2,
+									}}
 								>
 									<MenuItem value="active">Aktivan</MenuItem>
 									<MenuItem value="paused">Pauziran</MenuItem>
@@ -944,27 +830,55 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 									setFormData({ ...formData, goal: e.target.value })
 								}
 								placeholder="npr. Povećanje snage, mišićna masa..."
+								variant="outlined"
+								sx={{
+									"& .MuiOutlinedInput-root": {
+										borderRadius: 2,
+									},
+								}}
 							/>
 						</Grid>
 					</Grid>
 				</DialogContent>
 
-				<DialogActions sx={{ px: 3, pb: 2 }}>
-					<Button onClick={handleCloseForm} disabled={isSubmitting}>
+				<DialogActions sx={{ p: 3, background: "white", gap: 2 }}>
+					<Button
+						onClick={handleCloseForm}
+						disabled={isSubmitting}
+						variant="outlined"
+						size="large"
+						sx={{
+							borderRadius: 2,
+							px: 3,
+							textTransform: "none",
+							fontWeight: "500",
+						}}
+					>
 						Otkaži
 					</Button>
 					<Button
 						onClick={handleSubmit}
 						variant="contained"
 						disabled={isSubmitting}
-						startIcon={isSubmitting ? <CircularProgress size={16} /> : <Save />}
+						startIcon={isSubmitting ? <CircularProgress size={20} /> : <Save />}
+						size="large"
+						sx={{
+							borderRadius: 2,
+							px: 4,
+							textTransform: "none",
+							fontWeight: "600",
+							background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+							"&:hover": {
+								background: "linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)",
+							},
+						}}
 					>
-						{isSubmitting ? "Čuvam..." : "Sačuvaj"}
+						{isSubmitting ? "Čuvam..." : "Sačuvaj plan"}
 					</Button>
 				</DialogActions>
 			</Dialog>
 
-			{/* Delete Confirmation Dialog */}
+			{/* Enhanced Delete Confirmation Dialog */}
 			<Dialog
 				open={deleteDialog.open}
 				onClose={() =>
@@ -972,31 +886,71 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 				}
 				maxWidth="sm"
 				fullWidth
+				PaperProps={{
+					sx: {
+						borderRadius: 3,
+					},
+				}}
 			>
-				<DialogTitle>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-						<Delete color="error" />
-						Brisanje plana
+				<DialogTitle
+					sx={{
+						background: "linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)",
+						color: "white",
+						p: 3,
+					}}
+				>
+					<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+						<Avatar sx={{ bgcolor: "rgba(255,255,255,0.2)" }}>
+							<Delete />
+						</Avatar>
+						<Box>
+							<Typography variant="h6" fontWeight="600">
+								Brisanje plana
+							</Typography>
+							<Typography variant="body2" sx={{ opacity: 0.9 }}>
+								Ova akcija se ne može poništiti
+							</Typography>
+						</Box>
 					</Box>
 				</DialogTitle>
-				<DialogContent>
-					<Alert severity="warning" sx={{ mb: 2 }}>
+
+				<DialogContent sx={{ p: 4 }}>
+					<Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
 						<Typography variant="body2">
-							Ova akcija će obrisati plan i sve povezane statistike!
+							⚠️ Ova akcija će trajno obrisati plan i sve povezane podatke!
 						</Typography>
 					</Alert>
-					<Typography>
+					<Typography variant="body1">
 						Da li ste sigurni da želite da obrišete plan{" "}
-						<Typography component="span" fontWeight="bold" color="primary">
+						<Typography
+							component="span"
+							fontWeight="bold"
+							color="primary"
+							sx={{
+								background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+								backgroundClip: "text",
+								WebkitBackgroundClip: "text",
+								WebkitTextFillColor: "transparent",
+							}}
+						>
 							{deleteDialog.plan?.name}
 						</Typography>
 						?
 					</Typography>
 				</DialogContent>
-				<DialogActions>
+
+				<DialogActions sx={{ p: 3, gap: 2 }}>
 					<Button
 						onClick={() => setDeleteDialog({ open: false, plan: null })}
 						disabled={isDeleting}
+						variant="outlined"
+						size="large"
+						sx={{
+							borderRadius: 2,
+							px: 3,
+							textTransform: "none",
+							fontWeight: "500",
+						}}
 					>
 						Otkaži
 					</Button>
@@ -1005,9 +959,20 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 						color="error"
 						variant="contained"
 						disabled={isDeleting}
-						startIcon={isDeleting ? <CircularProgress size={16} /> : <Delete />}
+						startIcon={isDeleting ? <CircularProgress size={20} /> : <Delete />}
+						size="large"
+						sx={{
+							borderRadius: 2,
+							px: 4,
+							textTransform: "none",
+							fontWeight: "600",
+							background: "linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)",
+							"&:hover": {
+								background: "linear-gradient(135deg, #ff5252 0%, #d32f2f 100%)",
+							},
+						}}
 					>
-						{isDeleting ? "Brišem..." : "Obriši"}
+						{isDeleting ? "Brišem..." : "Obriši plan"}
 					</Button>
 				</DialogActions>
 			</Dialog>

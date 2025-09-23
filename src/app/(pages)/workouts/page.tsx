@@ -3,7 +3,7 @@ import { Container } from "@mui/material";
 import { getDatabase } from "@/global/mongodb";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
-import WorkoutClient from "@/features/workouts/WorkoutClient";
+import WorkoutClient from "@/features/workouts/components/WorkoutClient";
 import { Workout } from "@/global/interfaces/workout.interface";
 
 async function getUserFromCookies() {

@@ -21,14 +21,15 @@ import {
 	Wifi,
 	Sync,
 	Timeline,
+	FitnessCenter,
 } from "@mui/icons-material";
 import { Workout } from "@/global/interfaces/workout.interface";
 import WorkoutList from "./WorkoutList";
-import WorkoutForm from "./WorkoutForm";
+import WorkoutForm from "./form/Workout";
 import { useOfflineWorkouts } from "@/features/OfflineManager";
 import axiosInstance from "@/services/axios-public.instance";
 import { TrainingPlan } from "@/global/interfaces/training-plan.interface";
-import TrainingPlans from "./TrainingPlan";
+import TrainingPlans from "./training-plan/TrainingPlan";
 
 interface WorkoutClientProps {
 	initialWorkouts: Workout[];
@@ -497,6 +498,9 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 						gutterBottom
 						fontWeight="bold"
 					>
+						<FitnessCenter
+							sx={{ mr: 2, color: "primary.main", fontSize: 32 }}
+						/>
 						Moji treninzi
 					</Typography>
 					<Typography variant="subtitle1" color="textSecondary">
@@ -525,6 +529,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 								startIcon={<Add />}
 								onClick={handleAddWorkout}
 								size="large"
+								disabled={!activePlan}
 								sx={{
 									px: 3,
 									py: 1.5,
@@ -563,34 +568,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 					onCreatePlan={handleCreatePlan}
 					trainingPlans={trainingPlans}
 					activePlan={activePlan}
-					isLoading={isLoading}
 				/>
-			)}
-
-			{!showForm && (
-				<HideOnScroll>
-					<Badge badgeContent={pendingWorkouts.length} color="warning">
-						<Fab
-							color="primary"
-							aria-label="add workout"
-							sx={{
-								position: "fixed",
-								bottom: 80,
-								right: 16,
-								zIndex: 1000,
-								boxShadow: 6,
-								"&:hover": {
-									boxShadow: 8,
-									transform: "scale(1.05)",
-								},
-								transition: "all 0.2s ease-in-out",
-							}}
-							onClick={handleAddWorkout}
-						>
-							<Add />
-						</Fab>
-					</Badge>
-				</HideOnScroll>
 			)}
 
 			<Fab
