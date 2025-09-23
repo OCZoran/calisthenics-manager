@@ -43,6 +43,7 @@ import { DeleteWorkoutDialog } from "./DeleteWorkoutDialog";
 import { WorkoutCard } from "./WorkoutCard";
 import { EmptyWorkoutState } from "./EmptyWorkout";
 import { WorkoutHeader } from "./WorkoutHeader";
+import WorkoutProgressDashboard from "./WorkoutStatisticsDashboard";
 
 interface WorkoutListProps {
 	workouts: Workout[];
@@ -226,6 +227,11 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 					/>
 				))}
 			</Stack>
+
+			{/* Proslijedi prave podatke u WorkoutProgressDashboard */}
+			<Box sx={{ mt: 6 }}>
+				<WorkoutProgressDashboard workouts={workouts} />
+			</Box>
 
 			<DeleteWorkoutDialog
 				open={deleteDialog.open}
