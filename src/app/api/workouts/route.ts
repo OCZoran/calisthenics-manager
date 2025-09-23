@@ -29,7 +29,6 @@ async function getUserFromToken(request: Request) {
 	return decoded;
 }
 
-// Funkcija za pronalaženje aktivnog trening plana
 async function getActiveTrainingPlan(db: any, userId: string) {
 	return await db.collection("trainingPlans").findOne({
 		userId: userId,

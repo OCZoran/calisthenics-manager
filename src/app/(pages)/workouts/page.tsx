@@ -23,7 +23,6 @@ async function getUserFromCookies() {
 	return decoded;
 }
 
-// Server-side function to fetch workouts
 async function getWorkouts(): Promise<Workout[]> {
 	try {
 		const user = await getUserFromCookies();
@@ -35,7 +34,6 @@ async function getWorkouts(): Promise<Workout[]> {
 			.sort({ date: -1, createdAt: -1 })
 			.toArray();
 
-		// Convert ObjectId to string for serialization
 		return workouts.map((workout) => ({
 			...workout,
 			_id: workout._id.toString(),

@@ -11,6 +11,14 @@ import {
 	Fab,
 	Badge,
 	IconButton,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem,
+	Tabs,
+	Tab,
+	Paper,
+	Chip,
 } from "@mui/material";
 import {
 	Add,
@@ -20,6 +28,8 @@ import {
 	Sync,
 	Timeline,
 	FitnessCenter,
+	History,
+	TrendingUp,
 } from "@mui/icons-material";
 import { Workout } from "@/global/interfaces/workout.interface";
 import WorkoutList from "./WorkoutList";
@@ -33,10 +43,12 @@ interface WorkoutClientProps {
 	initialWorkouts: Workout[];
 }
 
+type ViewMode = "current" | "history" | "all";
+
 const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	const [workouts, setWorkouts] = useState<Workout[]>(initialWorkouts);
 	const [showForm, setShowForm] = useState(false);
-	const [showPlanManager, setShowPlanManager] = useState(false); // New state for plan management
+	const [showPlanManager, setShowPlanManager] = useState(false);
 	const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isSyncing, setIsSyncing] = useState(false);
@@ -47,6 +59,10 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	}>({ open: false, message: "", severity: "success" });
 	const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>([]);
 	const [activePlan, setActivePlan] = useState<TrainingPlan | null>(null);
+
+	// Novi state-ovi za plan filtering
+	const [viewMode, setViewMode] = useState<ViewMode>("current");
+	const [selectedPlanId, setSelectedPlanId] = useState<string>("");
 
 	const {
 		isOnline,
@@ -62,6 +78,13 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	useEffect(() => {
 		fetchTrainingPlans();
 	}, []);
+
+	// Automatski postavi selectedPlanId kada se učita aktivni plan
+	useEffect(() => {
+		if (activePlan && viewMode === "current") {
+			setSelectedPlanId(activePlan._id || "");
+		}
+	}, [activePlan, viewMode]);
 
 	const fetchTrainingPlans = async () => {
 		try {
@@ -80,14 +103,81 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		}
 	};
 
+	// Funkcija za filtriranje treninga na osnovu trenutnog view mode-a
+	const getFilteredWorkouts = useCallback(() => {
+		switch (viewMode) {
+			case "current":
+				// Samo treninzi aktivnog plana
+				return activePlan
+					? workouts.filter((w) => w.planId === activePlan._id)
+					: [];
+
+			case "history":
+				// Treninzi selektovanog plana (može biti completed plan)
+				return selectedPlanId
+					? workouts.filter((w) => w.planId === selectedPlanId)
+					: [];
+
+			case "all":
+				// Svi treninzi
+				return workouts;
+
+			default:
+				return workouts;
+		}
+	}, [workouts, viewMode, activePlan, selectedPlanId]);
+
+	// Dobij statistike plana na osnovu trenutno filtriranih treninga
+	const getCurrentPlanStats = useCallback(() => {
+		const filteredWorkouts = getFilteredWorkouts();
+
+		let currentPlan: TrainingPlan | null = null;
+		if (viewMode === "current") {
+			currentPlan = activePlan;
+		} else if (viewMode === "history" && selectedPlanId) {
+			currentPlan = trainingPlans.find((p) => p._id === selectedPlanId) || null;
+		}
+
+		return {
+			plan: currentPlan,
+			workouts: filteredWorkouts,
+			planId: currentPlan?._id,
+			planName: currentPlan?.name,
+		};
+	}, [
+		getFilteredWorkouts,
+		viewMode,
+		activePlan,
+		selectedPlanId,
+		trainingPlans,
+	]);
+
+	const handleViewModeChange = (newMode: ViewMode) => {
+		setViewMode(newMode);
+
+		if (newMode === "current") {
+			setSelectedPlanId(activePlan?._id || "");
+		} else if (newMode === "history" && trainingPlans.length > 0) {
+			// Defaultuj na prvi completed plan ili bilo koji plan
+			const completedPlan = trainingPlans.find((p) => p.status === "completed");
+			const planToSelect = completedPlan || trainingPlans[0];
+			setSelectedPlanId(planToSelect._id || "");
+		} else if (newMode === "all") {
+			setSelectedPlanId("");
+		}
+	};
+
+	const handlePlanSelectionChange = (planId: string) => {
+		setSelectedPlanId(planId);
+	};
+
+	// Ostatak postojećeg koda ostaje isti...
 	useEffect(() => {
 		const unregister = onSyncComplete(() => {
 			console.log("Sync završen - refreshujemo workouts");
 			refreshWorkouts();
 		});
-
 		return unregister;
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	useEffect(() => {
@@ -195,18 +285,15 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	};
 
 	const handlePlanSelect = () => {
-		// Refresh training plans when a plan is selected/deselected
 		fetchTrainingPlans();
 	};
 
 	const handleClosePlanManager = () => {
 		setShowPlanManager(false);
-		// Refresh plans and workouts after closing plan manager
 		fetchTrainingPlans();
 		refreshWorkouts();
 	};
 
-	// Manualni sync
 	const handleManualSync = async () => {
 		if (!isOnline) {
 			showSnackbar("Nema internet konekcije", "warning");
@@ -325,7 +412,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				setIsLoading(false);
 			}
 		},
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[editingWorkout, isOnline, submitWorkout, updateOfflineWorkout]
 	);
 
@@ -422,6 +508,176 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		);
 	};
 
+	// Plan selector component
+	const PlanSelector = () => {
+		const completedPlans = trainingPlans.filter(
+			(p) => p.status === "completed"
+		);
+		const { plan: currentPlan, workouts: filteredWorkouts } =
+			getCurrentPlanStats();
+
+		return (
+			<Paper sx={{ p: 3, mb: 3 }}>
+				<Box sx={{ mb: 2 }}>
+					<Tabs
+						value={viewMode}
+						onChange={(_, newValue) => handleViewModeChange(newValue)}
+						sx={{ borderBottom: 1, borderColor: "divider" }}
+					>
+						<Tab
+							icon={<FitnessCenter />}
+							iconPosition="start"
+							label={
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+									Aktivni plan
+									{activePlan && (
+										<Chip
+											label="AKTIVAN"
+											color="success"
+											size="small"
+											sx={{ ml: 1 }}
+										/>
+									)}
+								</Box>
+							}
+							value="current"
+						/>
+						<Tab
+							icon={<History />}
+							iconPosition="start"
+							label={
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+									Istorija planova
+									<Chip
+										label={completedPlans.length}
+										color="primary"
+										size="small"
+										sx={{ ml: 1 }}
+									/>
+								</Box>
+							}
+							value="history"
+							disabled={completedPlans.length === 0}
+						/>
+						<Tab
+							icon={<TrendingUp />}
+							iconPosition="start"
+							label={
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+									Svi treninzi
+									<Chip
+										label={workouts.length}
+										color="secondary"
+										size="small"
+										sx={{ ml: 1 }}
+									/>
+								</Box>
+							}
+							value="all"
+						/>
+					</Tabs>
+				</Box>
+
+				{viewMode === "current" && activePlan && (
+					<Alert severity="info" sx={{ mt: 2 }}>
+						<Typography variant="subtitle2" fontWeight="bold">
+							Aktivni plan: {activePlan.name}
+						</Typography>
+						<Typography variant="body2">
+							{activePlan.description || "Nema opisa"} | Treninzi:{" "}
+							{filteredWorkouts.length}
+						</Typography>
+					</Alert>
+				)}
+
+				{viewMode === "current" && !activePlan && (
+					<Alert severity="warning" sx={{ mt: 2 }}>
+						<Typography variant="subtitle2" fontWeight="bold">
+							Nema aktivnog plana
+						</Typography>
+						<Typography variant="body2">
+							Kreirajte novi trening plan za početak treniranja.
+						</Typography>
+					</Alert>
+				)}
+
+				{viewMode === "history" && (
+					<Box sx={{ mt: 2 }}>
+						<FormControl fullWidth>
+							<InputLabel>Izaberite plan za pregled</InputLabel>
+							<Select
+								value={selectedPlanId}
+								onChange={(e) => handlePlanSelectionChange(e.target.value)}
+								label="Izaberite plan za pregled"
+							>
+								{trainingPlans.map((plan) => (
+									<MenuItem key={plan._id} value={plan._id}>
+										<Box
+											sx={{
+												display: "flex",
+												alignItems: "center",
+												gap: 2,
+												width: "100%",
+											}}
+										>
+											<Typography>{plan.name}</Typography>
+											<Chip
+												label={plan.status}
+												color={
+													plan.status === "completed" ? "success" : "warning"
+												}
+												size="small"
+											/>
+											<Typography
+												variant="caption"
+												color="text.secondary"
+												sx={{ ml: "auto" }}
+											>
+												{workouts.filter((w) => w.planId === plan._id).length}{" "}
+												treninga
+											</Typography>
+										</Box>
+									</MenuItem>
+								))}
+							</Select>
+						</FormControl>
+
+						{currentPlan && (
+							<Alert severity="info" sx={{ mt: 2 }}>
+								<Typography variant="subtitle2" fontWeight="bold">
+									{currentPlan.name} - {currentPlan.status}
+								</Typography>
+								<Typography variant="body2">
+									{currentPlan.description || "Nema opisa"} | Treninzi:{" "}
+									{filteredWorkouts.length}
+									{currentPlan.startDate &&
+										` | Početak: ${new Date(
+											currentPlan.startDate
+										).toLocaleDateString("sr-RS")}`}
+									{currentPlan.endDate &&
+										` | Završetak: ${new Date(
+											currentPlan.endDate
+										).toLocaleDateString("sr-RS")}`}
+								</Typography>
+							</Alert>
+						)}
+					</Box>
+				)}
+
+				{viewMode === "all" && (
+					<Alert severity="info" sx={{ mt: 2 }}>
+						<Typography variant="subtitle2" fontWeight="bold">
+							Pregled svih treninga
+						</Typography>
+						<Typography variant="body2">
+							Ukupno {workouts.length} treninga kroz sve planove
+						</Typography>
+					</Alert>
+				)}
+			</Paper>
+		);
+	};
+
 	// If showing plan manager, render it
 	if (showPlanManager) {
 		return (
@@ -463,6 +719,13 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			</Box>
 		);
 	}
+
+	const {
+		plan: displayPlan,
+		workouts: filteredWorkouts,
+		planId,
+		planName,
+	} = getCurrentPlanStats();
 
 	return (
 		<Box>
@@ -514,7 +777,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 								startIcon={<Add />}
 								onClick={handleAddWorkout}
 								size="large"
-								disabled={!activePlan}
+								disabled={!activePlan || viewMode !== "current"}
 								sx={{
 									px: 3,
 									py: 1.5,
@@ -545,15 +808,24 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			)}
 
 			{!showForm && (
-				<WorkoutList
-					workouts={workouts}
-					onEdit={handleEditWorkout}
-					onDelete={handleDeleteWorkout}
-					onCreateWorkout={handleCreateWorkout}
-					onCreatePlan={handleCreatePlan}
-					trainingPlans={trainingPlans}
-					activePlan={activePlan}
-				/>
+				<>
+					<PlanSelector />
+					<WorkoutList
+						workouts={filteredWorkouts}
+						onEdit={handleEditWorkout}
+						onDelete={handleDeleteWorkout}
+						onCreateWorkout={
+							viewMode === "current" ? handleCreateWorkout : undefined
+						}
+						onCreatePlan={handleCreatePlan}
+						trainingPlans={trainingPlans}
+						activePlan={displayPlan}
+						viewMode={viewMode}
+						isHistoryMode={viewMode === "history" || viewMode === "all"}
+						planId={planId}
+						planName={planName}
+					/>
+				</>
 			)}
 
 			<Fab

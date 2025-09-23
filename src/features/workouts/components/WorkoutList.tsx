@@ -12,14 +12,15 @@ import {
 	Backdrop,
 	useTheme,
 } from "@mui/material";
-import { Add, Timeline } from "@mui/icons-material";
+import { Add, Timeline, History, Visibility } from "@mui/icons-material";
 import { Workout } from "@/global/interfaces/workout.interface";
 import { TrainingPlan } from "@/global/interfaces/training-plan.interface";
 import { DeleteWorkoutDialog } from "./DeleteWorkoutDialog";
 import { WorkoutCard } from "./WorkoutCard";
-import { EmptyWorkoutState } from "./EmptyWorkout";
 import { WorkoutHeader } from "./WorkoutHeader";
 import EnhancedWorkoutDashboard from "./WorkoutStatisticsDashboard";
+
+type ViewMode = "current" | "history" | "all";
 
 interface WorkoutListProps {
 	workouts: Workout[];
@@ -29,6 +30,10 @@ interface WorkoutListProps {
 	onCreatePlan?: () => void;
 	trainingPlans?: TrainingPlan[];
 	activePlan?: TrainingPlan | null;
+	viewMode?: ViewMode;
+	isHistoryMode?: boolean;
+	planId?: string;
+	planName?: string;
 }
 
 export const getWorkoutTypeColor = (type: string) => {
@@ -52,6 +57,10 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 	onCreatePlan,
 	trainingPlans = [],
 	activePlan,
+	viewMode = "current",
+	isHistoryMode = false,
+	planId,
+	planName,
 }) => {
 	const theme = useTheme();
 
@@ -139,22 +148,90 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 		}
 	}, [deleteDialog.workout, onDelete]);
 
+	// Empty state message based on view mode
+	const getEmptyStateMessage = () => {
+		if (viewMode === "current" && !hasActivePlan) {
+			return {
+				title: "Nema aktivnog trening plana",
+				subtitle: "Kreirajte novi plan da biste počeli sa treniranjem",
+				showCreatePlan: true,
+			};
+		}
+
+		if (viewMode === "current" && hasActivePlan) {
+			return {
+				title: "Još nema treninga u aktivnom planu",
+				subtitle: `Dodajte prvi trening u plan "${activePlan?.name}"`,
+				showCreateWorkout: true,
+			};
+		}
+
+		if (viewMode === "history") {
+			return {
+				title: "Nema treninga u selektovanom planu",
+				subtitle: planName
+					? `Plan "${planName}" nema zabilježene treninge`
+					: "Selektovani plan nema treninge",
+				showCreatePlan: false,
+			};
+		}
+
+		return {
+			title: "Nema treninga",
+			subtitle: "Počnite sa kreiranjem trening plana",
+			showCreatePlan: true,
+		};
+	};
+
+	const emptyState = getEmptyStateMessage();
+
 	if (workouts.length === 0) {
 		return (
-			<EmptyWorkoutState
-				hasTrainingPlans={hasTrainingPlans}
-				hasActivePlan={hasActivePlan}
-				trainingPlans={trainingPlans}
-				activePlan={activePlan}
-				onCreatePlan={onCreatePlan}
-				onCreateWorkout={onCreateWorkout}
-			/>
+			<Box sx={{ textAlign: "center", py: 8 }}>
+				<Box sx={{ mb: 4 }}>
+					{viewMode === "current" ? (
+						<Timeline sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
+					) : (
+						<History sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
+					)}
+					<Typography variant="h5" gutterBottom fontWeight="bold">
+						{emptyState.title}
+					</Typography>
+					<Typography variant="body1" color="textSecondary" sx={{ mb: 4 }}>
+						{emptyState.subtitle}
+					</Typography>
+				</Box>
+
+				<Stack spacing={2} direction="row" justifyContent="center">
+					{emptyState.showCreatePlan && onCreatePlan && (
+						<Button
+							variant="outlined"
+							startIcon={<Timeline />}
+							onClick={onCreatePlan}
+							size="large"
+						>
+							Kreiraj trening plan
+						</Button>
+					)}
+					{emptyState.showCreateWorkout && onCreateWorkout && (
+						<Button
+							variant="contained"
+							startIcon={<Add />}
+							onClick={onCreateWorkout}
+							size="large"
+						>
+							Dodaj trening
+						</Button>
+					)}
+				</Stack>
+			</Box>
 		);
 	}
 
-	return (
-		<Box>
-			{hasActivePlan && (
+	// Alert message for different view modes
+	const getViewModeAlert = () => {
+		if (viewMode === "current" && hasActivePlan) {
+			return (
 				<Alert
 					severity="info"
 					sx={{ mb: 3 }}
@@ -186,7 +263,65 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 						{activePlan?.description || "Nema opisa"}
 					</Typography>
 				</Alert>
-			)}
+			);
+		}
+
+		if (viewMode === "history" && planName) {
+			return (
+				<Alert
+					severity="info"
+					sx={{ mb: 3 }}
+					icon={<History />}
+					action={
+						<Chip
+							label="PREGLED"
+							color="primary"
+							size="small"
+							icon={<Visibility />}
+						/>
+					}
+				>
+					<Typography variant="subtitle1" fontWeight="bold">
+						Istorija: {planName}
+					</Typography>
+					<Typography variant="body2">
+						Pregled prethodnih treninga - editovanje nije dostupno
+					</Typography>
+				</Alert>
+			);
+		}
+
+		if (viewMode === "all") {
+			return (
+				<Alert
+					severity="info"
+					sx={{ mb: 3 }}
+					icon={<Visibility />}
+					action={
+						<Chip
+							label={`${workouts.length} TRENINGA`}
+							color="secondary"
+							size="small"
+						/>
+					}
+				>
+					<Typography variant="subtitle1" fontWeight="bold">
+						Svi treninzi
+					</Typography>
+					<Typography variant="body2">
+						Pregled svih treninga kroz sve planove
+					</Typography>
+				</Alert>
+			);
+		}
+
+		return null;
+	};
+
+	return (
+		<Box>
+			{getViewModeAlert()}
+
 			<WorkoutHeader
 				workouts={workouts}
 				filteredWorkoutsCount={filteredAndSortedWorkouts.length}
@@ -204,14 +339,15 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 				))}
 			</Stack>
 
-			{/* Proslijedi prave podatke u WorkoutProgressDashboard */}
-			<Box sx={{ mt: 6 }}>
-				<EnhancedWorkoutDashboard
-					workouts={workouts}
-					planId={activePlan?._id}
-					planName={activePlan?.name}
-				/>
-			</Box>
+			{workouts.length > 0 && planId && (
+				<Box sx={{ mt: 6 }}>
+					<EnhancedWorkoutDashboard
+						workouts={workouts}
+						planId={planId}
+						planName={planName}
+					/>
+				</Box>
+			)}
 
 			<DeleteWorkoutDialog
 				open={deleteDialog.open}
