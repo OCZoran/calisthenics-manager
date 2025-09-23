@@ -3,47 +3,23 @@
 import React, { useState, useMemo, useCallback } from "react";
 import {
 	Box,
-	Card,
 	Typography,
 	Button,
-	Grid,
 	Chip,
-	IconButton,
-	Accordion,
-	AccordionSummary,
-	AccordionDetails,
 	Alert,
 	CircularProgress,
 	Stack,
-	Divider,
-	Paper,
-	LinearProgress,
 	Backdrop,
 	useTheme,
-	useMediaQuery,
-	Tooltip,
 } from "@mui/material";
-import {
-	Edit,
-	Delete,
-	ExpandMore,
-	FitnessCenter,
-	CalendarToday,
-	CloudDone,
-	CloudOff,
-	Repeat,
-	MonitorWeight,
-	Add,
-	Timeline,
-	Analytics,
-} from "@mui/icons-material";
+import { Add, Timeline } from "@mui/icons-material";
 import { Workout } from "@/global/interfaces/workout.interface";
 import { TrainingPlan } from "@/global/interfaces/training-plan.interface";
 import { DeleteWorkoutDialog } from "./DeleteWorkoutDialog";
 import { WorkoutCard } from "./WorkoutCard";
 import { EmptyWorkoutState } from "./EmptyWorkout";
 import { WorkoutHeader } from "./WorkoutHeader";
-import WorkoutProgressDashboard from "./WorkoutStatisticsDashboard";
+import EnhancedWorkoutDashboard from "./WorkoutStatisticsDashboard";
 
 interface WorkoutListProps {
 	workouts: Workout[];
@@ -230,7 +206,11 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 
 			{/* Proslijedi prave podatke u WorkoutProgressDashboard */}
 			<Box sx={{ mt: 6 }}>
-				<WorkoutProgressDashboard workouts={workouts} />
+				<EnhancedWorkoutDashboard
+					workouts={workouts}
+					planId={activePlan?._id}
+					planName={activePlan?.name}
+				/>
 			</Box>
 
 			<DeleteWorkoutDialog

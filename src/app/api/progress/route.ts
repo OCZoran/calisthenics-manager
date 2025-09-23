@@ -1,6 +1,4 @@
-/* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// /app/api/progress/route.ts
 import { NextResponse } from "next/server";
 import { getDatabase } from "@/global/mongodb";
 import jwt from "jsonwebtoken";
@@ -42,7 +40,7 @@ export async function GET(request: Request) {
 		}
 
 		// Fetch workout statistics for the plan
-		let query: any = { userId: user.id, planId: planId };
+		const query: any = { userId: user.id, planId: planId };
 
 		if (exerciseName) {
 			// Specific exercise progress
@@ -190,8 +188,8 @@ export class StatisticsCalculator {
 		);
 
 		const totalExercises = exerciseStats.length;
-		const totalSets = exerciseStats.reduce(
-			(sum, ex) => sum + ex.sets.length,
+		const totalSets: number = exerciseStats.reduce(
+			(sum: number, ex: ExerciseStatistics) => sum + ex.sets.length,
 			0
 		);
 
@@ -220,11 +218,13 @@ export class StatisticsCalculator {
 			mixedMetric = totalReps + totalVolume / 10;
 		}
 
-		const averageRestTime =
+		const averageRestTime: number =
 			exerciseStats.length > 0
 				? Math.round(
-						exerciseStats.reduce((sum, ex) => sum + ex.averageRest, 0) /
-							exerciseStats.length
+						exerciseStats.reduce(
+							(sum: number, ex: ExerciseStatistics) => sum + ex.averageRest,
+							0
+						) / exerciseStats.length
 				  )
 				: 0;
 

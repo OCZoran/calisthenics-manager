@@ -308,6 +308,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 					onPlanSelect(null);
 				}
 			}
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		} catch (error) {
 			setError("Greška pri ažuriranju plana");
 		}

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
 	LineChart,
 	Line,
@@ -22,19 +22,64 @@ import {
 	Weight,
 	Timer,
 	Activity,
+	Filter,
 } from "lucide-react";
 import { Workout } from "@/global/interfaces/workout.interface";
 
-interface WorkoutProgressDashboardProps {
+interface EnhancedWorkoutDashboardProps {
 	workouts: Workout[];
+	planId?: string;
+	planName?: string;
 }
 
-const WorkoutProgressDashboard: React.FC<WorkoutProgressDashboardProps> = ({
+const workoutTypeConfig: Record<
+	string,
+	{ label: string; color: string; icon: string }
+> = {
+	push: { label: "Push", color: "#FF6B6B", icon: "💪" },
+	pull: { label: "Pull", color: "#4ECDC4", icon: "🔙" },
+	legs: { label: "Legs", color: "#45B7D1", icon: "🦵" },
+	upper: { label: "Upper", color: "#96CEB4", icon: "💪" },
+	lower: { label: "Lower", color: "#FECA57", icon: "🦵" },
+	"full-body": { label: "Full Body", color: "#9B59B6", icon: "🏋️" },
+	cardio: { label: "Cardio", color: "#FF9F43", icon: "❤️" },
+	other: { label: "Other", color: "#74B9FF", icon: "⚡" },
+};
+
+const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 	workouts,
+	planId,
+	planName,
 }) => {
-	// Transformacija podataka iz vašeg Workout interfejsa u format potreban za statistike
+	const [selectedType, setSelectedType] = useState<string>("all");
+
+	// Filter workouts po planu ako je proslijeđen
+	const planWorkouts = useMemo(() => {
+		if (!planId) return workouts;
+		return workouts.filter((w) => w.planId === planId);
+	}, [workouts, planId]);
+
+	// Filter po tipu treninga
+	const filteredWorkouts = useMemo(() => {
+		if (selectedType === "all") return planWorkouts;
+		return planWorkouts.filter((w) => w.type === selectedType);
+	}, [planWorkouts, selectedType]);
+
+	// Grupisanje treninga po tipovima za filter dugmad
+	const workoutsByType = useMemo(() => {
+		return planWorkouts.reduce((acc, workout) => {
+			const type = workout.type;
+			if (!acc[type]) {
+				acc[type] = [];
+			}
+			acc[type].push(workout);
+			return acc;
+		}, {} as Record<string, Workout[]>);
+	}, [planWorkouts]);
+
+	// POSTOJEĆI KOD - samo sa filteredWorkouts umjesto workouts
 	const transformedWorkouts = useMemo(() => {
-		return workouts.map((workout) => {
+		return filteredWorkouts.map((workout) => {
 			// Izračunavanje ukupnih ponavljanja
 			const totalReps = workout.exercises.reduce((sum, exercise) => {
 				return (
@@ -115,7 +160,7 @@ const WorkoutProgressDashboard: React.FC<WorkoutProgressDashboardProps> = ({
 				exerciseStats,
 			};
 		});
-	}, [workouts]);
+	}, [filteredWorkouts]);
 
 	// Analiza napretka
 	const progressAnalysis = useMemo(() => {
@@ -189,8 +234,8 @@ const WorkoutProgressDashboard: React.FC<WorkoutProgressDashboardProps> = ({
 		});
 
 		// Izračunavanje trendova
-
-		const calculateTrend = <T extends { [key: string]: any }>(
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const calculateTrend = <T extends Record<string, any>>(
 			data: T[],
 			key: keyof T
 		): number => {
@@ -257,7 +302,7 @@ const WorkoutProgressDashboard: React.FC<WorkoutProgressDashboardProps> = ({
 		};
 	}, [transformedWorkouts]);
 
-	const getTrendIcon = (trend) => {
+	const getTrendIcon = (trend: number): JSX.Element => {
 		if (trend > 5) return <TrendingUp className="text-green-500" size={20} />;
 		if (trend < -5) return <TrendingDown className="text-red-500" size={20} />;
 		return <Minus className="text-gray-500" size={20} />;
@@ -269,7 +314,7 @@ const WorkoutProgressDashboard: React.FC<WorkoutProgressDashboardProps> = ({
 		return "text-gray-600";
 	};
 
-	const workoutTypeColors = {
+	const workoutTypeColors: Record<string, string> = {
 		push: "#3B82F6",
 		pull: "#10B981",
 		legs: "#F59E0B",
@@ -289,6 +334,8 @@ const WorkoutProgressDashboard: React.FC<WorkoutProgressDashboardProps> = ({
 					</h3>
 					<p className="text-gray-500">
 						Potrebno je minimum 2 treninga za prikaz napretka.
+						{selectedType !== "all" &&
+							` (${workoutTypeConfig[selectedType]?.label || selectedType})`}
 					</p>
 				</div>
 			</div>
@@ -300,12 +347,59 @@ const WorkoutProgressDashboard: React.FC<WorkoutProgressDashboardProps> = ({
 			{/* Header */}
 			<div className="text-center mb-8">
 				<h1 className="text-3xl font-bold text-gray-900 mb-2">
-					Napredak Trening Plana
+					{planId ? `Napredak: ${planName}` : "Napredak Trening Plana"}
 				</h1>
 				<p className="text-gray-600">
-					Analiza {planStats.totalWorkouts} treninga - Pratite svoj napredak
-					kroz vrijeme
+					Analiza {planStats.totalWorkouts} treninga
+					{selectedType !== "all" &&
+						` - ${workoutTypeConfig[selectedType]?.label || selectedType}`}
+					- Pratite svoj napredak kroz vrijeme
 				</p>
+			</div>
+
+			{/* Filter Controls */}
+			<div className="bg-white rounded-xl shadow-sm border p-4 mb-6">
+				<div className="flex items-center gap-4 mb-3">
+					<Filter className="text-blue-500" size={20} />
+					<span className="font-medium text-gray-800">
+						Filtriraj po tipu treninga:
+					</span>
+				</div>
+				<div className="flex gap-2 flex-wrap">
+					<button
+						onClick={() => setSelectedType("all")}
+						className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+							selectedType === "all"
+								? "bg-blue-500 text-white"
+								: "bg-gray-100 text-gray-700 hover:bg-gray-200"
+						}`}
+					>
+						Svi trenizi ({planWorkouts.length})
+					</button>
+					{Object.entries(workoutsByType).map(([type, typeWorkouts]) => (
+						<button
+							key={type}
+							onClick={() => setSelectedType(type)}
+							className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+								selectedType === type
+									? "text-white"
+									: "bg-gray-100 text-gray-700 hover:bg-gray-200"
+							}`}
+							style={{
+								backgroundColor:
+									selectedType === type
+										? workoutTypeConfig[type]?.color
+										: undefined,
+							}}
+						>
+							<span>{workoutTypeConfig[type]?.icon}</span>
+							{workoutTypeConfig[type]?.label || type}
+							<span className="text-xs opacity-75">
+								({typeWorkouts.length})
+							</span>
+						</button>
+					))}
+				</div>
 			</div>
 
 			{/* Statistike - kartice */}
@@ -317,7 +411,13 @@ const WorkoutProgressDashboard: React.FC<WorkoutProgressDashboardProps> = ({
 							{planStats.totalWorkouts}
 						</span>
 					</div>
-					<p className="text-sm text-gray-600">Ukupno treninga</p>
+					<p className="text-sm text-gray-600">
+						{selectedType === "all"
+							? "Ukupno treninga"
+							: `${
+									workoutTypeConfig[selectedType]?.label || selectedType
+							  } treninga`}
+					</p>
 				</div>
 
 				<div className="bg-white rounded-xl shadow-sm border p-6">
@@ -577,4 +677,4 @@ const WorkoutProgressDashboard: React.FC<WorkoutProgressDashboardProps> = ({
 	);
 };
 
-export default WorkoutProgressDashboard;
+export default EnhancedWorkoutDashboard;
