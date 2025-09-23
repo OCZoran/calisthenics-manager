@@ -9,8 +9,6 @@ import {
 	Alert,
 	Snackbar,
 	Fab,
-	Slide,
-	useScrollTrigger,
 	Badge,
 	IconButton,
 } from "@mui/material";
@@ -33,19 +31,6 @@ import TrainingPlans from "./training-plan/TrainingPlan";
 
 interface WorkoutClientProps {
 	initialWorkouts: Workout[];
-}
-
-interface HideOnScrollProps {
-	children: React.ReactElement;
-}
-
-function HideOnScroll({ children }: HideOnScrollProps) {
-	const trigger = useScrollTrigger();
-	return (
-		<Slide appear={false} direction="up" in={!trigger}>
-			{children}
-		</Slide>
-	);
 }
 
 const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
@@ -209,7 +194,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		handleAddWorkout();
 	};
 
-	const handlePlanSelect = (planId: string | null) => {
+	const handlePlanSelect = () => {
 		// Refresh training plans when a plan is selected/deselected
 		fetchTrainingPlans();
 	};

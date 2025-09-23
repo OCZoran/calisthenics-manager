@@ -12,10 +12,8 @@ import {
 	AccordionDetails,
 	Paper,
 	Stack,
-	Divider,
 	Typography,
 	Tooltip,
-	Collapse,
 } from "@mui/material";
 import {
 	Edit,
@@ -27,8 +25,6 @@ import {
 	CloudOff,
 	Repeat,
 	MonitorWeight,
-	Analytics,
-	Timer,
 } from "@mui/icons-material";
 import { Workout } from "@/global/interfaces/workout.interface";
 import { formatDate } from "@/global/utils/format-date";

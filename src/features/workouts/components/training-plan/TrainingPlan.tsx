@@ -32,20 +32,12 @@ import {
 	Timeline,
 	Save,
 	CheckCircle,
-	Flag,
 	Close,
 	Pause,
 	FitnessCenter,
 	TrendingUp,
 } from "@mui/icons-material";
-import {
-	format,
-	parseISO,
-	differenceInDays,
-	isAfter,
-	isBefore,
-} from "date-fns";
-import { formatDate } from "@/global/utils/format-date";
+import { parseISO, differenceInDays, isAfter, isBefore } from "date-fns";
 import TrainingPlanCard from "./TrainingPlanCard";
 
 interface TrainingPlan {

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import React from "react";
 import { Container } from "@mui/material";
 import { getDatabase } from "@/global/mongodb";

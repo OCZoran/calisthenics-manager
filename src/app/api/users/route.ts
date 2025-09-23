@@ -124,7 +124,6 @@ export async function PUT(request: Request) {
 			);
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const updateObj = Object.fromEntries(
 			Object.entries(fieldsToUpdate).filter(([_, v]) => v !== undefined)
 		);
