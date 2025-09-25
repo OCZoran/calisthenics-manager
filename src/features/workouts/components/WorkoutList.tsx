@@ -23,7 +23,7 @@ import EnhancedWorkoutDashboard from "./WorkoutStatisticsDashboard";
 type ViewMode = "current" | "history" | "all";
 
 interface WorkoutListProps {
-	workouts: Workout[];
+workouts: Workout[];
 	onEdit: (workout: Workout) => void;
 	onDelete: (workoutId: string) => Promise<void>;
 	onCreateWorkout?: () => void;

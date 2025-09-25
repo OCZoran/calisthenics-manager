@@ -1,6 +1,8 @@
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import FitnessCenterOutlinedIcon from "@mui/icons-material/FitnessCenterOutlined";
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
+import BookOutlinedIcon from "@mui/icons-material/BookOutlined";
+
 export const sidebarUserData = [
 	{
 		id: 1,
@@ -19,5 +21,11 @@ export const sidebarUserData = [
 		text: "Workouts analysis",
 		icon: BarChartOutlinedIcon,
 		path: "/workouts-analysis",
+	},
+	{
+		id: 4,
+		text: "Journal",
+		icon: BookOutlinedIcon,
+		path: "/journal",
 	},
 ];
