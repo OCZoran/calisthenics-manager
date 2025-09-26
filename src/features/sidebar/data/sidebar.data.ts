@@ -3,6 +3,7 @@ import FitnessCenterOutlinedIcon from "@mui/icons-material/FitnessCenterOutlined
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import BookOutlinedIcon from "@mui/icons-material/BookOutlined";
 import TimelineIcon from "@mui/icons-material/Timeline";
+import RestaurantIcon from "@mui/icons-material/Restaurant";
 
 export const sidebarUserData = [
 	{
@@ -34,5 +35,11 @@ export const sidebarUserData = [
 		text: "Journal",
 		icon: BookOutlinedIcon,
 		path: "/journal",
+	},
+	{
+		id: 6,
+		text: "Food Log",
+		icon: RestaurantIcon,
+		path: "/food-log",
 	},
 ];
