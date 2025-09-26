@@ -1,32 +1,77 @@
-import { Box } from "@mui/material";
-import { ReactNode } from "react";
+"use client";
+
+import { Box, useMediaQuery, useTheme } from "@mui/material";
+import { ReactNode, useEffect, useState } from "react";
 import { UserInterface } from "../interfaces/user.interface";
 import SidebarMobile from "@/features/sidebar/components/SidebarMobile";
 import SidebarDesktop from "@/features/sidebar/components/SidebarDesktop";
 
-export default async function asyncAppLayout({
+export default function AppLayout({
 	children,
 	user,
 }: {
 	children: ReactNode;
 	user: UserInterface;
 }) {
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+	const [mounted, setMounted] = useState(false);
+
+	// Rešava hydration problem
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
+	// Prevent render until mounted to avoid hydration mismatch
+	if (!mounted) {
+		return (
+			<Box
+				sx={{
+					display: "flex",
+					minHeight: "100vh",
+					backgroundColor: theme.palette.background.default,
+				}}
+			>
+				<Box
+					component="main"
+					sx={{
+						flexGrow: 1,
+						pt: 11,
+						pr: 8,
+						pb: 3,
+						pl: 8,
+						"@media (max-width: 900px)": {
+							pl: "32px",
+							pr: "32px",
+							pt: 7.5,
+						},
+						"@media (max-width: 600px)": {
+							pl: "16px",
+							pr: "16px",
+							pt: 6,
+						},
+					}}
+				>
+					{children}
+				</Box>
+			</Box>
+		);
+	}
+
 	return (
-		<Box sx={{ display: "flex" }}>
-			<Box
-				sx={{
-					display: { xs: "block", md: "none" },
-				}}
-			>
+		<Box
+			sx={{
+				display: "flex",
+				minHeight: "100vh",
+				backgroundColor: theme.palette.background.default,
+			}}
+		>
+			{isMobile ? (
 				<SidebarMobile user={user} />
-			</Box>
-			<Box
-				sx={{
-					display: { xs: "none", md: "block" },
-				}}
-			>
+			) : (
 				<SidebarDesktop user={user} />
-			</Box>
+			)}
+
 			<Box
 				component="main"
 				sx={{
@@ -34,21 +79,19 @@ export default async function asyncAppLayout({
 					pt: 11,
 					pr: 8,
 					pb: 3,
-					marginTop: 0,
-					transition: "margin 0.3s ease",
 					pl: 8,
+					transition: "margin 0.3s ease",
+					minHeight: "100vh",
 
 					"@media (max-width: 900px)": {
 						pl: "32px",
 						pr: "32px",
 						pt: 7.5,
-						marginLeft: 0,
 						marginTop: "32px",
 					},
 					"@media (max-width: 600px)": {
 						pl: "16px",
 						pr: "16px",
-
 						pt: 6,
 					},
 				}}

@@ -126,7 +126,7 @@ const Login = () => {
 		}
 	};
 
-	// Ispravljen onSubmit handler
+	// Poboljšan onSubmit handler sa boljim redirect timing-om
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setIsSubmitted(true);
@@ -149,10 +149,11 @@ const Login = () => {
 				setSuccessMessage("Login successful");
 			}
 
-			// Redirect nakon uspešnog logina
+			// Kraći timeout i koristi window.location za force refresh
 			setTimeout(() => {
-				router.push("/workouts"); // ili gde god treba da redirects
-			}, 1500);
+				// Koristi window.location umesto router.push za potpuni page reload
+				window.location.href = "/";
+			}, 800);
 		} catch (error) {
 			console.error("Login error:", error);
 			setErrorMessage(error instanceof Error ? error.message : "Login failed");

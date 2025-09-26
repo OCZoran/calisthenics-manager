@@ -6,7 +6,6 @@ import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
-
 import MenuIcon from "@mui/icons-material/Menu";
 import Toolbar from "@mui/material/Toolbar";
 import { UserInterface } from "@/global/interfaces/user.interface";
@@ -19,10 +18,16 @@ interface Props {
 	user: UserInterface;
 }
 
-export default function MobileSidebar(props: Props) {
+export default function SidebarMobile(props: Props) {
 	const { window } = props;
 	const [mobileOpen, setMobileOpen] = React.useState(false);
 	const [isClosing, setIsClosing] = React.useState(false);
+	const [mounted, setMounted] = React.useState(false);
+
+	// Rešava hydration problem
+	React.useEffect(() => {
+		setMounted(true);
+	}, []);
 
 	const handleDrawerClose = () => {
 		setIsClosing(true);
@@ -39,6 +44,34 @@ export default function MobileSidebar(props: Props) {
 		}
 	};
 
+	// Prevent render until mounted to avoid hydration mismatch
+	if (!mounted) {
+		return (
+			<Box sx={{ display: "flex" }}>
+				<CssBaseline />
+				<AppBar
+					position="fixed"
+					sx={{
+						width: "100%",
+						backgroundColor: "#ffffff",
+						boxShadow: "2px 0px 12px 0px #e4e4e4, 2px 2px 4px 0px #e4e4e4",
+					}}
+				>
+					<Toolbar sx={{ justifyContent: "space-between" }}>
+						<IconButton
+							color="inherit"
+							aria-label="open drawer"
+							edge="start"
+							sx={{ mr: 0 }}
+						>
+							<MenuIcon color="primary" />
+						</IconButton>
+					</Toolbar>
+				</AppBar>
+			</Box>
+		);
+	}
+
 	const container =
 		window !== undefined ? () => window().document.body : undefined;
 
@@ -51,6 +84,7 @@ export default function MobileSidebar(props: Props) {
 					width: "100%",
 					backgroundColor: "#ffffff",
 					boxShadow: "2px 0px 12px 0px #e4e4e4, 2px 2px 4px 0px #e4e4e4",
+					zIndex: (theme) => theme.zIndex.drawer + 1,
 				}}
 			>
 				<Toolbar sx={{ justifyContent: "space-between" }}>
@@ -63,8 +97,7 @@ export default function MobileSidebar(props: Props) {
 					>
 						<MenuIcon color="primary" />
 					</IconButton>
-
-					{/* <Image src={OfficeLogLogo} alt="Office Log Logo" /> */}
+					{/* Logo i drugi elementi */}
 				</Toolbar>
 			</AppBar>
 			<Box component="nav">
@@ -74,18 +107,18 @@ export default function MobileSidebar(props: Props) {
 					open={mobileOpen}
 					onTransitionEnd={handleDrawerTransitionEnd}
 					onClose={handleDrawerClose}
+					ModalProps={{
+						keepMounted: true, // Better open performance on mobile.
+					}}
 					sx={{
 						"& .MuiDrawer-paper": {
 							boxSizing: "border-box",
 							width: drawerWidth,
-						},
-					}}
-					slotProps={{
-						root: {
-							keepMounted: true,
+							boxShadow: "2px 0px 12px 0px #e4e4e4, 2px 2px 4px 0px #e4e4e4",
 						},
 					}}
 				>
+					<Box sx={{ height: "64px" }} /> {/* AppBar spacing */}
 					<SidebarList
 						open={mobileOpen}
 						isMobile

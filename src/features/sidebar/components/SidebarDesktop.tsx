@@ -11,11 +11,8 @@ import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-// import OfficeLogLogo from "@/assets/icons/office-log-logo.svg";
 import { UserInterface } from "@/global/interfaces/user.interface";
 import SidebarList from "./SidebarList";
-// import DateRangeFilterModal from "@/global/ui/DateRangeFilterModal";
-// import LogoutButton from "@/global/ui/LogoutButton";
 
 const drawerWidth = 180;
 
@@ -107,11 +104,28 @@ const Drawer = styled(MuiDrawer, {
 	],
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function SidebarDesktop({ user }: { user: UserInterface }) {
 	const [open, setOpen] = React.useState(false);
-
+	const [mounted, setMounted] = React.useState(false);
 	const theme = useTheme();
+
+	// Rešava hydration problem
+	React.useEffect(() => {
+		setMounted(true);
+
+		// Restore sidebar state from localStorage if exists
+		const savedState = localStorage.getItem("sidebar-open");
+		if (savedState !== null) {
+			setOpen(JSON.parse(savedState));
+		}
+	}, []);
+
+	// Save sidebar state to localStorage
+	React.useEffect(() => {
+		if (mounted) {
+			localStorage.setItem("sidebar-open", JSON.stringify(open));
+		}
+	}, [open, mounted]);
 
 	const handleDrawerOpen = () => {
 		setOpen(true);
@@ -120,6 +134,11 @@ export default function SidebarDesktop({ user }: { user: UserInterface }) {
 	const handleDrawerClose = () => {
 		setOpen(false);
 	};
+
+	// Prevent render until mounted to avoid hydration mismatch
+	if (!mounted) {
+		return null;
+	}
 
 	return (
 		<Box sx={{ display: "flex" }}>
@@ -151,15 +170,21 @@ export default function SidebarDesktop({ user }: { user: UserInterface }) {
 						justifyContent="space-between"
 						width="100%"
 					>
-						{/* <Image src={OfficeLogLogo} alt="Office Log Logo" /> */}
-						{/* {hasMounted && !pathname.includes("/employee") && (
-							<DateRangeFilterModal />
-						)}
-						<LogoutButton /> */}
+						{/* Logo i drugi elementi */}
 					</Box>
 				</Toolbar>
 			</AppBar>
-			<Drawer variant="permanent" open={open} sx={{ height: "100%" }}>
+			<Drawer
+				variant="permanent"
+				open={open}
+				sx={{
+					height: "100vh",
+					"& .MuiDrawer-paper": {
+						height: "100vh",
+						position: "fixed",
+					},
+				}}
+			>
 				<DrawerHeader>
 					<IconButton onClick={handleDrawerClose}>
 						{theme.direction === "rtl" ? (

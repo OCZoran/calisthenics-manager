@@ -9,6 +9,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import theme from "@/theme";
 import ServiceWorkerRegister from "@/global/ServoceWorkerRegister";
+import { headers } from "next/headers";
 
 export async function getUserData(userId: string | null) {
 	if (!userId) {
@@ -39,7 +40,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
 	title: "Workout Tracker",
 	description: "Praćenje treninga offline",
-	manifest: "/manifest.json", // Dodaj manifest
+	manifest: "/manifest.json",
 };
 
 export default async function RootLayout({
@@ -47,9 +48,29 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const userId = await getUserIdFromToken();
-	const user = await getUserData(userId);
-	const isAuthenticated = !!user;
+	// Dodaj check za trenutnu rutu
+	const headersList = headers();
+	const pathname = (await headersList).get("x-current-path") || "";
+
+	// Public rute gde ne treba sidebar
+	const publicRoutes = ["/login", "/registration"];
+	const isPublicRoute = publicRoutes.some((route) =>
+		pathname.startsWith(route)
+	);
+
+	let user = null;
+	let isAuthenticated = false;
+
+	// Samo učitaj user podatke ako nije public ruta
+	if (!isPublicRoute) {
+		try {
+			const userId = await getUserIdFromToken();
+			user = await getUserData(userId);
+			isAuthenticated = !!user;
+		} catch (error) {
+			console.error("Error in RootLayout:", error);
+		}
+	}
 
 	return (
 		<html lang="en">
@@ -59,8 +80,8 @@ export default async function RootLayout({
 				<AppRouterCacheProvider>
 					<ThemeProvider theme={theme}>
 						<CssBaseline />
-						<ServiceWorkerRegister /> {/* Dodaj komponentu ovde */}
-						{isAuthenticated ? (
+						<ServiceWorkerRegister />
+						{isAuthenticated && !isPublicRoute ? (
 							<AppLayout user={user}>{children}</AppLayout>
 						) : (
 							children
