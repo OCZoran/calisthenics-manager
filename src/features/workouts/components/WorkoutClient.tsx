@@ -38,6 +38,7 @@ import { useOfflineWorkouts } from "@/features/OfflineManager";
 import axiosInstance from "@/services/axios-public.instance";
 import { TrainingPlan } from "@/global/interfaces/training-plan.interface";
 import TrainingPlans from "./training-plan/TrainingPlan";
+import UploadImageBox from "./UploadImageBox";
 
 interface WorkoutClientProps {
 	initialWorkouts: Workout[];
@@ -810,6 +811,15 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			{!showForm && (
 				<>
 					<PlanSelector />
+					<UploadImageBox
+						label="Dodaj sliku znanja"
+						endpoint="/api/knowledge-hub-photos"
+						onUploadSuccess={(url) => {
+							console.log("Slika uspješno uploadovana:", url);
+							// Možeš setovati u state ako ti treba kasnije
+						}}
+					/>
+					;
 					<WorkoutList
 						workouts={filteredWorkouts}
 						onEdit={handleEditWorkout}

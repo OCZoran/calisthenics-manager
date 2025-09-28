@@ -19,11 +19,12 @@ import { DeleteWorkoutDialog } from "./DeleteWorkoutDialog";
 import { WorkoutCard } from "./WorkoutCard";
 import { WorkoutHeader } from "./WorkoutHeader";
 import EnhancedWorkoutDashboard from "./WorkoutStatisticsDashboard";
+import UploadImageBox from "./UploadImageBox";
 
 type ViewMode = "current" | "history" | "all";
 
 interface WorkoutListProps {
-workouts: Workout[];
+	workouts: Workout[];
 	onEdit: (workout: Workout) => void;
 	onDelete: (workoutId: string) => Promise<void>;
 	onCreateWorkout?: () => void;
@@ -327,7 +328,12 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 				filteredWorkoutsCount={filteredAndSortedWorkouts.length}
 				workoutStats={workoutStats}
 			/>
-
+			<DeleteWorkoutDialog
+				open={deleteDialog.open}
+				isDeleting={isDeleting}
+				onClose={() => setDeleteDialog({ open: false, workout: null })}
+				onConfirm={handleDeleteConfirm}
+			/>
 			<Stack spacing={2}>
 				{filteredAndSortedWorkouts.map((workout) => (
 					<WorkoutCard
@@ -348,13 +354,6 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 					/>
 				</Box>
 			)}
-
-			<DeleteWorkoutDialog
-				open={deleteDialog.open}
-				isDeleting={isDeleting}
-				onClose={() => setDeleteDialog({ open: false, workout: null })}
-				onConfirm={handleDeleteConfirm}
-			/>
 
 			<Backdrop open={isDeleting} sx={{ zIndex: theme.zIndex.modal + 1 }}>
 				<CircularProgress color="inherit" />
