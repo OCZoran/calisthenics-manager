@@ -231,39 +231,7 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 	// Alert message for different view modes
 	const getViewModeAlert = () => {
 		if (viewMode === "current" && hasActivePlan) {
-			return (
-				<Alert
-					severity="info"
-					sx={{ mb: 3 }}
-					action={
-						<Box sx={{ display: "flex", gap: 1 }}>
-							<Chip
-								label="AKTIVAN"
-								color="success"
-								size="small"
-								icon={<Timeline />}
-							/>
-							{onCreateWorkout && (
-								<Button
-									variant="contained"
-									size="small"
-									startIcon={<Add />}
-									onClick={onCreateWorkout}
-								>
-									Dodaj trening
-								</Button>
-							)}
-						</Box>
-					}
-				>
-					<Typography variant="subtitle1" fontWeight="bold">
-						Aktivni plan: {activePlan?.name}
-					</Typography>
-					<Typography variant="body2">
-						{activePlan?.description || "Nema opisa"}
-					</Typography>
-				</Alert>
-			);
+			return null;
 		}
 
 		if (viewMode === "history" && planName) {

@@ -45,7 +45,10 @@ import {
 } from "@mui/icons-material";
 import { format, parseISO } from "date-fns";
 import { Workout } from "@/global/interfaces/workout.interface";
-import { TrainingPlan } from "@/global/interfaces/training-plan.interface";
+import {
+	ExerciseDefinition,
+	TrainingPlan,
+} from "@/global/interfaces/training-plan.interface";
 import { formatDate } from "@/global/utils/format-date";
 import WorkoutAddSet from "./WorkoutAddSet";
 import WorkoutFormHeader from "./WorkoutFormHeader";
@@ -62,14 +65,29 @@ interface WorkoutFormProps {
 }
 
 const workoutTypes = [
-	{ value: "push", label: "Push", color: "#FF6B6B" },
-	{ value: "pull", label: "Pull", color: "#4ECDC4" },
-	{ value: "legs", label: "Legs", color: "#45B7D1" },
-	{ value: "upper", label: "Upper", color: "#96CEB4" },
-	{ value: "lower", label: "Lower", color: "#FECA57" },
-	{ value: "full-body", label: "Full Body", color: "#9B59B6" },
-	{ value: "cardio", label: "Cardio", color: "#FF9F43" },
-	{ value: "other", label: "Other", color: "#74B9FF" },
+	// Standardni pokretni tipovi
+	{ value: "push", label: "Push", color: "#FF6B6B", category: "movement" },
+	{ value: "pull", label: "Pull", color: "#4ECDC4", category: "movement" },
+	{ value: "legs", label: "Legs", color: "#45B7D1", category: "movement" },
+	{ value: "core", label: "Core", color: "#96CEB4", category: "movement" },
+	{ value: "upper", label: "Upper", color: "#FECA57", category: "movement" },
+	{ value: "lower", label: "Lower", color: "#9B59B6", category: "movement" },
+	{
+		value: "full-body",
+		label: "Full Body",
+		color: "#FF9F43",
+		category: "movement",
+	},
+
+	// Specijalni tipovi
+	{ value: "cardio", label: "Cardio", color: "#E74C3C", category: "special" },
+	{ value: "skills", label: "Skills", color: "#3498DB", category: "special" },
+	{
+		value: "mobility",
+		label: "Mobility",
+		color: "#95A5A6",
+		category: "special",
+	},
 ];
 
 const WorkoutForm: React.FC<WorkoutFormProps> = ({
@@ -84,7 +102,10 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
+	const [availableExercises, setAvailableExercises] = useState<
+		ExerciseDefinition[]
+	>([]);
+	const [loadingExercises, setLoadingExercises] = useState(false);
 	const [formData, setFormData] = useState({
 		date: workout?.date || new Date().toISOString().split("T")[0],
 		type: workout?.type || "",
@@ -94,10 +115,30 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		planId: workout?.planId || activePlanId || "",
 	});
 
+	console.log("availableExercises", availableExercises);
 	const [errors, setErrors] = useState<string[]>([]);
 	const [expandedExercises, setExpandedExercises] = useState<number[]>([]);
 	const [showCopyDialog, setShowCopyDialog] = useState(false);
 	const [availableWorkouts, setAvailableWorkouts] = useState<Workout[]>([]);
+
+	useEffect(() => {
+		const fetchExercises = async () => {
+			try {
+				setLoadingExercises(true);
+				const response = await fetch("/api/exercises");
+				if (!response.ok) throw new Error("Greška pri učitavanju vježbi");
+
+				const data = await response.json();
+				setAvailableExercises(data.exercises || []);
+			} catch (error) {
+				console.error("Error fetching exercises:", error);
+			} finally {
+				setLoadingExercises(false);
+			}
+		};
+
+		fetchExercises();
+	}, []);
 
 	useEffect(() => {
 		if (workout) {
@@ -486,30 +527,108 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 													display: "flex",
 													alignItems: "center",
 													gap: 2,
+													width: "100%",
 													mb: expandedExercises.includes(exerciseIndex) ? 3 : 0,
 												}}
 											>
-												<Box sx={{ flexGrow: 1 }}>
-													<TextField
-														label={`Vježba ${exerciseIndex + 1}`}
-														value={exercise.name || ""}
-														onChange={(e) =>
-															updateExercise(
-																exerciseIndex,
-																"name",
-																e.target.value
-															)
-														}
-														fullWidth
-														required
-														sx={{
-															"& .MuiOutlinedInput-root": {
-																borderRadius: 2,
-																backgroundColor: "background.paper",
-															},
-														}}
-														size={isMobile ? "small" : "medium"}
-													/>
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														gap: 2,
+														width: "100%",
+													}}
+												>
+													<Box sx={{ flexGrow: 1, width: "100%" }}>
+														<FormControl fullWidth required>
+															<InputLabel>{`Vježba ${
+																exerciseIndex + 1
+															}`}</InputLabel>
+															<Select
+																value={exercise.name || ""}
+																label={`Vježba ${exerciseIndex + 1}`}
+																onChange={(e) =>
+																	updateExercise(
+																		exerciseIndex,
+																		"name",
+																		e.target.value
+																	)
+																}
+																sx={{
+																	borderRadius: 2,
+																	backgroundColor: "background.paper",
+																}}
+																size={isMobile ? "small" : "medium"}
+																disabled={loadingExercises}
+															>
+																{loadingExercises ? (
+																	<MenuItem value="">
+																		Učitavam vježbe...
+																	</MenuItem>
+																) : availableExercises.length === 0 ? (
+																	<MenuItem value="">
+																		Nema dostupnih vježbi
+																	</MenuItem>
+																) : (
+																	availableExercises
+																		.filter(
+																			(ex) =>
+																				!formData.type ||
+																				!ex.type ||
+																				ex.type.length === 0 ||
+																				ex.type.includes(formData.type)
+																		)
+																		.map((ex) => (
+																			<MenuItem key={ex._id} value={ex.name}>
+																				<Box
+																					sx={{
+																						display: "flex",
+																						alignItems: "center",
+																						gap: 1,
+																					}}
+																				>
+																					{ex.name}
+																					{ex.muscleGroups &&
+																						ex.muscleGroups.length > 0 && (
+																							<Typography
+																								variant="caption"
+																								color="text.secondary"
+																							>
+																								({ex.muscleGroups.join(", ")})
+																							</Typography>
+																						)}
+																				</Box>
+																			</MenuItem>
+																		))
+																)}
+															</Select>
+														</FormControl>
+
+														{/* Custom input polje ako je odabrano __custom__ */}
+														{exercise.name === "__custom__" && (
+															<TextField
+																label="Naziv vježbe"
+																value=""
+																onChange={(e) =>
+																	updateExercise(
+																		exerciseIndex,
+																		"name",
+																		e.target.value
+																	)
+																}
+																fullWidth
+																autoFocus
+																sx={{
+																	mt: 2,
+																	"& .MuiOutlinedInput-root": {
+																		borderRadius: 2,
+																		backgroundColor: "background.paper",
+																	},
+																}}
+																size={isMobile ? "small" : "medium"}
+															/>
+														)}
+													</Box>
 												</Box>
 												<Box sx={{ display: "flex", gap: 1 }}>
 													<Tooltip

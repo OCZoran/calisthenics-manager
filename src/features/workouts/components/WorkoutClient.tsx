@@ -39,7 +39,6 @@ import { useOfflineWorkouts } from "@/features/OfflineManager";
 import axiosInstance from "@/services/axios-public.instance";
 import { TrainingPlan } from "@/global/interfaces/training-plan.interface";
 import TrainingPlans from "./training-plan/TrainingPlan";
-import UploadImageBox from "./UploadImageBox";
 import ExerciseClient from "../exercise/ExerciseClient";
 
 interface WorkoutClientProps {
@@ -522,6 +521,8 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 					<Tabs
 						value={viewMode}
 						onChange={(_, newValue) => handleViewModeChange(newValue)}
+						variant="scrollable"
+						scrollButtons="auto"
 						sx={{ borderBottom: 1, borderColor: "divider" }}
 					>
 						<Tab
@@ -776,8 +777,10 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			<Box
 				sx={{
 					display: "flex",
+					flexDirection: { xs: "column", md: "row" },
 					justifyContent: "space-between",
-					alignItems: "center",
+					alignItems: { xs: "flex-start", md: "center" },
+					gap: { xs: 2, md: 0 },
 					mb: 4,
 				}}
 			>
@@ -787,28 +790,50 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 						component="h1"
 						gutterBottom
 						fontWeight="bold"
+						sx={{
+							fontSize: { xs: "1.75rem", sm: "2.5rem", md: "3rem" },
+							display: "flex",
+							alignItems: "center",
+							flexWrap: "wrap",
+						}}
 					>
 						<FitnessCenter
-							sx={{ mr: 2, color: "primary.main", fontSize: 32 }}
+							sx={{
+								mr: 2,
+								color: "primary.main",
+								fontSize: { xs: 24, sm: 28, md: 32 },
+							}}
 						/>
 						Moji treninzi
 					</Typography>
-					<Typography variant="subtitle1" color="textSecondary">
+					<Typography
+						variant="subtitle1"
+						color="textSecondary"
+						sx={{ fontSize: { xs: "0.9rem", sm: "1rem" } }}
+					>
 						Pratite i upravljajte svojim treninzima
 					</Typography>
 				</Box>
 
 				{!showForm && (
-					<Box sx={{ display: "flex", gap: 2 }}>
+					<Box
+						sx={{
+							display: "flex",
+							flexDirection: { xs: "column", sm: "row" },
+							gap: 2,
+							width: { xs: "100%", md: "auto" },
+						}}
+					>
 						<Button
 							variant="outlined"
 							startIcon={<FitnessCenterOutlined />}
 							onClick={handleManageExercises}
 							size="large"
+							fullWidth={{ xs: true, sm: false }}
 							sx={{
-								px: 3,
+								px: { xs: 2, sm: 3 },
 								py: 1.5,
-								fontSize: "1.1rem",
+								fontSize: { xs: "1rem", sm: "1.1rem" },
 							}}
 						>
 							Vježbe
@@ -818,10 +843,11 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							startIcon={<Timeline />}
 							onClick={handleCreatePlan}
 							size="large"
+							fullWidth={{ xs: true, sm: false }}
 							sx={{
-								px: 3,
+								px: { xs: 2, sm: 3 },
 								py: 1.5,
-								fontSize: "1.1rem",
+								fontSize: { xs: "1rem", sm: "1.1rem" },
 							}}
 						>
 							Planovi
@@ -833,10 +859,11 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 								onClick={handleAddWorkout}
 								size="large"
 								disabled={!activePlan || viewMode !== "current"}
+								fullWidth={{ xs: true, sm: false }}
 								sx={{
-									px: 3,
+									px: { xs: 2, sm: 3 },
 									py: 1.5,
-									fontSize: "1.1rem",
+									fontSize: { xs: "1rem", sm: "1.1rem" },
 									boxShadow: 3,
 									"&:hover": {
 										boxShadow: 6,
@@ -865,13 +892,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			{!showForm && (
 				<>
 					<PlanSelector />
-					<UploadImageBox
-						label="Dodaj sliku znanja"
-						endpoint="/api/knowledge-hub-photos"
-						onUploadSuccess={(url) => {
-							console.log("Slika uspješno uploadovana:", url);
-						}}
-					/>
+
 					<WorkoutList
 						workouts={filteredWorkouts}
 						onEdit={handleEditWorkout}
