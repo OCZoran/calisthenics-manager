@@ -1,3 +1,7 @@
+import {
+	ExerciseTag,
+	MovementCategory,
+} from "@/features/workouts/exercise/exercise.interface";
 import { Workout } from "./workout.interface";
 
 export interface TrainingPlan {
@@ -22,9 +26,14 @@ export interface ExerciseDefinition {
 	_id?: string;
 	name: string;
 	type: "bodyweight" | "weighted";
+	isBodyweight: boolean;
 	muscleGroups: string[];
 	userId: string;
+	tags: ExerciseTag[];
+
+	category: MovementCategory;
 	createdAt?: Date;
+	updatedAt?: Date;
 }
 
 export interface SetStatistics {

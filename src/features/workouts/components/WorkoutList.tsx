@@ -19,7 +19,6 @@ import { DeleteWorkoutDialog } from "./DeleteWorkoutDialog";
 import { WorkoutCard } from "./WorkoutCard";
 import { WorkoutHeader } from "./WorkoutHeader";
 import EnhancedWorkoutDashboard from "./WorkoutStatisticsDashboard";
-import UploadImageBox from "./UploadImageBox";
 
 type ViewMode = "current" | "history" | "all";
 

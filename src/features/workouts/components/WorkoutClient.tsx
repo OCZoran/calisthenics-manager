@@ -30,6 +30,7 @@ import {
 	FitnessCenter,
 	History,
 	TrendingUp,
+	FitnessCenterOutlined,
 } from "@mui/icons-material";
 import { Workout } from "@/global/interfaces/workout.interface";
 import WorkoutList from "./WorkoutList";
@@ -39,17 +40,21 @@ import axiosInstance from "@/services/axios-public.instance";
 import { TrainingPlan } from "@/global/interfaces/training-plan.interface";
 import TrainingPlans from "./training-plan/TrainingPlan";
 import UploadImageBox from "./UploadImageBox";
+import ExerciseClient from "../exercise/ExerciseClient";
 
 interface WorkoutClientProps {
 	initialWorkouts: Workout[];
 }
 
 type ViewMode = "current" | "history" | "all";
+type PlanManagerView = "plans" | "exercises"; // Novi tip za upravljanje viewom
 
 const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	const [workouts, setWorkouts] = useState<Workout[]>(initialWorkouts);
 	const [showForm, setShowForm] = useState(false);
 	const [showPlanManager, setShowPlanManager] = useState(false);
+	const [planManagerView, setPlanManagerView] =
+		useState<PlanManagerView>("plans"); // Novi state
 	const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isSyncing, setIsSyncing] = useState(false);
@@ -61,7 +66,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>([]);
 	const [activePlan, setActivePlan] = useState<TrainingPlan | null>(null);
 
-	// Novi state-ovi za plan filtering
+	// State-ovi za plan filtering
 	const [viewMode, setViewMode] = useState<ViewMode>("current");
 	const [selectedPlanId, setSelectedPlanId] = useState<string>("");
 
@@ -94,7 +99,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 			});
 			setTrainingPlans(response.data.plans || []);
 
-			// Set active plan
 			const active = response.data.plans?.find(
 				(p: TrainingPlan) => p.status === "active"
 			);
@@ -104,34 +108,25 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		}
 	};
 
-	// Funkcija za filtriranje treninga na osnovu trenutnog view mode-a
 	const getFilteredWorkouts = useCallback(() => {
 		switch (viewMode) {
 			case "current":
-				// Samo treninzi aktivnog plana
 				return activePlan
 					? workouts.filter((w) => w.planId === activePlan._id)
 					: [];
-
 			case "history":
-				// Treninzi selektovanog plana (može biti completed plan)
 				return selectedPlanId
 					? workouts.filter((w) => w.planId === selectedPlanId)
 					: [];
-
 			case "all":
-				// Svi treninzi
 				return workouts;
-
 			default:
 				return workouts;
 		}
 	}, [workouts, viewMode, activePlan, selectedPlanId]);
 
-	// Dobij statistike plana na osnovu trenutno filtriranih treninga
 	const getCurrentPlanStats = useCallback(() => {
 		const filteredWorkouts = getFilteredWorkouts();
-
 		let currentPlan: TrainingPlan | null = null;
 		if (viewMode === "current") {
 			currentPlan = activePlan;
@@ -159,7 +154,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		if (newMode === "current") {
 			setSelectedPlanId(activePlan?._id || "");
 		} else if (newMode === "history" && trainingPlans.length > 0) {
-			// Defaultuj na prvi completed plan ili bilo koji plan
 			const completedPlan = trainingPlans.find((p) => p.status === "completed");
 			const planToSelect = completedPlan || trainingPlans[0];
 			setSelectedPlanId(planToSelect._id || "");
@@ -172,7 +166,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		setSelectedPlanId(planId);
 	};
 
-	// Ostatak postojećeg koda ostaje isti...
 	useEffect(() => {
 		const unregister = onSyncComplete(() => {
 			console.log("Sync završen - refreshujemo workouts");
@@ -274,6 +267,12 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 	const handleCreatePlan = () => {
 		setShowPlanManager(true);
+		setPlanManagerView("plans"); // Postavi na plans view
+	};
+
+	const handleManageExercises = () => {
+		setShowPlanManager(true);
+		setPlanManagerView("exercises"); // Postavi na exercises view
 	};
 
 	const handleCreateWorkout = () => {
@@ -291,6 +290,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 	const handleClosePlanManager = () => {
 		setShowPlanManager(false);
+		setPlanManagerView("plans"); // Reset view
 		fetchTrainingPlans();
 		refreshWorkouts();
 	};
@@ -509,7 +509,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		);
 	};
 
-	// Plan selector component
 	const PlanSelector = () => {
 		const completedPlans = trainingPlans.filter(
 			(p) => p.status === "completed"
@@ -679,7 +678,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		);
 	};
 
-	// If showing plan manager, render it
+	// Ako je showPlanManager aktivan, prikaži Plan Manager ili Exercise Manager
 	if (showPlanManager) {
 		return (
 			<Box>
@@ -700,23 +699,65 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							gutterBottom
 							fontWeight="bold"
 						>
-							Trening planovi
+							{planManagerView === "plans" ? (
+								<>
+									<Timeline
+										sx={{ mr: 2, color: "primary.main", fontSize: 32 }}
+									/>
+									Trening planovi
+								</>
+							) : (
+								<>
+									<FitnessCenterOutlined
+										sx={{ mr: 2, color: "primary.main", fontSize: 32 }}
+									/>
+									Baza vježbi
+								</>
+							)}
 						</Typography>
 						<Typography variant="subtitle1" color="textSecondary">
-							Upravljajte svojim trening planovima
+							{planManagerView === "plans"
+								? "Upravljajte svojim trening planovima"
+								: "Kreirajte i upravljajte vašim vježbama"}
 						</Typography>
 					</Box>
 
-					<Button
-						variant="outlined"
-						onClick={handleClosePlanManager}
-						size="large"
-					>
-						Nazad na treninge
-					</Button>
+					<Box sx={{ display: "flex", gap: 2 }}>
+						{/* Tab switcher unutar Plan Manager-a */}
+						<Button
+							variant={planManagerView === "plans" ? "contained" : "outlined"}
+							onClick={() => setPlanManagerView("plans")}
+							startIcon={<Timeline />}
+							size="large"
+						>
+							Planovi
+						</Button>
+						<Button
+							variant={
+								planManagerView === "exercises" ? "contained" : "outlined"
+							}
+							onClick={() => setPlanManagerView("exercises")}
+							startIcon={<FitnessCenterOutlined />}
+							size="large"
+						>
+							Vježbe
+						</Button>
+						<Button
+							variant="outlined"
+							onClick={handleClosePlanManager}
+							size="large"
+						>
+							Nazad na treninge
+						</Button>
+					</Box>
 				</Box>
 
-				<TrainingPlans onPlanSelect={handlePlanSelect} />
+				{/* Prikaži odgovarajući content */}
+				{planManagerView === "plans" ? (
+					<TrainingPlans onPlanSelect={handlePlanSelect} />
+				) : (
+					<ExerciseClient />
+				)}
 			</Box>
 		);
 	}
@@ -759,6 +800,19 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 				{!showForm && (
 					<Box sx={{ display: "flex", gap: 2 }}>
+						<Button
+							variant="outlined"
+							startIcon={<FitnessCenterOutlined />}
+							onClick={handleManageExercises}
+							size="large"
+							sx={{
+								px: 3,
+								py: 1.5,
+								fontSize: "1.1rem",
+							}}
+						>
+							Vježbe
+						</Button>
 						<Button
 							variant="outlined"
 							startIcon={<Timeline />}
@@ -816,10 +870,8 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 						endpoint="/api/knowledge-hub-photos"
 						onUploadSuccess={(url) => {
 							console.log("Slika uspješno uploadovana:", url);
-							// Možeš setovati u state ako ti treba kasnije
 						}}
 					/>
-					;
 					<WorkoutList
 						workouts={filteredWorkouts}
 						onEdit={handleEditWorkout}
