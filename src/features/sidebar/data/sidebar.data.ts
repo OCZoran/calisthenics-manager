@@ -4,6 +4,7 @@ import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import BookOutlinedIcon from "@mui/icons-material/BookOutlined";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 
 export const sidebarUserData = [
 	{
@@ -41,5 +42,11 @@ export const sidebarUserData = [
 		text: "Food Log",
 		icon: RestaurantIcon,
 		path: "/food-log",
+	},
+	{
+		id: 7,
+		text: "User Profile",
+		icon: PersonOutlineIcon,
+		path: "/user-profile",
 	},
 ];

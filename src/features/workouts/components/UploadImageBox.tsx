@@ -6,7 +6,6 @@ import {
 	CircularProgress,
 	Stack,
 	Typography,
-	Chip,
 	Alert,
 } from "@mui/material";
 import { CloudUpload } from "@mui/icons-material";
@@ -30,7 +29,6 @@ export const UploadImageBox: React.FC<UploadImageBoxProps> = ({
 }) => {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isUploading, setIsUploading] = useState(false);
-	const [uploadResult, setUploadResult] = useState<string | null>(null);
 	const [uploadError, setUploadError] = useState<string | null>(null);
 
 	const handleFileChange = async (
@@ -41,7 +39,6 @@ export const UploadImageBox: React.FC<UploadImageBoxProps> = ({
 
 		setIsUploading(true);
 		setUploadError(null);
-		setUploadResult(null);
 
 		try {
 			const compressedFile = await imageCompression(file, {
@@ -63,7 +60,6 @@ export const UploadImageBox: React.FC<UploadImageBoxProps> = ({
 			const data = response.data;
 
 			if (data?.url) {
-				setUploadResult(data.url);
 				onUploadSuccess?.(data.url);
 			} else {
 				throw new Error(data?.error || "Greška u odgovoru servera");
@@ -105,18 +101,6 @@ export const UploadImageBox: React.FC<UploadImageBoxProps> = ({
 					{isUploading ? "Uploading..." : label}
 				</Button>
 			</label>
-
-			{uploadResult && (
-				<Alert severity="success">
-					<Typography variant="body2">
-						Upload uspješan:
-						<br />
-						<a href={uploadResult} target="_blank" rel="noopener noreferrer">
-							{uploadResult}
-						</a>
-					</Typography>
-				</Alert>
-			)}
 
 			{uploadError && (
 				<Alert severity="error">
