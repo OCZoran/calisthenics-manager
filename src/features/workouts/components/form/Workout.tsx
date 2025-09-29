@@ -137,6 +137,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 					reps: set.reps.toString(),
 					rest: set.rest.toString(),
 					weight: set.weight?.toString() || "",
+					hold: (set as ExerciseSet).hold?.toString() || "",
 				})),
 			})),
 			notes: `Kopirano iz treninga od ${format(
@@ -151,24 +152,34 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	const addExercise = () => {
 		const newExercises = [
 			...formData.exercises,
-			{ name: "", sets: [{ reps: "", rest: "", weight: "" }] },
+			{ name: "", sets: [{ reps: "", rest: "", weight: "", hold: "" }] },
 		];
 		setFormData({ ...formData, exercises: newExercises });
 		setExpandedExercises([...expandedExercises, newExercises.length - 1]);
 	};
 
+	interface ExerciseSet {
+		reps: string;
+		rest: string;
+		weight: string;
+		hold: string;
+	}
+
 	const addSet = (exerciseIndex: number) => {
 		const newExercises = [...formData.exercises];
 		const currentExercise = newExercises[exerciseIndex];
 
-		let newSet = { reps: "", rest: "", weight: "" };
+		let newSet: ExerciseSet = { reps: "", rest: "", weight: "", hold: "" };
 
 		if (currentExercise.sets.length > 0) {
-			const lastSet = currentExercise.sets[currentExercise.sets.length - 1];
+			const lastSet = currentExercise.sets[
+				currentExercise.sets.length - 1
+			] as ExerciseSet;
 			newSet = {
 				reps: lastSet.reps || "",
 				rest: lastSet.rest || "",
 				weight: lastSet.weight || "",
+				hold: lastSet.hold || "",
 			};
 		}
 
@@ -179,11 +190,11 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	const updateSet = (
 		exerciseIndex: number,
 		setIndex: number,
-		field: "reps" | "rest" | "weight",
+		field: "reps" | "rest" | "weight" | "hold",
 		value: string
 	) => {
 		const newExercises = [...formData.exercises];
-		newExercises[exerciseIndex].sets[setIndex][field] = value;
+		(newExercises[exerciseIndex].sets[setIndex] as ExerciseSet)[field] = value;
 		setFormData({ ...formData, exercises: newExercises });
 	};
 
@@ -206,12 +217,19 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				const reps = parseInt(set.reps) || 0;
 				const rest = parseInt(set.rest) || 0;
 				const weight = set.weight ? parseFloat(set.weight) : null;
+				const hold = (set as ExerciseSet).hold
+					? parseInt((set as ExerciseSet).hold)
+					: null;
 
-				if (!set.reps || reps <= 0) {
+				// Promijenjena validacija - ili reps ili hold moraju biti postavljeni
+				if ((!set.reps || reps <= 0) && (!hold || hold <= 0)) {
 					newErrors.push(
-						`Set ${j + 1} vježbe ${i + 1} mora imati broj ponavljanja veći od 0`
+						`Set ${j + 1} vježbe ${
+							i + 1
+						} mora imati broj ponavljanja ili hold vrijeme veće od 0`
 					);
 				}
+
 				if (set.rest && rest < 0) {
 					newErrors.push(
 						`Set ${j + 1} vježbe ${i + 1} ne može imati negativan odmor`
@@ -220,6 +238,12 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				if (weight !== null && weight < 0) {
 					newErrors.push(
 						`Set ${j + 1} vježbe ${i + 1} ne može imati negativnu težinu`
+					);
+				}
+				if (hold !== null && hold < 0) {
+					// Dodana validacija za hold
+					newErrors.push(
+						`Set ${j + 1} vježbe ${i + 1} ne može imati negativno hold vrijeme`
 					);
 				}
 			});
@@ -457,7 +481,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 										}}
 									>
 										<CardContent sx={{ p: 3 }}>
-											{/* Exercise Header */}
 											<Box
 												sx={{
 													display: "flex",

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -23,12 +24,15 @@ import {
 	Timer,
 	FitnessCenter,
 	PlayArrow,
+	AccessTime,
+	CheckCircle,
 } from "@mui/icons-material";
 
 interface Set {
 	reps: string;
 	weight?: string;
 	rest?: string;
+	hold?: string;
 }
 
 interface Exercise {
@@ -44,7 +48,7 @@ interface WorkoutAddSetProps {
 	updateSet: (
 		exerciseIndex: number,
 		setIndex: number,
-		field: "reps" | "weight" | "rest",
+		field: "reps" | "weight" | "rest" | "hold",
 		value: string
 	) => void;
 	removeSet: (exerciseIndex: number, setIndex: number) => void;
@@ -60,6 +64,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 }) => {
 	const [activeTimer, setActiveTimer] = useState<number | null>(null);
 	const [timeLeft, setTimeLeft] = useState<number>(0);
+	const [completedSets, setCompletedSets] = useState(new Set());
 	const intervalRef = useRef<NodeJS.Timeout | null>(null);
 	const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -102,6 +107,9 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 				if (prev <= 1) {
 					clearInterval(intervalRef.current!);
 					setActiveTimer(null);
+					setCompletedSets((prevCompleted: any) =>
+						new Set(prevCompleted).add(setIndex)
+					);
 					return 0;
 				}
 
@@ -127,6 +135,11 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 		const mins = Math.floor(seconds / 60);
 		const secs = seconds % 60;
 		return `${mins}:${secs.toString().padStart(2, "0")}`;
+	};
+
+	// Helper funkcija da provjeri da li set koristi hold
+	const isHoldSet = (set: Set) => {
+		return set.hold && set.hold.trim() !== "";
 	};
 
 	return (
@@ -155,8 +168,17 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 
 			<Stack spacing={2}>
 				{exercise.sets.map((set, setIndex) => {
-					const isLastSet = setIndex === exercise.sets.length - 1;
-					const isCompleted = !isLastSet;
+					const isCompleted = completedSets.has(setIndex);
+					const holdMode = isHoldSet(set);
+					const hasRestTime = set.rest && parseInt(set.rest) > 0;
+					const hasValidData =
+						(set.reps && parseInt(set.reps) > 0) ||
+						(set.hold && parseInt(set.hold) > 0);
+
+					// IZMJENA: Prikaži dugme za timer ako ima rest time, bez obzira na validne podatke
+					// Timer će biti onemogućen (disabled) ako nema validnih podataka
+					const showTimerButton = hasRestTime && !isCompleted;
+					const canStartTimer = hasRestTime && hasValidData && !isCompleted;
 
 					return (
 						<Paper
@@ -178,56 +200,70 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									mb: 2,
 								}}
 							>
-								<Chip
-									label={`Set ${setIndex + 1}`}
-									size="small"
-									color={isCompleted ? "success" : "primary"}
-									icon={<FitnessCenter />}
-									variant={isCompleted ? "filled" : "filled"}
-								/>
-								{isCompleted && (
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 									<Chip
-										label="Završeno"
+										label={`Set ${setIndex + 1}`}
 										size="small"
-										color="success"
-										variant="outlined"
+										color={isCompleted ? "success" : "primary"}
+										icon={<FitnessCenter />}
+										variant="filled"
 									/>
-								)}
-								{isLastSet && exercise.sets.length > 1 && (
-									<Tooltip title="Ukloni set">
-										<IconButton
+									{holdMode && (
+										<Chip
+											label="Hold"
 											size="small"
-											onClick={() => removeSet(exerciseIndex, setIndex)}
-											color="error"
-											sx={{
-												backgroundColor: "error.50",
-												"&:hover": { backgroundColor: "error.100" },
-											}}
-										>
-											<Delete fontSize="small" />
-										</IconButton>
-									</Tooltip>
-								)}
+											color="secondary"
+											icon={<AccessTime />}
+											variant="outlined"
+										/>
+									)}
+									{isCompleted && (
+										<Chip
+											label="Završeno"
+											size="small"
+											color="success"
+											icon={<CheckCircle />}
+											variant="filled"
+										/>
+									)}
+								</Box>
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+									{exercise.sets.length > 1 && (
+										<Tooltip title="Ukloni set">
+											<IconButton
+												size="small"
+												onClick={() => removeSet(exerciseIndex, setIndex)}
+												color="error"
+												sx={{
+													backgroundColor: "error.50",
+													"&:hover": { backgroundColor: "error.100" },
+												}}
+											>
+												<Delete fontSize="small" />
+											</IconButton>
+										</Tooltip>
+									)}
+								</Box>
 							</Box>
 
 							<Grid container spacing={2} alignItems="center">
-								<Grid size={{ xs: 12, sm: 4 }}>
+								{/* Hold polje - prikazuje se uvijek */}
+								<Grid size={{ xs: 12, sm: holdMode ? 6 : 3 }}>
 									<TextField
 										fullWidth
 										type="number"
-										label="Ponavljanja"
-										value={set.reps || ""}
+										label="Hold (s)"
+										value={set.hold || ""}
 										onChange={(e) =>
-											updateSet(exerciseIndex, setIndex, "reps", e.target.value)
+											updateSet(exerciseIndex, setIndex, "hold", e.target.value)
 										}
 										inputProps={{ min: 0 }}
 										size="small"
-										required
-										disabled={isCompleted}
+										disabled={isCompleted && !activeTimer}
 										InputProps={{
 											startAdornment: (
 												<InputAdornment position="start">
-													<Repeat
+													<AccessTime
 														sx={{ fontSize: 18, color: "text.secondary" }}
 													/>
 												</InputAdornment>
@@ -237,7 +273,42 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									/>
 								</Grid>
 
-								<Grid size={{ xs: 12, sm: 4 }}>
+								{/* Ponavljanja - sakrivaju se ako je hold popunjen */}
+								{!holdMode && (
+									<Grid size={{ xs: 12, sm: 3 }}>
+										<TextField
+											fullWidth
+											type="number"
+											label="Ponavljanja"
+											value={set.reps || ""}
+											onChange={(e) =>
+												updateSet(
+													exerciseIndex,
+													setIndex,
+													"reps",
+													e.target.value
+												)
+											}
+											inputProps={{ min: 0 }}
+											size="small"
+											required={!holdMode}
+											disabled={isCompleted && !activeTimer}
+											InputProps={{
+												startAdornment: (
+													<InputAdornment position="start">
+														<Repeat
+															sx={{ fontSize: 18, color: "text.secondary" }}
+														/>
+													</InputAdornment>
+												),
+											}}
+											sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+										/>
+									</Grid>
+								)}
+
+								{/* Težina */}
+								<Grid size={{ xs: 12, sm: holdMode ? 3 : 3 }}>
 									<TextField
 										fullWidth
 										type="number"
@@ -253,7 +324,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 										}
 										inputProps={{ min: 0, step: "0.5" }}
 										size="small"
-										disabled={isCompleted}
+										disabled={isCompleted && !activeTimer}
 										InputProps={{
 											startAdornment: (
 												<InputAdornment position="start">
@@ -267,7 +338,8 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									/>
 								</Grid>
 
-								<Grid size={{ xs: 12, sm: 4 }}>
+								{/* Odmor */}
+								<Grid size={{ xs: 12, sm: 3 }}>
 									<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 										<TextField
 											fullWidth
@@ -284,7 +356,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 											}
 											inputProps={{ min: 0 }}
 											size="small"
-											disabled={isCompleted}
+											disabled={isCompleted && !activeTimer}
 											InputProps={{
 												startAdornment: (
 													<InputAdornment position="start">
@@ -296,30 +368,43 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 											}}
 											sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
 										/>
-										{isLastSet && set.rest && parseInt(set.rest) > 0 && (
-											<Tooltip title="Pokreni timer">
+										{/* IZMJENA: Uvijek prikaži dugme ako ima rest time */}
+										{showTimerButton && (
+											<Tooltip
+												title={
+													canStartTimer
+														? "Pokreni odmor"
+														: "Unesite broj ponavljanja ili hold vrijeme da pokrenete timer"
+												}
+											>
 												<Box sx={{ position: "relative" }}>
 													<IconButton
 														size="small"
 														onClick={() =>
 															startTimer(setIndex, parseInt(set.rest || "0"))
 														}
-														disabled={activeTimer !== null}
+														disabled={!canStartTimer || activeTimer !== null}
 														color="primary"
 														sx={{
-															backgroundColor: "primary.50",
-															"&:hover": { backgroundColor: "primary.100" },
+															backgroundColor: canStartTimer
+																? "primary.50"
+																: "grey.100",
+															"&:hover": {
+																backgroundColor: canStartTimer
+																	? "primary.100"
+																	: "grey.200",
+															},
 															"&:disabled": { backgroundColor: "grey.200" },
 														}}
 													>
 														<PlayArrow fontSize="small" />
 													</IconButton>
-													{activeTimer === setIndex && isLastSet && (
+													{activeTimer === setIndex && (
 														<CircularProgress
 															size={32}
 															value={
-																((parseInt(set.rest) - timeLeft) /
-																	parseInt(set.rest)) *
+																((parseInt(set.rest as any) - timeLeft) /
+																	parseInt(set.rest as any)) *
 																100
 															}
 															variant="determinate"
@@ -371,7 +456,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									}}
 								>
 									<Typography variant="caption" color="text.secondary">
-										{set.reps} ponavljanja
+										{holdMode ? `${set.hold}s hold` : `${set.reps} ponavljanja`}
 										{set.weight && ` × ${set.weight}kg`}
 										{set.rest && ` • ${set.rest}s odmor`}
 									</Typography>

@@ -2,6 +2,7 @@ export interface WorkoutSet {
 	reps: string;
 	rest: string;
 	weight?: string;
+	hold?: string;
 }
 
 export interface Exercise {

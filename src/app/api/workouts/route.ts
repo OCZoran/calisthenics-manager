@@ -97,15 +97,12 @@ export async function POST(request: Request) {
 			}
 		}
 
-		// Sanitization & validation of sets
+		// Sanitization & validation of sets - ažurirano za hold podršku
 		const sanitizeExercises = (exs: any[]) =>
 			exs.map((ex) => ({
 				name: ex.name,
 				sets: (ex.sets || []).map((set: any) => {
-					const reps =
-						set.reps !== undefined && set.reps !== ""
-							? parseInt(set.reps, 10)
-							: 0;
+					// Parsiranje osnovnih vrijednosti
 					const rest =
 						set.rest !== undefined && set.rest !== ""
 							? parseInt(set.rest, 10)
@@ -114,9 +111,26 @@ export async function POST(request: Request) {
 						set.weight !== undefined && set.weight !== null && set.weight !== ""
 							? parseFloat(set.weight)
 							: null;
+					const hold =
+						set.hold !== undefined && set.hold !== ""
+							? parseInt(set.hold, 10)
+							: null;
 
-					// validate parsed numbers
-					if (isNaN(reps) || reps < 0) {
+					// Logika za reps ovisno o tome da li je hold postavljen
+					let reps: number;
+					if (hold !== null && hold > 0) {
+						// Ako je hold postavljen, reps postavljamo na 0
+						reps = 0;
+					} else {
+						// Inače koristimo normalan reps
+						reps =
+							set.reps !== undefined && set.reps !== ""
+								? parseInt(set.reps, 10)
+								: 0;
+					}
+
+					// Validacija parsiranih brojeva
+					if (hold === null && (isNaN(reps) || reps < 0)) {
 						throw new Error(`Invalid reps value for exercise "${ex.name}"`);
 					}
 					if (isNaN(rest) || rest < 0) {
@@ -125,8 +139,22 @@ export async function POST(request: Request) {
 					if (weight !== null && (isNaN(weight) || weight < 0)) {
 						throw new Error(`Invalid weight value for exercise "${ex.name}"`);
 					}
+					if (hold !== null && (isNaN(hold) || hold < 0)) {
+						throw new Error(`Invalid hold value for exercise "${ex.name}"`);
+					}
 
-					return { reps, rest, weight };
+					// Vraćamo set sa hold vrijednošću
+					const sanitizedSet: any = { reps, rest };
+
+					if (weight !== null) {
+						sanitizedSet.weight = weight;
+					}
+
+					if (hold !== null) {
+						sanitizedSet.hold = hold;
+					}
+
+					return sanitizedSet;
 				}),
 			}));
 
@@ -216,10 +244,6 @@ export async function PUT(request: Request) {
 					exs.map((ex) => ({
 						name: ex.name,
 						sets: (ex.sets || []).map((set) => {
-							const reps =
-								set.reps !== undefined && set.reps !== ""
-									? parseInt(set.reps, 10)
-									: 0;
 							const rest =
 								set.rest !== undefined && set.rest !== ""
 									? parseInt(set.rest, 10)
@@ -230,8 +254,24 @@ export async function PUT(request: Request) {
 								set.weight !== ""
 									? parseFloat(set.weight)
 									: null;
+							const hold =
+								(set as any).hold !== undefined && (set as any).hold !== ""
+									? parseInt((set as any).hold, 10)
+									: null;
 
-							if (isNaN(reps) || reps < 0) {
+							// Logika za reps
+							let reps: number;
+							if (hold !== null && hold > 0) {
+								reps = 0;
+							} else {
+								reps =
+									set.reps !== undefined && set.reps !== ""
+										? parseInt(set.reps, 10)
+										: 0;
+							}
+
+							// Validacija
+							if (hold === null && (isNaN(reps) || reps < 0)) {
 								throw new Error(`Invalid reps value for exercise "${ex.name}"`);
 							}
 							if (isNaN(rest) || rest < 0) {
@@ -242,8 +282,21 @@ export async function PUT(request: Request) {
 									`Invalid weight value for exercise "${ex.name}"`
 								);
 							}
+							if (hold !== null && (isNaN(hold) || hold < 0)) {
+								throw new Error(`Invalid hold value for exercise "${ex.name}"`);
+							}
 
-							return { reps, rest, weight };
+							const sanitizedSet: any = { reps, rest };
+
+							if (weight !== null) {
+								sanitizedSet.weight = weight;
+							}
+
+							if (hold !== null) {
+								sanitizedSet.hold = hold;
+							}
+
+							return sanitizedSet;
 						}),
 					}));
 
