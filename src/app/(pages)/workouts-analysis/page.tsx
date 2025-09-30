@@ -83,7 +83,7 @@ const WorkoutAnalysisPage = () => {
 
 	if (isLoading) {
 		return (
-			<Container maxWidth="xl" sx={{ py: 4 }}>
+			<Container maxWidth="xl">
 				<Box
 					display="flex"
 					justifyContent="center"
@@ -98,14 +98,14 @@ const WorkoutAnalysisPage = () => {
 
 	if (error) {
 		return (
-			<Container maxWidth="xl" sx={{ py: 4 }}>
+			<Container maxWidth="xl">
 				<Alert severity="error">{error}</Alert>
 			</Container>
 		);
 	}
 
 	return (
-		<Container maxWidth="xl" sx={{ py: 4 }}>
+		<Container maxWidth="xl">
 			{/* Header */}
 			<Box sx={{ mb: 4 }}>
 				<Box display="flex" alignItems="center" gap={2} mb={2}>

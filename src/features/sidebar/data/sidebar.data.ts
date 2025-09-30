@@ -5,6 +5,7 @@ import BookOutlinedIcon from "@mui/icons-material/BookOutlined";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 
 export const sidebarUserData = [
 	{
@@ -45,6 +46,12 @@ export const sidebarUserData = [
 	},
 	{
 		id: 7,
+		text: "Knowledge Hub",
+		icon: LibraryBooksOutlinedIcon,
+		path: "/knowledge-hub",
+	},
+	{
+		id: 8,
 		text: "User Profile",
 		icon: PersonOutlineIcon,
 		path: "/user-profile",
