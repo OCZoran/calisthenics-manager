@@ -22,12 +22,6 @@ export default function SidebarMobile(props: Props) {
 	const { window } = props;
 	const [mobileOpen, setMobileOpen] = React.useState(false);
 	const [isClosing, setIsClosing] = React.useState(false);
-	const [mounted, setMounted] = React.useState(false);
-
-	// Rešava hydration problem
-	React.useEffect(() => {
-		setMounted(true);
-	}, []);
 
 	const handleDrawerClose = () => {
 		setIsClosing(true);
@@ -43,34 +37,6 @@ export default function SidebarMobile(props: Props) {
 			setMobileOpen(!mobileOpen);
 		}
 	};
-
-	// Prevent render until mounted to avoid hydration mismatch
-	if (!mounted) {
-		return (
-			<Box sx={{ display: "flex" }}>
-				<CssBaseline />
-				<AppBar
-					position="fixed"
-					sx={{
-						width: "100%",
-						backgroundColor: "#ffffff",
-						boxShadow: "2px 0px 12px 0px #e4e4e4, 2px 2px 4px 0px #e4e4e4",
-					}}
-				>
-					<Toolbar sx={{ justifyContent: "space-between" }}>
-						<IconButton
-							color="inherit"
-							aria-label="open drawer"
-							edge="start"
-							sx={{ mr: 0 }}
-						>
-							<MenuIcon color="primary" />
-						</IconButton>
-					</Toolbar>
-				</AppBar>
-			</Box>
-		);
-	}
 
 	const container =
 		window !== undefined ? () => window().document.body : undefined;
