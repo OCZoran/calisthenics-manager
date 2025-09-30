@@ -14,7 +14,7 @@ export default function AppLayout({
 	user: UserInterface;
 }) {
 	const theme = useTheme();
-	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+	const isMobile = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
 	const [mounted, setMounted] = useState(false);
 
 	useEffect(() => {
