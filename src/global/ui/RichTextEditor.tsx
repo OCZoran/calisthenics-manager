@@ -7,9 +7,10 @@ import imageCompression from "browser-image-compression";
 import axiosInstance from "@/services/axios-public.instance";
 import { Quill } from "react-quill-new";
 import ImageResize from "quill-image-resize-module-react";
-
-Quill.register("modules/imageResize", ImageResize);
 import ReactQuill from "react-quill-new";
+
+// registracija dodataka
+Quill.register("modules/imageResize", ImageResize);
 
 interface RichTextEditorProps {
 	value: string;
@@ -32,56 +33,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 }) => {
 	const quillRef = useRef<ReactQuill | null>(null);
 
-	// Image upload handler
-	const imageHandler = () => {
-		const input = document.createElement("input");
-		input.setAttribute("type", "file");
-		input.setAttribute("accept", "image/*");
-		input.click();
-
-		input.onchange = async () => {
-			const file = input.files?.[0];
-			if (!file) return;
-
-			try {
-				// Kompresiuj sliku
-				const compressedFile = await imageCompression(file, {
-					maxSizeMB: 2,
-					maxWidthOrHeight: 1280,
-					useWebWorker: true,
-					fileType: "image/webp",
-				});
-
-				// Upload na Backblaze
-				const formData = new FormData();
-				formData.append("file", compressedFile);
-
-				const response = await axiosInstance.post(
-					"/api/body-measure",
-					formData,
-					{
-						headers: {
-							"Content-Type": "multipart/form-data",
-						},
-					}
-				);
-
-				const imageUrl = response.data.url;
-
-				// Ubaci sliku u editor
-				const quill = quillRef.current?.getEditor();
-				if (quill) {
-					const range = quill.getSelection(true);
-					quill.insertEmbed(range.index, "image", imageUrl);
-					quill.setSelection(range.index + 1);
-				}
-			} catch (error) {
-				console.error("Greška pri upload-u slike:", error);
-				alert("Greška pri dodavanju slike. Pokušajte ponovo.");
-			}
-		};
-	};
-
 	const modules = useMemo(
 		() => ({
 			toolbar: {
@@ -93,17 +44,48 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 					["link", "image"],
 					["clean"],
 				],
-				handlers: {
-					image: imageHandler,
-				},
 			},
 			imageResize: {
 				parchment: Quill.import("parchment"),
-				modules: ["Resize", "DisplaySize", "Toolbar"], // koje opcije želiš
+				modules: ["Resize", "DisplaySize", "Toolbar"],
+			},
+			imageUploader: {
+				upload: async (file: File) => {
+					try {
+						// kompresija
+						const compressedFile = await imageCompression(file, {
+							maxSizeMB: 2,
+							maxWidthOrHeight: 1280,
+							useWebWorker: true,
+							fileType: "image/webp",
+						});
+
+						// upload na Backblaze (ili tvoj API)
+						const formData = new FormData();
+						formData.append("file", compressedFile);
+
+						const response = await axiosInstance.post(
+							"/api/body-measure",
+							formData,
+							{
+								headers: {
+									"Content-Type": "multipart/form-data",
+								},
+							}
+						);
+
+						return response.data.url; // mora vratiti URL slike
+					} catch (error) {
+						console.error("Greška pri upload-u slike:", error);
+						alert("Greška pri dodavanju slike. Pokušajte ponovo.");
+						throw error;
+					}
+				},
 			},
 		}),
 		[]
 	);
+
 	const formats = [
 		"header",
 		"bold",
@@ -135,7 +117,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 					"& .quill": {
 						bgcolor: "background.paper",
 						borderRadius: 1,
-						border: error ? "1px solid" : "1px solid",
+						border: "1px solid",
 						borderColor: error ? "error.main" : "divider",
 						"&:hover": {
 							borderColor: error ? "error.main" : "primary.main",
