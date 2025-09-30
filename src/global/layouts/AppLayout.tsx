@@ -4,7 +4,6 @@ import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { ReactNode, useEffect, useState } from "react";
 import SidebarMobile from "@/features/sidebar/components/SidebarMobile";
 import SidebarDesktop from "@/features/sidebar/components/SidebarDesktop";
-import axios from "axios";
 import { UserInterface } from "@/global/interfaces/user.interface"; // Prilagodi ako je putanja drugačija
 import axiosInstance from "@/services/axios-public.instance";
 
