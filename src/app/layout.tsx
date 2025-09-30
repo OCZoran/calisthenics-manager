@@ -81,11 +81,7 @@ export default async function RootLayout({
 					<ThemeProvider theme={theme}>
 						<CssBaseline />
 						<ServiceWorkerRegister />
-						{isAuthenticated && !isPublicRoute ? (
-							<AppLayout user={user}>{children}</AppLayout>
-						) : (
-							children
-						)}
+						<AppLayout user={user}>{children}</AppLayout>
 					</ThemeProvider>
 				</AppRouterCacheProvider>
 			</body>
