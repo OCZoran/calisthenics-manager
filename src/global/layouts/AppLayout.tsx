@@ -6,6 +6,7 @@ import SidebarMobile from "@/features/sidebar/components/SidebarMobile";
 import SidebarDesktop from "@/features/sidebar/components/SidebarDesktop";
 import axios from "axios";
 import { UserInterface } from "@/global/interfaces/user.interface"; // Prilagodi ako je putanja drugačija
+import axiosInstance from "@/services/axios-public.instance";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
 	const theme = useTheme();
@@ -16,7 +17,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		const fetchUser = async () => {
 			try {
-				const { data } = await axios.get("/api/users"); // Koristi već postojeći endpoint
+				const { data } = await axiosInstance.get("/api/users"); // Koristi već postojeći endpoint
 				setUser(data);
 			} catch (error) {
 				console.error("❌ Greška prilikom dohvatanja usera:", error);
