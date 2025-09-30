@@ -105,26 +105,20 @@ const Drawer = styled(MuiDrawer, {
 
 export default function SidebarDesktop() {
 	const [open, setOpen] = React.useState(false);
-	const [mounted, setMounted] = React.useState(false);
 	const theme = useTheme();
 
-	// Rešava hydration problem
+	// Učitaj stanje iz localStorage samo na klijentu
 	React.useEffect(() => {
-		setMounted(true);
-
-		// Restore sidebar state from localStorage if exists
 		const savedState = localStorage.getItem("sidebar-open");
 		if (savedState !== null) {
 			setOpen(JSON.parse(savedState));
 		}
 	}, []);
 
-	// Save sidebar state to localStorage
+	// Sačuvaj stanje u localStorage
 	React.useEffect(() => {
-		if (mounted) {
-			localStorage.setItem("sidebar-open", JSON.stringify(open));
-		}
-	}, [open, mounted]);
+		localStorage.setItem("sidebar-open", JSON.stringify(open));
+	}, [open]);
 
 	const handleDrawerOpen = () => {
 		setOpen(true);
@@ -134,13 +128,8 @@ export default function SidebarDesktop() {
 		setOpen(false);
 	};
 
-	// Prevent render until mounted to avoid hydration mismatch
-	if (!mounted) {
-		return null;
-	}
-
 	return (
-		<Box sx={{ display: "flex" }}>
+		<>
 			<CssBaseline />
 			<AppBar position="fixed" open={open}>
 				<Toolbar
@@ -195,6 +184,6 @@ export default function SidebarDesktop() {
 				</DrawerHeader>
 				<SidebarList open={open} />
 			</Drawer>
-		</Box>
+		</>
 	);
 }
