@@ -2,24 +2,39 @@
 
 import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { ReactNode, useEffect, useState } from "react";
-import { UserInterface } from "../interfaces/user.interface";
 import SidebarMobile from "@/features/sidebar/components/SidebarMobile";
 import SidebarDesktop from "@/features/sidebar/components/SidebarDesktop";
+import axios from "axios";
+import { UserInterface } from "@/global/interfaces/user.interface"; // Prilagodi ako je putanja drugačija
 
-export default function AppLayout({
-	children,
-	user,
-}: {
-	children: ReactNode;
-	user: UserInterface;
-}) {
+export default function AppLayout({ children }: { children: ReactNode }) {
 	const theme = useTheme();
-	const isMobile = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
-	const [mounted, setMounted] = useState(false);
+	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+	const [user, setUser] = useState<UserInterface | null>(null);
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		setMounted(true);
+		const fetchUser = async () => {
+			try {
+				const { data } = await axios.get("/api/users"); // Koristi već postojeći endpoint
+				setUser(data);
+			} catch (error) {
+				console.error("❌ Greška prilikom dohvatanja usera:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchUser();
 	}, []);
+
+	if (loading) return null;
+
+	if (!user) {
+		// Možeš dodati redirect ako želiš:
+		// router.push("/login");
+		return null;
+	}
 
 	return (
 		<Box
@@ -29,12 +44,7 @@ export default function AppLayout({
 				backgroundColor: theme.palette.background.default,
 			}}
 		>
-			{/* Sidebar se uvijek renderuje, čak i prije mounted */}
-			{mounted &&
-				(isMobile ? <SidebarMobile user={user} /> : <SidebarDesktop />)}
-
-			{/* Fallback dok se ne mount-uje */}
-			{!mounted && <Box sx={{ width: { xs: 0, md: "calc(64px + 1px)" } }} />}
+			{isMobile ? <SidebarMobile user={user} /> : <SidebarDesktop />}
 
 			<Box
 				component="main"
@@ -44,8 +54,8 @@ export default function AppLayout({
 					pr: 8,
 					pb: 3,
 					pl: 8,
-					transition: "margin 0.3s ease",
 					minHeight: "100vh",
+					transition: "margin 0.3s ease",
 
 					"@media (max-width: 900px)": {
 						pl: "32px",
