@@ -50,7 +50,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 		if (success) setSuccess(null);
 	};
 
-	const handleAvatarUpload = (url: string) => {
+	const handleAvatarUpload = (urls: string[]) => {
+		const url = urls[0] || "";
 		setFormData((prev) => ({
 			...prev,
 			avatarUrl: url,

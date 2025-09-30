@@ -10,7 +10,6 @@ import {
 	InputAdornment,
 } from "@mui/material";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { EmailOutlined, LockOutline } from "@mui/icons-material";
 import theme from "@/theme";
 import { getOfflineUser, saveUserOffline } from "@/features/OfflineManager";
@@ -57,7 +56,6 @@ export const validateForm = (
 };
 
 const Login = () => {
-	const router = useRouter();
 	const [formData, setFormData] = useState({
 		email: "",
 		password: "",
@@ -105,8 +103,6 @@ const Login = () => {
 			}
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (error: any) {
-			console.log("Offline mode - checking local credentials");
-
 			// Ako nema neta ili server vrati grešku -> probaj offline
 			const offlineUser = getOfflineUser();
 			if (offlineUser && offlineUser.email === email) {

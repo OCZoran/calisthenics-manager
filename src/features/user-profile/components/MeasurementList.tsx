@@ -26,6 +26,7 @@ import {
 	TrendingDown,
 	CalendarToday,
 	FitnessCenter,
+	PhotoCamera,
 } from "@mui/icons-material";
 import { BodyMeasurement } from "../interfaces/user-profile.interface";
 
@@ -355,6 +356,56 @@ const MeasurementsList: React.FC<MeasurementsListProps> = ({
 											"shoulders"
 										)}
 									</Grid>
+
+									{/* Slike napretka */}
+									{measurement.photos && measurement.photos.length > 0 && (
+										<Box sx={{ mt: 3 }}>
+											<Box
+												sx={{ display: "flex", alignItems: "center", mb: 2 }}
+											>
+												<PhotoCamera sx={{ mr: 1, color: "primary.main" }} />
+												<Typography variant="subtitle2" color="text.secondary">
+													Slike napretka ({measurement.photos.length})
+												</Typography>
+											</Box>
+											<Grid container spacing={2}>
+												{measurement.photos.map((photo, photoIndex) => (
+													<Grid size={{ xs: 6, sm: 4, md: 3 }} key={photoIndex}>
+														<Box
+															sx={{
+																position: "relative",
+																paddingTop: "100%",
+																borderRadius: 1,
+																overflow: "hidden",
+																border: "1px solid",
+																borderColor: "divider",
+																cursor: "pointer",
+																"&:hover": {
+																	opacity: 0.8,
+																	transition: "opacity 0.2s",
+																},
+															}}
+															onClick={() => window.open(photo, "_blank")}
+														>
+															<Box
+																component="img"
+																src={photo}
+																alt={`Napredak ${photoIndex + 1}`}
+																sx={{
+																	position: "absolute",
+																	top: 0,
+																	left: 0,
+																	width: "100%",
+																	height: "100%",
+																	objectFit: "cover",
+																}}
+															/>
+														</Box>
+													</Grid>
+												))}
+											</Grid>
+										</Box>
+									)}
 								</Collapse>
 							</CardContent>
 						</Card>

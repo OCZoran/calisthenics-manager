@@ -72,7 +72,6 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 	const createBeep = () => {
 		if (!audioContextRef.current) {
 			const AudioCtx =
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				window.AudioContext || (window as any).webkitAudioContext;
 			audioContextRef.current = new AudioCtx();
 		}

@@ -31,7 +31,6 @@ interface WorkoutListProps {
 	trainingPlans?: TrainingPlan[];
 	activePlan?: TrainingPlan | null;
 	viewMode?: ViewMode;
-	isHistoryMode?: boolean;
 	planId?: string;
 	planName?: string;
 }
@@ -55,10 +54,8 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 	onDelete,
 	onCreateWorkout,
 	onCreatePlan,
-	trainingPlans = [],
 	activePlan,
 	viewMode = "current",
-	isHistoryMode = false,
 	planId,
 	planName,
 }) => {
@@ -70,7 +67,6 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 	}>({ open: false, workout: null });
 	const [isDeleting, setIsDeleting] = useState(false);
 
-	const hasTrainingPlans = trainingPlans.length > 0;
 	const hasActivePlan = activePlan !== null;
 
 	const workoutStats = useMemo(() => {

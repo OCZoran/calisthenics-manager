@@ -110,7 +110,7 @@ export default async function middleware(request: NextRequest) {
 			const result = await verifyToken(token);
 			if (result) {
 				// Korisnik je već prijavljen - preusmjeri ga sa public rute
-				const dashboardUrl = new URL("/", request.url); // ili "/" ili bilo koja glavna stranica
+				const dashboardUrl = new URL("/workouts", request.url); // ili "/" ili bilo koja glavna stranica
 				return NextResponse.redirect(dashboardUrl);
 			} else {
 				// Token postoji ali nije valjan - obriši ga

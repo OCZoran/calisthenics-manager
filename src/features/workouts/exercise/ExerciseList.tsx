@@ -22,9 +22,6 @@ import {
 	MenuItem,
 	Checkbox,
 	FormControlLabel,
-	FormHelperText,
-	Tabs,
-	Tab,
 } from "@mui/material";
 import {
 	EditOutlined,

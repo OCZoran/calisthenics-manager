@@ -25,7 +25,7 @@ const WorkoutAnalysisPage = () => {
 	const [selectedPlanId, setSelectedPlanId] = useState<string>("all");
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	console.log("trainingPlans", trainingPlans);
+
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
@@ -42,9 +42,22 @@ const WorkoutAnalysisPage = () => {
 				const plansData = await plansRes.json();
 
 				// Properly extract data based on API response structure
-				setWorkouts(workoutsData.workouts || workoutsData || []);
-				setTrainingPlans(plansData.plans || plansData || []);
+				const extractedWorkouts = Array.isArray(workoutsData.workouts)
+					? workoutsData.workouts
+					: Array.isArray(workoutsData)
+					? workoutsData
+					: [];
+
+				const extractedPlans = Array.isArray(plansData.plans)
+					? plansData.plans
+					: Array.isArray(plansData)
+					? plansData
+					: [];
+
+				setWorkouts(extractedWorkouts);
+				setTrainingPlans(extractedPlans);
 			} catch (err) {
+				console.error("Error fetching data:", err);
 				setError(err instanceof Error ? err.message : "An error occurred");
 			} finally {
 				setIsLoading(false);
@@ -63,7 +76,10 @@ const WorkoutAnalysisPage = () => {
 			? workouts
 			: workouts.filter((w) => w.planId === selectedPlanId);
 
-	const selectedPlan = trainingPlans?.find((p) => p._id === selectedPlanId);
+	// Safe find with array check
+	const selectedPlan = Array.isArray(trainingPlans)
+		? trainingPlans.find((p) => p._id === selectedPlanId)
+		: undefined;
 
 	if (isLoading) {
 		return (
@@ -117,17 +133,17 @@ const WorkoutAnalysisPage = () => {
 						<MenuItem value="all">
 							<strong>Svi planovi</strong> ({workouts.length} treninga)
 						</MenuItem>
-						{trainingPlans.map((plan) => {
-							const planWorkoutsCount = workouts.filter(
-								(w) => w.planId === plan._id
-							).length;
-							return (
-								<MenuItem key={plan._id} value={plan._id}>
-									{plan.name} ({planWorkoutsCount} treninga)
-									{/* {plan.isActive && " • Aktivan"} */}
-								</MenuItem>
-							);
-						})}
+						{Array.isArray(trainingPlans) &&
+							trainingPlans.map((plan) => {
+								const planWorkoutsCount = workouts.filter(
+									(w) => w.planId === plan._id
+								).length;
+								return (
+									<MenuItem key={plan._id} value={plan._id}>
+										{plan.name} ({planWorkoutsCount} treninga)
+									</MenuItem>
+								);
+							})}
 					</Select>
 				</FormControl>
 			</Paper>

@@ -19,7 +19,7 @@ export async function GET() {
 
 		const measurements = await db
 			.collection("body_measurements")
-			.find({ userId: userId }) // Koristi userId direktno
+			.find({ userId: userId })
 			.sort({ date: -1, createdAt: -1 })
 			.toArray();
 
@@ -30,6 +30,7 @@ export async function GET() {
 			weight: m.weight,
 			bodyFat: m.bodyFat,
 			measurements: m.measurements,
+			photos: m.photos || [], // Dodaj photos
 			createdAt: m.createdAt,
 		}));
 
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
 		}
 
 		const body = await request.json();
-		const { date, weight, bodyFat, measurements } = body;
+		const { date, weight, bodyFat, measurements, photos } = body;
 
 		if (!date) {
 			return NextResponse.json({ error: "Datum je obavezan" }, { status: 400 });
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
 		const { db } = await getDatabase();
 
 		const newMeasurement = {
-			userId: userId, // Koristi userId direktno
+			userId: userId,
 			date,
 			weight: weight ? Number(weight) : null,
 			bodyFat: bodyFat ? Number(bodyFat) : null,
@@ -81,6 +82,7 @@ export async function POST(request: Request) {
 					? Number(measurements.shoulders)
 					: null,
 			},
+			photos: photos || [], // Dodaj photos niz
 			createdAt: new Date().toISOString(),
 		};
 
@@ -101,7 +103,7 @@ export async function POST(request: Request) {
 	}
 }
 
-// PUT i DELETE metode - ista izmjena
+// PUT - Ažuriraj mjerenje
 export async function PUT(request: Request) {
 	try {
 		const userId = await getUserIdFromToken();
@@ -114,7 +116,7 @@ export async function PUT(request: Request) {
 		}
 
 		const body = await request.json();
-		const { _id, date, weight, bodyFat, measurements } = body;
+		const { _id, date, weight, bodyFat, measurements, photos } = body;
 
 		if (!_id || !date) {
 			return NextResponse.json(
@@ -141,6 +143,7 @@ export async function PUT(request: Request) {
 					? Number(measurements.shoulders)
 					: null,
 			},
+			photos: photos || [], // Dodaj photos
 		};
 
 		const result = await db
@@ -173,6 +176,7 @@ export async function PUT(request: Request) {
 	}
 }
 
+// DELETE - Obriši mjerenje
 export async function DELETE(request: Request) {
 	try {
 		const userId = await getUserIdFromToken();

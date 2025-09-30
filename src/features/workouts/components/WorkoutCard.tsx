@@ -6,7 +6,6 @@ import {
 	Grid,
 	Box,
 	Chip,
-	IconButton,
 	Accordion,
 	AccordionSummary,
 	AccordionDetails,
@@ -239,27 +238,49 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 										</Tooltip>
 									)}
 								</Box>
-
-								<Box sx={{ display: "flex", gap: 0.5 }}>
+								<Box
+									sx={{ display: "flex", gap: 0.5 }}
+									onClick={(e) => e.stopPropagation()}
+								>
 									<Tooltip title="Uredi">
-										<IconButton
-											size="small"
+										<Box
+											component="span"
 											onClick={handleEdit}
-											color="primary"
-											sx={{ p: 0.5 }}
+											sx={{
+												display: "inline-flex",
+												alignItems: "center",
+												justifyContent: "center",
+												cursor: "pointer",
+												p: 0.5,
+												borderRadius: 1,
+												color: "primary.main",
+												"&:hover": {
+													bgcolor: "action.hover",
+												},
+											}}
 										>
 											<Edit fontSize="small" />
-										</IconButton>
+										</Box>
 									</Tooltip>
 									<Tooltip title="Obriši">
-										<IconButton
-											size="small"
+										<Box
+											component="span"
 											onClick={handleDelete}
-											color="error"
-											sx={{ p: 0.5 }}
+											sx={{
+												display: "inline-flex",
+												alignItems: "center",
+												justifyContent: "center",
+												cursor: "pointer",
+												p: 0.5,
+												borderRadius: 1,
+												color: "error.main",
+												"&:hover": {
+													bgcolor: "action.hover",
+												},
+											}}
 										>
 											<Delete fontSize="small" />
-										</IconButton>
+										</Box>
 									</Tooltip>
 								</Box>
 							</Box>

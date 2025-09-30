@@ -43,7 +43,6 @@ import {
 import { StatusEntry } from "../interfaces/status.interface";
 
 interface StatusListProps {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	entries: any[];
 	onEntryUpdated: (entry: StatusEntry) => void;
 	onEntryDeleted: (exerciseName: string) => void;

@@ -115,7 +115,6 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		planId: workout?.planId || activePlanId || "",
 	});
 
-	console.log("availableExercises", availableExercises);
 	const [errors, setErrors] = useState<string[]>([]);
 	const [expandedExercises, setExpandedExercises] = useState<number[]>([]);
 	const [showCopyDialog, setShowCopyDialog] = useState(false);

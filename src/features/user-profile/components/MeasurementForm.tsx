@@ -24,6 +24,7 @@ import {
 	Straighten,
 } from "@mui/icons-material";
 import { BodyMeasurement } from "../interfaces/user-profile.interface";
+import UploadImageBox from "@/features/workouts/components/UploadImageBox";
 
 interface MeasurementFormProps {
 	onMeasurementAdded: (measurement: BodyMeasurement) => void;
@@ -34,7 +35,20 @@ const MeasurementForm: React.FC<MeasurementFormProps> = ({
 	onMeasurementAdded,
 	latestMeasurement,
 }) => {
-	const [formData, setFormData] = useState({
+	const [formData, setFormData] = useState<{
+		date: string;
+		weight: string;
+		bodyFat: string;
+		chest: string;
+		waist: string;
+		hips: string;
+		biceps: string;
+		thighs: string;
+		calves: string;
+		neck: string;
+		shoulders: string;
+		photos: string[];
+	}>({
 		date: new Date().toISOString().split("T")[0],
 		weight: "",
 		bodyFat: "",
@@ -46,6 +60,7 @@ const MeasurementForm: React.FC<MeasurementFormProps> = ({
 		calves: "",
 		neck: "",
 		shoulders: "",
+		photos: [],
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -73,9 +88,24 @@ const MeasurementForm: React.FC<MeasurementFormProps> = ({
 			calves: "",
 			neck: "",
 			shoulders: "",
+			photos: [],
 		});
 		setError(null);
 		setSuccess(null);
+	};
+
+	const handlePhotosUpload = (urls: string[]) => {
+		setFormData((prev) => ({
+			...prev,
+			photos: [...prev.photos, ...urls],
+		}));
+	};
+
+	const handleRemovePhoto = (url: string) => {
+		setFormData((prev) => ({
+			...prev,
+			photos: prev.photos.filter((photo) => photo !== url),
+		}));
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -110,6 +140,7 @@ const MeasurementForm: React.FC<MeasurementFormProps> = ({
 						neck: formData.neck || null,
 						shoulders: formData.shoulders || null,
 					},
+					photos: formData.photos,
 				}),
 			});
 
@@ -454,7 +485,15 @@ const MeasurementForm: React.FC<MeasurementFormProps> = ({
 									inputProps={{ step: "0.1" }}
 								/>
 							</Grid>
-
+							<UploadImageBox
+								onUploadSuccess={handlePhotosUpload}
+								endpoint="/api/body-measure"
+								label="Dodaj slike napretka"
+								maxSizeMB={2}
+								multiple={true}
+								existingImages={formData.photos}
+								onRemoveImage={handleRemovePhoto}
+							/>
 							{/* Buttons */}
 							<Grid size={{ xs: 12 }}>
 								<Box
@@ -487,6 +526,9 @@ const MeasurementForm: React.FC<MeasurementFormProps> = ({
 						</Grid>
 					</form>
 				</CardContent>
+
+				{/* Upload slika */}
+				<Divider />
 			</Card>
 		</Box>
 	);

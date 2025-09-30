@@ -19,7 +19,6 @@ import {
 	IconButton,
 	Alert,
 	CircularProgress,
-	Divider,
 	Accordion,
 	AccordionSummary,
 	AccordionDetails,
@@ -30,7 +29,6 @@ import {
 	AddOutlined,
 	TodayOutlined,
 	DeleteOutlined,
-	EditOutlined,
 	ExpandMoreOutlined,
 	MoreVertOutlined,
 	RestaurantMenuOutlined,
@@ -39,7 +37,6 @@ import {
 import {
 	Meal,
 	DailyFoodLog,
-	FoodLogEntry,
 	FoodGoals,
 	MacroProgress,
 } from "../interfaces/food-log.interface";

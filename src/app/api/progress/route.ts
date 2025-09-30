@@ -265,8 +265,6 @@ export class StatisticsCalculator {
 				// Insert new
 				await db.collection("workoutStatistics").insertOne(workoutStats);
 			}
-
-			console.log("Workout statistics saved successfully");
 		} catch (error) {
 			console.error("Error saving workout statistics:", error);
 			throw error;

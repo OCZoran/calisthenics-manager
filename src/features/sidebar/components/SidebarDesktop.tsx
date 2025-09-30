@@ -11,7 +11,6 @@ import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { UserInterface } from "@/global/interfaces/user.interface";
 import SidebarList from "./SidebarList";
 
 const drawerWidth = 180;
@@ -104,7 +103,7 @@ const Drawer = styled(MuiDrawer, {
 	],
 }));
 
-export default function SidebarDesktop({ user }: { user: UserInterface }) {
+export default function SidebarDesktop() {
 	const [open, setOpen] = React.useState(false);
 	const [mounted, setMounted] = React.useState(false);
 	const theme = useTheme();

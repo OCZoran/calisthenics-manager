@@ -108,6 +108,7 @@ const FoodLogClient: React.FC = () => {
 
 	useEffect(() => {
 		loadInitialData();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const handleMealAdded = (newMeal: Meal) => {

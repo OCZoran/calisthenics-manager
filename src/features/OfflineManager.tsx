@@ -62,7 +62,6 @@ export const useOfflineWorkouts = () => {
 			const stored = localStorage.getItem("pendingWorkouts");
 			if (stored) {
 				const parsed = JSON.parse(stored);
-				console.log("Učitani pending workouts:", parsed);
 				setPendingWorkouts(parsed);
 			}
 		} catch (error) {
@@ -78,7 +77,6 @@ export const useOfflineWorkouts = () => {
 		loadPendingWorkouts();
 
 		const handleOnline = () => {
-			console.log("Povratila se konekcija - pokrećemo sync");
 			setIsOnline(true);
 			setTimeout(() => {
 				syncPendingWorkouts();
@@ -86,13 +84,11 @@ export const useOfflineWorkouts = () => {
 		};
 
 		const handleOffline = () => {
-			console.log("Izguljena konekcija");
 			setIsOnline(false);
 		};
 
 		const handleSWMessage = (event: MessageEvent) => {
 			if (event.data?.type === "SYNC_WORKOUTS") {
-				console.log("Primljena poruka od SW za sync");
 				syncPendingWorkouts();
 			}
 		};
@@ -106,7 +102,6 @@ export const useOfflineWorkouts = () => {
 
 		const syncInterval = setInterval(() => {
 			if (navigator.onLine && pendingWorkouts.length > 0) {
-				console.log("Periodični sync check");
 				syncPendingWorkouts();
 			}
 		}, 30000); // 30s
@@ -139,7 +134,6 @@ export const useOfflineWorkouts = () => {
 
 		try {
 			localStorage.setItem("pendingWorkouts", JSON.stringify(newPending));
-			console.log("Workout sačuvan offline:", offlineWorkout);
 
 			// Registruj background sync ako je dostupan
 			if (
@@ -150,7 +144,6 @@ export const useOfflineWorkouts = () => {
 				await (
 					registration as ServiceWorkerRegistration & { sync: any }
 				).sync.register("workout-sync");
-				console.log("Background sync registrovan");
 			}
 		} catch (error) {
 			console.error("Greška pri čuvanju offline:", error);
@@ -194,7 +187,6 @@ export const useOfflineWorkouts = () => {
 			// Ažuriraj state
 			setPendingWorkouts(pending);
 
-			console.log("Offline workout ažuriran:", pending[workoutIndex]);
 			return true;
 		} catch (error) {
 			console.error("Greška pri ažuriranju offline workout:", error);
@@ -204,18 +196,14 @@ export const useOfflineWorkouts = () => {
 
 	const syncPendingWorkouts = async () => {
 		if (!isOnline || pendingWorkouts.length === 0 || !isClient) {
-			console.log("Sync preskočen - offline ili nema pending workouts");
 			return;
 		}
 
-		console.log(`Pokretamo sync za ${pendingWorkouts.length} treninga`);
 		const successfulSyncs: string[] = [];
 		const failedSyncs: OfflineWorkout[] = [];
 
 		for (const workout of pendingWorkouts) {
 			try {
-				console.log("Sinhronizujemo workout:", workout.id);
-
 				// Koristimo axiosInstance sa withCredentials: true
 				const resp = await axiosInstance.post(
 					"/api/workouts",
@@ -226,7 +214,6 @@ export const useOfflineWorkouts = () => {
 				);
 
 				// resp.data očekivano: { message, workoutId }
-				console.log("SYNC response json:", resp.data);
 
 				if (resp.status >= 200 && resp.status < 300) {
 					successfulSyncs.push(workout.id);
@@ -244,10 +231,6 @@ export const useOfflineWorkouts = () => {
 			(w) => !successfulSyncs.includes(w.id)
 		);
 
-		console.log(
-			`Sync završen. Uspešno: ${successfulSyncs.length}, Preostalo: ${remaining.length}`
-		);
-
 		setPendingWorkouts(remaining);
 
 		try {
@@ -256,7 +239,6 @@ export const useOfflineWorkouts = () => {
 			console.error("Greška pri ažuriranju localStorage:", error);
 		}
 
-		// Pozovi callback funkcije da obaveste komponente o sync-u
 		syncCallbacks.forEach((callback) => callback());
 	};
 
@@ -286,22 +268,19 @@ export const useOfflineWorkouts = () => {
 					throw new Error("Network error");
 				}
 
-				console.log("Workout uspešno poslat online:", resp.data);
 				return resp.data;
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			} catch (error) {
-				console.log("Online slanje neuspešno, čuvam offline:", error);
 				const offlineId = await saveWorkoutOffline(workoutData);
 				return { id: offlineId, offline: true };
 			}
 		} else {
-			console.log("Offline mode - čuvam lokalno");
 			const offlineId = await saveWorkoutOffline(workoutData);
 			return { id: offlineId, offline: true };
 		}
 	};
 
 	const manualSync = async () => {
-		console.log("Manualni sync pokrenut");
 		await syncPendingWorkouts();
 	};
 
@@ -316,6 +295,6 @@ export const useOfflineWorkouts = () => {
 		getOfflineUser,
 		clearOfflineUser,
 		onSyncComplete,
-		updateOfflineWorkout, // Izvezemo novu funkciju
+		updateOfflineWorkout,
 	};
 };

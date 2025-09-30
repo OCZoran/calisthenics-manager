@@ -184,7 +184,6 @@ export async function POST(request: Request) {
 		const result = await db.collection("workouts").insertOne(workout);
 		const insertedWorkout = { ...workout, _id: result.insertedId };
 
-		// Kreiranje statistika samo ako je workout dio plana
 		if (planId) {
 			try {
 				const workoutStats = StatisticsCalculator.calculateWorkoutStats(
@@ -192,10 +191,8 @@ export async function POST(request: Request) {
 					planId
 				);
 				await StatisticsCalculator.saveWorkoutStatistics(db, workoutStats);
-				console.log("Workout statistics created successfully");
 			} catch (statsError) {
 				console.error("Error creating workout statistics:", statsError);
-				// Ne prekidamo proces ako statistike ne uspiju, samo logujemo grešku
 			}
 		}
 
@@ -342,7 +339,6 @@ export async function PUT(request: Request) {
 						existingWorkout.planId
 					);
 					await StatisticsCalculator.saveWorkoutStatistics(db, workoutStats);
-					console.log("Workout statistics updated successfully");
 				}
 			} catch (statsError) {
 				console.error("Error updating workout statistics:", statsError);

@@ -167,16 +167,14 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 	useEffect(() => {
 		const unregister = onSyncComplete(() => {
-			console.log("Sync završen - refreshujemo workouts");
 			refreshWorkouts();
 		});
 		return unregister;
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	useEffect(() => {
 		if (pendingWorkouts.length > 0 && isClient) {
-			console.log("Dodajem offline workouts u listu:", pendingWorkouts);
-
 			const offlineWorkouts: Workout[] = pendingWorkouts.map((pending) => ({
 				_id: pending.id,
 				userId: pending.id,
@@ -193,7 +191,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				);
 
 				if (newWorkouts.length > 0) {
-					console.log(`Dodajem ${newWorkouts.length} novih offline workouts`);
 					return [...newWorkouts, ...prev];
 				}
 				return prev;
@@ -205,7 +202,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		if (!isOnline) return;
 
 		try {
-			console.log("Refreshujem workouts sa servera");
 			const { data } = await axiosInstance.get(
 				`/api/workouts?t=${Date.now()}`,
 				{
@@ -213,7 +209,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 					headers: { "Cache-Control": "no-cache" },
 				}
 			);
-			console.log("Učitao workouts sa servera:", data.workouts.length);
 
 			if (pendingWorkouts.length > 0) {
 				const offlineWorkouts: Workout[] = pendingWorkouts.map((pending) => ({
@@ -412,6 +407,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				setIsLoading(false);
 			}
 		},
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[editingWorkout, isOnline, submitWorkout, updateOfflineWorkout]
 	);
 
@@ -829,7 +825,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							startIcon={<FitnessCenterOutlined />}
 							onClick={handleManageExercises}
 							size="large"
-							fullWidth={{ xs: true, sm: false }}
+							fullWidth
 							sx={{
 								px: { xs: 2, sm: 3 },
 								py: 1.5,
@@ -843,7 +839,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							startIcon={<Timeline />}
 							onClick={handleCreatePlan}
 							size="large"
-							fullWidth={{ xs: true, sm: false }}
+							fullWidth
 							sx={{
 								px: { xs: 2, sm: 3 },
 								py: 1.5,
@@ -859,7 +855,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 								onClick={handleAddWorkout}
 								size="large"
 								disabled={!activePlan || viewMode !== "current"}
-								fullWidth={{ xs: true, sm: false }}
+								fullWidth
 								sx={{
 									px: { xs: 2, sm: 3 },
 									py: 1.5,
@@ -904,7 +900,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 						trainingPlans={trainingPlans}
 						activePlan={displayPlan}
 						viewMode={viewMode}
-						isHistoryMode={viewMode === "history" || viewMode === "all"}
+						// isHistoryMode={viewMode === "history" || viewMode === "all"}
 						planId={planId}
 						planName={planName}
 					/>

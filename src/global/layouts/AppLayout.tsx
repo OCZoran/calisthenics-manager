@@ -66,11 +66,7 @@ export default function AppLayout({
 				backgroundColor: theme.palette.background.default,
 			}}
 		>
-			{isMobile ? (
-				<SidebarMobile user={user} />
-			) : (
-				<SidebarDesktop user={user} />
-			)}
+			{isMobile ? <SidebarMobile user={user} /> : <SidebarDesktop />}
 
 			<Box
 				component="main"

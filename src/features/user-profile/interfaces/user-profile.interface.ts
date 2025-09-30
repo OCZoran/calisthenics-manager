@@ -4,6 +4,7 @@ export interface BodyMeasurement {
 	date: string;
 	weight?: number;
 	bodyFat?: number;
+	photos?: string[];
 	measurements: {
 		chest?: number;
 		waist?: number;

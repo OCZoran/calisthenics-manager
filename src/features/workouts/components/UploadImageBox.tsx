@@ -7,62 +7,84 @@ import {
 	Stack,
 	Typography,
 	Alert,
+	Box,
+	IconButton,
+	Grid,
 } from "@mui/material";
-import { CloudUpload } from "@mui/icons-material";
+import { CloudUpload, Close } from "@mui/icons-material";
 import imageCompression from "browser-image-compression";
 import axiosInstance from "@/services/axios-public.instance";
 
 interface UploadImageBoxProps {
-	onUploadSuccess?: (url: string) => void;
+	onUploadSuccess?: (urls: string[]) => void;
 	maxSizeMB?: number;
 	acceptedFormats?: string;
 	endpoint?: string;
 	label?: string;
+	multiple?: boolean;
+	existingImages?: string[];
+	onRemoveImage?: (url: string) => void;
 }
 
 export const UploadImageBox: React.FC<UploadImageBoxProps> = ({
 	onUploadSuccess,
 	maxSizeMB = 5,
 	acceptedFormats = "image/*",
-	endpoint = "/api/knowledge-hub-photos",
+	endpoint = "/api/body-measure",
 	label = "Upload Slike",
+	multiple = true,
+	existingImages = [],
+	onRemoveImage,
 }) => {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isUploading, setIsUploading] = useState(false);
 	const [uploadError, setUploadError] = useState<string | null>(null);
+	const [uploadProgress, setUploadProgress] = useState<string>("");
 
 	const handleFileChange = async (
 		event: React.ChangeEvent<HTMLInputElement>
 	) => {
-		const file = event.target.files?.[0];
-		if (!file) return;
+		const files = event.target.files;
+		if (!files || files.length === 0) return;
 
 		setIsUploading(true);
 		setUploadError(null);
+		const uploadedUrls: string[] = [];
 
 		try {
-			const compressedFile = await imageCompression(file, {
-				maxSizeMB,
-				maxWidthOrHeight: 1280, // možeš smanjiti ako treba thumbnail
-				useWebWorker: true,
-				fileType: "image/webp",
-			});
+			const totalFiles = files.length;
 
-			const formData = new FormData();
-			formData.append("file", compressedFile);
+			for (let i = 0; i < totalFiles; i++) {
+				const file = files[i];
+				setUploadProgress(`Uploading ${i + 1}/${totalFiles}...`);
 
-			const response = await axiosInstance.post(endpoint, formData, {
-				headers: {
-					"Content-Type": "multipart/form-data",
-				},
-			});
+				const compressedFile = await imageCompression(file, {
+					maxSizeMB,
+					maxWidthOrHeight: 1280,
+					useWebWorker: true,
+					fileType: "image/webp",
+				});
 
-			const data = response.data;
+				const formData = new FormData();
+				formData.append("file", compressedFile);
 
-			if (data?.url) {
-				onUploadSuccess?.(data.url);
-			} else {
-				throw new Error(data?.error || "Greška u odgovoru servera");
+				const response = await axiosInstance.post(endpoint, formData, {
+					headers: {
+						"Content-Type": "multipart/form-data",
+					},
+				});
+
+				const data = response.data;
+
+				if (data?.url) {
+					uploadedUrls.push(data.url);
+				} else {
+					throw new Error(data?.error || "Greška u odgovoru servera");
+				}
+			}
+
+			if (uploadedUrls.length > 0) {
+				onUploadSuccess?.(uploadedUrls);
 			}
 		} catch (err: unknown) {
 			console.error("Upload greška:", err);
@@ -73,6 +95,7 @@ export const UploadImageBox: React.FC<UploadImageBoxProps> = ({
 			setUploadError(errorMessage);
 		} finally {
 			setIsUploading(false);
+			setUploadProgress("");
 			if (fileInputRef.current) {
 				fileInputRef.current.value = "";
 			}
@@ -80,32 +103,91 @@ export const UploadImageBox: React.FC<UploadImageBoxProps> = ({
 	};
 
 	return (
-		<Stack spacing={2} alignItems="start">
+		<Stack spacing={2}>
 			<input
 				type="file"
 				accept={acceptedFormats}
 				ref={fileInputRef}
 				style={{ display: "none" }}
 				onChange={handleFileChange}
+				multiple={multiple}
 			/>
-			<label htmlFor="upload-image-input">
-				<Button
-					variant="outlined"
-					component="span"
-					startIcon={
-						isUploading ? <CircularProgress size={16} /> : <CloudUpload />
-					}
-					onClick={() => fileInputRef.current?.click()}
-					disabled={isUploading}
-				>
-					{isUploading ? "Uploading..." : label}
-				</Button>
-			</label>
+
+			<Button
+				variant="outlined"
+				component="span"
+				startIcon={
+					isUploading ? <CircularProgress size={16} /> : <CloudUpload />
+				}
+				onClick={() => fileInputRef.current?.click()}
+				disabled={isUploading}
+				fullWidth
+			>
+				{isUploading
+					? uploadProgress || "Uploading..."
+					: `${label} ${multiple ? "(možete izabrati više slika)" : ""}`}
+			</Button>
 
 			{uploadError && (
 				<Alert severity="error">
 					<Typography variant="body2">{uploadError}</Typography>
 				</Alert>
+			)}
+
+			{existingImages.length > 0 && (
+				<Box>
+					<Typography variant="subtitle2" gutterBottom>
+						Uploadovane slike ({existingImages.length})
+					</Typography>
+					<Grid container spacing={2}>
+						{existingImages.map((url, index) => (
+							<Grid size={{ xs: 6, sm: 4, md: 3 }} key={index}>
+								<Box
+									sx={{
+										position: "relative",
+										paddingTop: "100%",
+										borderRadius: 1,
+										overflow: "hidden",
+										border: "1px solid",
+										borderColor: "divider",
+									}}
+								>
+									<Box
+										component="img"
+										src={url}
+										alt={`Upload ${index + 1}`}
+										sx={{
+											position: "absolute",
+											top: 0,
+											left: 0,
+											width: "100%",
+											height: "100%",
+											objectFit: "cover",
+										}}
+									/>
+									{onRemoveImage && (
+										<IconButton
+											size="small"
+											onClick={() => onRemoveImage(url)}
+											sx={{
+												position: "absolute",
+												top: 4,
+												right: 4,
+												bgcolor: "background.paper",
+												"&:hover": {
+													bgcolor: "error.main",
+													color: "white",
+												},
+											}}
+										>
+											<Close fontSize="small" />
+										</IconButton>
+									)}
+								</Box>
+							</Grid>
+						))}
+					</Grid>
+				</Box>
 			)}
 		</Stack>
 	);
