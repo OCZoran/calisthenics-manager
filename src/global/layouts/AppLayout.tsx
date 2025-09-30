@@ -16,7 +16,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		const fetchUser = async () => {
 			try {
-				const { data } = await axiosInstance.get("/api/users"); // Koristi već postojeći endpoint
+				const { data } = await axiosInstance.get("/api/users/current");
 				setUser(data);
 			} catch (error) {
 				console.error("❌ Greška prilikom dohvatanja usera:", error);
