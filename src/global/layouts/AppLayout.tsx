@@ -2,9 +2,10 @@
 
 import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { ReactNode, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import SidebarMobile from "@/features/sidebar/components/SidebarMobile";
 import SidebarDesktop from "@/features/sidebar/components/SidebarDesktop";
-import { UserInterface } from "@/global/interfaces/user.interface"; // Prilagodi ako je putanja drugačija
+import { UserInterface } from "@/global/interfaces/user.interface";
 import axiosInstance from "@/services/axios-public.instance";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -12,6 +13,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 	const [user, setUser] = useState<UserInterface | null>(null);
 	const [loading, setLoading] = useState(true);
+	const router = useRouter();
 
 	useEffect(() => {
 		const fetchUser = async () => {
@@ -20,19 +22,20 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 				setUser(data);
 			} catch (error) {
 				console.error("❌ Greška prilikom dohvatanja usera:", error);
+				// Ako nema usera, redirect na login
+				router.push("/login");
 			} finally {
 				setLoading(false);
 			}
 		};
 
 		fetchUser();
-	}, []);
+	}, [router]);
 
 	if (loading) return null;
 
 	if (!user) {
-		// Možeš dodati redirect ako želiš:
-		// router.push("/login");
+		// U principu, ovdje nikad ne bi trebalo biti prazno jer redirectuje
 		return null;
 	}
 
