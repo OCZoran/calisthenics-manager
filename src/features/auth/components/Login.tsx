@@ -148,7 +148,7 @@ const Login = () => {
 			// Kraći timeout i koristi window.location za force refresh
 			setTimeout(() => {
 				// Koristi window.location umesto router.push za potpuni page reload
-				window.location.href = "/";
+				window.location.href = "/workouts";
 			}, 800);
 		} catch (error) {
 			console.error("Login error:", error);
