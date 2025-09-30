@@ -30,12 +30,9 @@ export default function AppLayout({
 			}}
 		>
 			{/* Sidebar se uvijek renderuje, čak i prije mounted */}
-			{mounted &&
-				(isMobile ? <SidebarMobile user={user} /> : <SidebarDesktop />)}
-
+			<SidebarDesktop />
 			{/* Fallback dok se ne mount-uje */}
 			{!mounted && <Box sx={{ width: { xs: 0, md: "calc(64px + 1px)" } }} />}
-
 			<Box
 				component="main"
 				sx={{
