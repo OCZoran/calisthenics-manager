@@ -23,18 +23,19 @@ async function getUserFromToken(request: Request) {
 	return decoded;
 }
 
-// GET - Fetch all exercises for user
+// GET - Fetch all exercises (global for all users)
 export async function GET(request: Request) {
 	try {
-		const user = await getUserFromToken(request);
-		const { db } = await getDatabase();
+		// Provjeri autentifikaciju ali ne filtriraj po userId
+		await getUserFromToken(request);
 
+		const { db } = await getDatabase();
 		const url = new URL(request.url);
 		const category = url.searchParams.get("category");
 		const tag = url.searchParams.get("tag");
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const query: any = { userId: user.id };
+		const query: any = {}; // Uklonjen userId filter
 
 		if (category) {
 			query.category = category;
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
 	}
 }
 
-// POST - Create new exercise
+// POST - Create new exercise (global, any user can add)
 export async function POST(request: Request) {
 	try {
 		const user = await getUserFromToken(request);
@@ -77,9 +78,8 @@ export async function POST(request: Request) {
 
 		const { db } = await getDatabase();
 
-		// Check if exercise with same name already exists for user
+		// Check if exercise exists globally (not per user)
 		const existing = await db.collection("exercises").findOne({
-			userId: user.id,
 			name: { $regex: new RegExp(`^${exerciseData.name}$`, "i") },
 		});
 
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
 
 		const exercise: Omit<ExerciseDefinition, "_id"> = {
 			...exerciseData,
-			userId: user.id,
+			userId: user.id, // Čuva ko je kreirao, ali ne filtrira po ovome
 			tags: exerciseData.tags || [],
 			createdAt: new Date(),
 			updatedAt: new Date(),
@@ -113,10 +113,10 @@ export async function POST(request: Request) {
 	}
 }
 
-// PUT - Update exercise
+// PUT - Update exercise (global, any user can edit)
 export async function PUT(request: Request) {
 	try {
-		const user = await getUserFromToken(request);
+		await getUserFromToken(request);
 		const { exerciseId, ...updateData } = await request.json();
 
 		if (!exerciseId) {
@@ -131,7 +131,6 @@ export async function PUT(request: Request) {
 		// Check if trying to update name to existing name
 		if (updateData.name) {
 			const existing = await db.collection("exercises").findOne({
-				userId: user.id,
 				name: { $regex: new RegExp(`^${updateData.name}$`, "i") },
 				_id: { $ne: new ObjectId(exerciseId) },
 			});
@@ -144,10 +143,10 @@ export async function PUT(request: Request) {
 			}
 		}
 
+		// Uklonjen userId filter - bilo ko može editovati
 		const result = await db.collection("exercises").updateOne(
 			{
 				_id: new ObjectId(exerciseId),
-				userId: user.id,
 			},
 			{
 				$set: {
@@ -176,10 +175,10 @@ export async function PUT(request: Request) {
 	}
 }
 
-// DELETE - Delete exercise
+// DELETE - Delete exercise (global, any user can delete)
 export async function DELETE(request: Request) {
 	try {
-		const user = await getUserFromToken(request);
+		await getUserFromToken(request);
 		const url = new URL(request.url);
 		const exerciseId = url.searchParams.get("id");
 
@@ -192,18 +191,21 @@ export async function DELETE(request: Request) {
 
 		const { db } = await getDatabase();
 
-		// Check if exercise is used in any workouts
+		// Provjera korištenja globalno (svi workouts)
+		const exercise = await db.collection("exercises").findOne({
+			_id: new ObjectId(exerciseId),
+		});
+
+		if (!exercise) {
+			return NextResponse.json(
+				{ error: "Exercise not found" },
+				{ status: 404 }
+			);
+		}
+
+		// Check usage across all users
 		const usageCount = await db.collection("workouts").countDocuments({
-			userId: user.id,
-			"exercises.name": {
-				$in: [
-					(
-						await db.collection("exercises").findOne({
-							_id: new ObjectId(exerciseId),
-						})
-					)?.name,
-				],
-			},
+			"exercises.name": exercise.name,
 		});
 
 		if (usageCount > 0) {
@@ -215,9 +217,9 @@ export async function DELETE(request: Request) {
 			);
 		}
 
+		// Uklonjen userId filter - bilo ko može brisati
 		const result = await db.collection("exercises").deleteOne({
 			_id: new ObjectId(exerciseId),
-			userId: user.id,
 		});
 
 		if (result.deletedCount === 0) {
