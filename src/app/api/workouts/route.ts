@@ -97,7 +97,7 @@ export async function POST(request: Request) {
 			}
 		}
 
-		// Sanitization & validation of sets - ažurirano za hold podršku
+		// Sanitization & validation of sets - sa podrškom za hold i band
 		const sanitizeExercises = (exs: any[]) =>
 			exs.map((ex) => ({
 				name: ex.name,
@@ -115,6 +115,10 @@ export async function POST(request: Request) {
 						set.hold !== undefined && set.hold !== ""
 							? parseInt(set.hold, 10)
 							: null;
+
+					// NOVO: Parsiranje band vrijednosti
+					const band =
+						set.band !== undefined && set.band !== "" ? set.band : "";
 
 					// Logika za reps ovisno o tome da li je hold postavljen
 					let reps: number;
@@ -143,7 +147,13 @@ export async function POST(request: Request) {
 						throw new Error(`Invalid hold value for exercise "${ex.name}"`);
 					}
 
-					// Vraćamo set sa hold vrijednošću
+					// NOVO: Validacija band vrijednosti
+					const validBands = ["", "green", "red", "black"];
+					if (band && !validBands.includes(band)) {
+						throw new Error(`Invalid band value for exercise "${ex.name}"`);
+					}
+
+					// Vraćamo set sa svim vrijednostima
 					const sanitizedSet: any = { reps, rest };
 
 					if (weight !== null) {
@@ -152,6 +162,11 @@ export async function POST(request: Request) {
 
 					if (hold !== null) {
 						sanitizedSet.hold = hold;
+					}
+
+					// NOVO: Dodaj band ako postoji
+					if (band && band !== "") {
+						sanitizedSet.band = band;
 					}
 
 					return sanitizedSet;
@@ -256,6 +271,12 @@ export async function PUT(request: Request) {
 									? parseInt((set as any).hold, 10)
 									: null;
 
+							// NOVO: Parsiranje band vrijednosti
+							const band =
+								(set as any).band !== undefined && (set as any).band !== ""
+									? (set as any).band
+									: "";
+
 							// Logika za reps
 							let reps: number;
 							if (hold !== null && hold > 0) {
@@ -283,6 +304,12 @@ export async function PUT(request: Request) {
 								throw new Error(`Invalid hold value for exercise "${ex.name}"`);
 							}
 
+							// NOVO: Validacija band vrijednosti
+							const validBands = ["", "green", "red", "black"];
+							if (band && !validBands.includes(band)) {
+								throw new Error(`Invalid band value for exercise "${ex.name}"`);
+							}
+
 							const sanitizedSet: any = { reps, rest };
 
 							if (weight !== null) {
@@ -291,6 +318,11 @@ export async function PUT(request: Request) {
 
 							if (hold !== null) {
 								sanitizedSet.hold = hold;
+							}
+
+							// NOVO: Dodaj band ako postoji
+							if (band && band !== "") {
+								sanitizedSet.band = band;
 							}
 
 							return sanitizedSet;

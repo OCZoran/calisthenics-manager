@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import axiosInstance from "@/services/axios-public.instance";
+import { WorkoutFormData } from "@/global/interfaces/workout.interface";
 
 interface OfflineWorkout {
 	id: string;
@@ -153,7 +154,10 @@ export const useOfflineWorkouts = () => {
 	};
 
 	// NOVA FUNKCIJA ZA AŽURIRANJE OFFLINE WORKOUTS
-	const updateOfflineWorkout = (workoutId: string, updatedData: any) => {
+	const updateOfflineWorkout = (
+		workoutId: string,
+		updatedData: WorkoutFormData
+	) => {
 		if (!isClient) return false;
 
 		try {

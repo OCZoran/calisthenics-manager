@@ -32,7 +32,10 @@ import {
 	TrendingUp,
 	FitnessCenterOutlined,
 } from "@mui/icons-material";
-import { Workout } from "@/global/interfaces/workout.interface";
+import {
+	Workout,
+	WorkoutFormData,
+} from "@/global/interfaces/workout.interface";
 import WorkoutList from "./WorkoutList";
 import WorkoutForm from "./form/Workout";
 import { useOfflineWorkouts } from "@/features/OfflineManager";
@@ -311,20 +314,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		}
 	};
 
-	interface WorkoutFormData {
-		date: string;
-		type: string;
-		notes: string;
-		synced: boolean;
-		exercises: Array<{
-			name: string;
-			sets: Array<{
-				reps: number;
-				rest: number;
-			}>;
-		}>;
-	}
-
 	const handleSubmitWorkout = useCallback(
 		async (formData: WorkoutFormData) => {
 			setIsLoading(true);
@@ -360,6 +349,9 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 													sets: ex.sets.map((set) => ({
 														reps: set.reps.toString(),
 														rest: set.rest.toString(),
+														weight: set.weight?.toString() || "",
+														hold: set.hold?.toString() || "",
+														band: set.band?.toString() || "",
 													})),
 												})),
 												updatedAt: new Date(),

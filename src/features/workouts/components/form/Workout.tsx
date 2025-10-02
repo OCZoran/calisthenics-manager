@@ -90,6 +90,19 @@ const workoutTypes = [
 	},
 ];
 
+type WorkoutSet = {
+	reps: string;
+	rest: string;
+	weight?: string;
+	hold?: string;
+	band?: string;
+};
+
+type WorkoutExercise = {
+	name: string;
+	sets: WorkoutSet[];
+};
+
 const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	workout,
 	onSubmit,
@@ -106,7 +119,14 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		ExerciseDefinition[]
 	>([]);
 	const [loadingExercises, setLoadingExercises] = useState(false);
-	const [formData, setFormData] = useState({
+	const [formData, setFormData] = useState<{
+		date: string;
+		type: string;
+		notes: string;
+		synced: boolean;
+		exercises: WorkoutExercise[];
+		planId: string;
+	}>({
 		date: workout?.date || new Date().toISOString().split("T")[0],
 		type: workout?.type || "",
 		notes: workout?.notes || "",
@@ -178,6 +198,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 					rest: set.rest.toString(),
 					weight: set.weight?.toString() || "",
 					hold: (set as ExerciseSet).hold?.toString() || "",
+					band: (set as ExerciseSet).band || "",
 				})),
 			})),
 			notes: `Kopirano iz treninga od ${format(
@@ -203,13 +224,19 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		rest: string;
 		weight: string;
 		hold: string;
+		band: string;
 	}
-
 	const addSet = (exerciseIndex: number) => {
 		const newExercises = [...formData.exercises];
 		const currentExercise = newExercises[exerciseIndex];
 
-		let newSet: ExerciseSet = { reps: "", rest: "", weight: "", hold: "" };
+		let newSet: ExerciseSet = {
+			reps: "",
+			rest: "",
+			weight: "",
+			hold: "",
+			band: "",
+		};
 
 		if (currentExercise.sets.length > 0) {
 			const lastSet = currentExercise.sets[
@@ -220,6 +247,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				rest: lastSet.rest || "",
 				weight: lastSet.weight || "",
 				hold: lastSet.hold || "",
+				band: lastSet.band || "", // NOVO - kopira traku iz prethodnog seta
 			};
 		}
 
@@ -230,7 +258,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	const updateSet = (
 		exerciseIndex: number,
 		setIndex: number,
-		field: "reps" | "rest" | "weight" | "hold",
+		field: "reps" | "rest" | "weight" | "hold" | "band",
 		value: string
 	) => {
 		const newExercises = [...formData.exercises];
@@ -257,6 +285,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				const reps = parseInt(set.reps) || 0;
 				const rest = parseInt(set.rest) || 0;
 				const weight = set.weight ? parseFloat(set.weight) : null;
+				const band = set.band || "";
 				const hold = (set as ExerciseSet).hold
 					? parseInt((set as ExerciseSet).hold)
 					: null;
@@ -285,6 +314,11 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 					newErrors.push(
 						`Set ${j + 1} vježbe ${i + 1} ne može imati negativno hold vrijeme`
 					);
+				}
+
+				const validBands = ["", "green", "red", "black"];
+				if (band && !validBands.includes(band)) {
+					newErrors.push(`Set ${j + 1} vježbe ${i + 1} ima nevalidnu traku`);
 				}
 			});
 		});

@@ -3,6 +3,7 @@ export interface WorkoutSet {
 	rest: string;
 	weight?: string;
 	hold?: string;
+	band?: string;
 }
 
 export interface Exercise {
@@ -30,4 +31,6 @@ export interface WorkoutFormData {
 	notes?: string;
 	synced: boolean;
 	exercises: Exercise[];
+	
 }
+

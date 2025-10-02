@@ -24,9 +24,11 @@ import {
 	CloudOff,
 	Repeat,
 	MonitorWeight,
+	FiberManualRecord,
 } from "@mui/icons-material";
 import { Workout } from "@/global/interfaces/workout.interface";
 import { formatDate } from "@/global/utils/format-date";
+import { getBandColor, getBandLabel } from "./form/WorkoutAddSet";
 
 interface WorkoutCardProps {
 	workout: Workout;
@@ -427,22 +429,40 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 								<Box sx={{ mb: 2 }}>
 									<Grid container spacing={1}>
 										{exercise.sets.map((set, setIndex) => (
-											<Grid key={setIndex} size={{ xs: 12, sm: 6, md: 4 }}>
-												<Chip
-													label={`Set ${setIndex + 1}: ${set.reps}${
-														set.weight ? ` × ${set.weight}kg` : ""
-													}${set.rest ? ` | ${set.rest}s` : ""}`}
-													size="small"
-													sx={{
-														width: "100%",
-														justifyContent: "flex-start",
-														backgroundColor: "grey.100",
-														borderColor: "grey.300",
-														fontFamily: "monospace",
-														fontSize: "0.7rem",
-													}}
-												/>
-											</Grid>
+											<Box
+												key={setIndex}
+												sx={{ display: "flex", alignItems: "center", gap: 1 }}
+											>
+												{/* Postojeći prikaz */}
+												<Typography>
+													{set.hold
+														? `${set.hold}s hold`
+														: `${set.reps} ponavljanja`}
+												</Typography>
+												{set.weight && (
+													<Typography>× {set.weight}kg</Typography>
+												)}
+
+												{/* DODATO: Prikaži band ako postoji */}
+												{set.band && (
+													<Chip
+														label={getBandLabel(set.band)}
+														size="small"
+														icon={<FiberManualRecord />}
+														sx={{
+															backgroundColor: getBandColor(set.band),
+															color: "white",
+															"& .MuiChip-icon": { color: "white" },
+															fontSize: "0.75rem",
+															height: "20px",
+														}}
+													/>
+												)}
+
+												{Number(set.rest) > 0 && (
+													<Typography>• {set.rest}s odmor</Typography>
+												)}
+											</Box>
 										))}
 									</Grid>
 								</Box>
@@ -455,20 +475,8 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 										alignItems: "center",
 										flexWrap: "wrap",
 										gap: 1,
-										pt: 1,
-										borderTop: "1px solid",
-										borderColor: "divider",
 									}}
 								>
-									<Typography variant="body2" color="text.secondary">
-										<strong>
-											{exercise.sets.reduce(
-												(total, set) => total + Number(set.reps || 0),
-												0
-											)}
-										</strong>{" "}
-										ukupno ponavljanja
-									</Typography>
 									{exercise.sets.some((set) => set.weight) && (
 										<Typography
 											variant="body2"

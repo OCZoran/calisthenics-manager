@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
-
 import React, { useState, useEffect, useRef } from "react";
 import {
 	Box,
@@ -15,6 +13,10 @@ import {
 	Tooltip,
 	Chip,
 	CircularProgress,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem,
 } from "@mui/material";
 import {
 	Add,
@@ -26,6 +28,7 @@ import {
 	PlayArrow,
 	AccessTime,
 	CheckCircle,
+	FiberManualRecord,
 } from "@mui/icons-material";
 
 interface Set {
@@ -33,6 +36,7 @@ interface Set {
 	weight?: string;
 	rest?: string;
 	hold?: string;
+	band?: string;
 }
 
 interface Exercise {
@@ -48,11 +52,26 @@ interface WorkoutAddSetProps {
 	updateSet: (
 		exerciseIndex: number,
 		setIndex: number,
-		field: "reps" | "weight" | "rest" | "hold",
+		field: "reps" | "weight" | "rest" | "hold" | "band",
 		value: string
 	) => void;
 	removeSet: (exerciseIndex: number, setIndex: number) => void;
 }
+
+export const BAND_OPTIONS = [
+	{ value: "", label: "Bez trake", color: "#9E9E9E" },
+	{ value: "green", label: "Zelena ", color: "#4CAF50" },
+	{ value: "red", label: "Crvena ", color: "#F44336" },
+	{ value: "black", label: "Crna ", color: "#212121" },
+];
+
+export const getBandColor = (band: string) => {
+	return BAND_OPTIONS.find((b) => b.value === band)?.color || "#9E9E9E";
+};
+
+export const getBandLabel = (band: string) => {
+	return BAND_OPTIONS.find((b) => b.value === band)?.label || "Bez trake";
+};
 
 const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 	exercise,
@@ -68,7 +87,6 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 	const intervalRef = useRef<NodeJS.Timeout | null>(null);
 	const audioContextRef = useRef<AudioContext | null>(null);
 
-	// Kreiranje beep zvuka
 	const createBeep = () => {
 		if (!audioContextRef.current) {
 			const AudioCtx =
@@ -112,7 +130,6 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 					return 0;
 				}
 
-				// Beep za poslednje 3 sekunde
 				if (prev <= 4 && prev > 1) {
 					createBeep();
 				}
@@ -136,7 +153,6 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 		return `${mins}:${secs.toString().padStart(2, "0")}`;
 	};
 
-	// Helper funkcija da provjeri da li set koristi hold
 	const isHoldSet = (set: Set) => {
 		return set.hold && set.hold.trim() !== "";
 	};
@@ -174,8 +190,6 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 						(set.reps && parseInt(set.reps) > 0) ||
 						(set.hold && parseInt(set.hold) > 0);
 
-					// IZMJENA: Prikaži dugme za timer ako ima rest time, bez obzira na validne podatke
-					// Timer će biti onemogućen (disabled) ako nema validnih podataka
 					const showTimerButton = hasRestTime && !isCompleted;
 					const canStartTimer = hasRestTime && hasValidData && !isCompleted;
 
@@ -199,7 +213,14 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									mb: 2,
 								}}
 							>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Box
+									sx={{
+										display: "flex",
+										alignItems: "center",
+										gap: 1,
+										flexWrap: "wrap",
+									}}
+								>
 									<Chip
 										label={`Set ${setIndex + 1}`}
 										size="small"
@@ -214,6 +235,18 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 											color="secondary"
 											icon={<AccessTime />}
 											variant="outlined"
+										/>
+									)}
+									{set.band && (
+										<Chip
+											label={getBandLabel(set.band)}
+											size="small"
+											icon={<FiberManualRecord />}
+											sx={{
+												backgroundColor: getBandColor(set.band),
+												color: "white",
+												"& .MuiChip-icon": { color: "white" },
+											}}
 										/>
 									)}
 									{isCompleted && (
@@ -246,7 +279,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 							</Box>
 
 							<Grid container spacing={2} alignItems="center">
-								{/* Hold polje - prikazuje se uvijek */}
+								{/* Hold polje */}
 								<Grid size={{ xs: 12, sm: holdMode ? 6 : 3 }}>
 									<TextField
 										fullWidth
@@ -272,7 +305,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									/>
 								</Grid>
 
-								{/* Ponavljanja - sakrivaju se ako je hold popunjen */}
+								{/* Ponavljanja */}
 								{!holdMode && (
 									<Grid size={{ xs: 12, sm: 3 }}>
 										<TextField
@@ -337,6 +370,47 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									/>
 								</Grid>
 
+								{/* NOVO: Band Selector */}
+								<Grid size={{ xs: 12, sm: 3 }}>
+									<FormControl fullWidth size="small">
+										<InputLabel>Traka</InputLabel>
+										<Select
+											value={set.band || ""}
+											onChange={(e) =>
+												updateSet(
+													exerciseIndex,
+													setIndex,
+													"band",
+													e.target.value
+												)
+											}
+											label="Traka"
+											disabled={isCompleted && !activeTimer}
+											sx={{ borderRadius: 2 }}
+										>
+											{BAND_OPTIONS.map((option) => (
+												<MenuItem key={option.value} value={option.value}>
+													<Box
+														sx={{
+															display: "flex",
+															alignItems: "center",
+															gap: 1,
+														}}
+													>
+														<FiberManualRecord
+															sx={{
+																fontSize: 16,
+																color: option.color,
+															}}
+														/>
+														{option.label}
+													</Box>
+												</MenuItem>
+											))}
+										</Select>
+									</FormControl>
+								</Grid>
+
 								{/* Odmor */}
 								<Grid size={{ xs: 12, sm: 3 }}>
 									<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -367,7 +441,6 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 											}}
 											sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
 										/>
-										{/* IZMJENA: Uvijek prikaži dugme ako ima rest time */}
 										{showTimerButton && (
 											<Tooltip
 												title={
@@ -457,6 +530,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									<Typography variant="caption" color="text.secondary">
 										{holdMode ? `${set.hold}s hold` : `${set.reps} ponavljanja`}
 										{set.weight && ` × ${set.weight}kg`}
+										{set.band && ` • ${getBandLabel(set.band)}`}
 										{set.rest && ` • ${set.rest}s odmor`}
 									</Typography>
 								</Box>
