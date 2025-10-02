@@ -154,7 +154,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 	};
 
 	const isHoldSet = (set: Set) => {
-		return set.hold && set.hold.trim() !== "";
+		return set.hold && String(set.hold).trim() !== "";
 	};
 
 	return (
@@ -209,7 +209,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 								sx={{
 									display: "flex",
 									alignItems: "center",
-									justifyContent: "space-between",
+									justifyAlignment: "space-between",
 									mb: 2,
 								}}
 							>
