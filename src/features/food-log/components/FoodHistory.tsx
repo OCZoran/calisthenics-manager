@@ -19,6 +19,11 @@ import {
 	IconButton,
 	Menu,
 	MenuItem,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	Autocomplete,
 } from "@mui/material";
 import {
 	ExpandMoreOutlined,
@@ -27,15 +32,19 @@ import {
 	FilterListOutlined,
 	MoreVertOutlined,
 	DeleteOutlined,
+	EditOutlined,
+	AddOutlined,
 } from "@mui/icons-material";
 import {
 	DailyFoodLog,
 	FoodGoals,
 	MacroProgress,
+	Meal,
 } from "../interfaces/food-log.interface";
 
 const FoodHistory: React.FC = () => {
 	const [logs, setLogs] = useState<DailyFoodLog[]>([]);
+	const [meals, setMeals] = useState<Meal[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [dateFilter, setDateFilter] = useState("");
@@ -54,6 +63,30 @@ const FoodHistory: React.FC = () => {
 	});
 	const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 	const [selectedLog, setSelectedLog] = useState<DailyFoodLog | null>(null);
+	const [selectedEntryIndex, setSelectedEntryIndex] = useState<number | null>(
+		null
+	);
+	const [dayMenuAnchor, setDayMenuAnchor] = useState<null | HTMLElement>(null);
+
+	// Dialog states
+	const [addMealDialog, setAddMealDialog] = useState(false);
+	const [editMealDialog, setEditMealDialog] = useState(false);
+	const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+	const [quantity, setQuantity] = useState<number>(1);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	type EditingEntry = {
+		index: number;
+		date: string;
+		mealId?: string;
+		mealName?: string;
+		quantity?: number;
+		carbs?: number;
+		protein?: number;
+		fat?: number;
+		calories?: number;
+	};
+	const [editingEntry, setEditingEntry] = useState<EditingEntry | null>(null);
+	const [selectedDate, setSelectedDate] = useState<string>("");
 
 	const fetchHistory = async () => {
 		try {
@@ -83,9 +116,149 @@ const FoodHistory: React.FC = () => {
 		}
 	};
 
+	const fetchMeals = async () => {
+		try {
+			const response = await fetch("/api/meals");
+			if (!response.ok) {
+				throw new Error("Greška pri učitavanju obroka");
+			}
+			const data = await response.json();
+			setMeals(data);
+		} catch (error) {
+			console.error("Error fetching meals:", error);
+		}
+	};
+
 	useEffect(() => {
 		fetchHistory();
+		fetchMeals();
 	}, []);
+
+	const handleAddMealToDay = async () => {
+		if (!selectedMeal || quantity <= 0 || !selectedDate) {
+			setError("Morate odabrati obrok i količinu");
+			return;
+		}
+
+		setIsSubmitting(true);
+		setError(null);
+
+		try {
+			const response = await fetch("/api/daily-food-log", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					date: selectedDate,
+					mealId: selectedMeal._id,
+					quantity,
+				}),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || "Greška pri dodavanju obroka");
+			}
+
+			await fetchHistory();
+			setAddMealDialog(false);
+			setSelectedMeal(null);
+			setQuantity(1);
+			setSelectedDate("");
+		} catch (error) {
+			console.error("Error adding meal:", error);
+			setError(
+				error instanceof Error ? error.message : "Greška pri dodavanju obroka"
+			);
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	const handleEditEntry = (
+		log: DailyFoodLog,
+		entry: EditingEntry,
+		index: number
+	) => {
+		setEditingEntry({ ...entry, index, date: log.date });
+		const meal = meals.find(
+			(m) => m._id === entry.mealId || m.name === entry.mealName
+		);
+		setSelectedMeal(meal || null);
+		setQuantity(entry.quantity || 1);
+		setEditMealDialog(true);
+		setMenuAnchor(null);
+	};
+
+	const handleUpdateEntry = async () => {
+		if (!selectedMeal || quantity <= 0 || editingEntry === null) {
+			setError("Morate odabrati obrok i količinu");
+			return;
+		}
+
+		setIsSubmitting(true);
+		setError(null);
+
+		try {
+			const response = await fetch("/api/daily-food-log", {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					date: editingEntry.date,
+					entryIndex: editingEntry.index,
+					mealId: selectedMeal._id,
+					quantity,
+				}),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || "Greška pri ažuriranju obroka");
+			}
+
+			await fetchHistory();
+			setEditMealDialog(false);
+			setEditingEntry(null);
+			setSelectedMeal(null);
+			setQuantity(1);
+		} catch (error) {
+			console.error("Error updating entry:", error);
+			setError(
+				error instanceof Error ? error.message : "Greška pri ažuriranju obroka"
+			);
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	const handleDeleteEntry = async (log: DailyFoodLog, entryIndex: number) => {
+		try {
+			const response = await fetch(
+				`/api/daily-food-log?date=${log.date}&entryIndex=${entryIndex}`,
+				{
+					method: "DELETE",
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || "Greška pri brisanju unosa");
+			}
+
+			await fetchHistory();
+			setMenuAnchor(null);
+			setSelectedLog(null);
+			setSelectedEntryIndex(null);
+		} catch (error) {
+			console.error("Error deleting entry:", error);
+			setError(
+				error instanceof Error ? error.message : "Greška pri brisanju unosa"
+			);
+		}
+	};
 
 	const handleDeleteLog = async (log: DailyFoodLog) => {
 		try {
@@ -99,7 +272,7 @@ const FoodHistory: React.FC = () => {
 			}
 
 			setLogs((prev) => prev.filter((l) => l._id !== log._id));
-			setMenuAnchor(null);
+			setDayMenuAnchor(null);
 			setSelectedLog(null);
 		} catch (error) {
 			console.error("Error deleting log:", error);
@@ -167,6 +340,14 @@ const FoodHistory: React.FC = () => {
 	};
 
 	const averages = calculateAverages();
+	const previewMacros = selectedMeal
+		? {
+				carbs: selectedMeal.carbs * quantity,
+				protein: selectedMeal.protein * quantity,
+				fat: selectedMeal.fat * quantity,
+				calories: selectedMeal.calories * quantity,
+		  }
+		: null;
 
 	if (isLoading) {
 		return (
@@ -406,7 +587,7 @@ const FoodHistory: React.FC = () => {
 											size="small"
 											onClick={(e) => {
 												e.stopPropagation();
-												setMenuAnchor(e.currentTarget);
+												setDayMenuAnchor(e.currentTarget);
 												setSelectedLog(log);
 											}}
 										>
@@ -474,9 +655,28 @@ const FoodHistory: React.FC = () => {
 									</Grid>
 
 									{/* Entries list */}
-									<Typography variant="subtitle1" fontWeight="600" gutterBottom>
-										Obroci za ovaj dan:
-									</Typography>
+									<Box
+										sx={{
+											display: "flex",
+											justifyContent: "space-between",
+											alignItems: "center",
+											mb: 2,
+										}}
+									>
+										<Typography variant="subtitle1" fontWeight="600">
+											Obroci za ovaj dan:
+										</Typography>
+										<Button
+											size="small"
+											startIcon={<AddOutlined />}
+											onClick={() => {
+												setSelectedDate(log.date);
+												setAddMealDialog(true);
+											}}
+										>
+											Dodaj obrok
+										</Button>
+									</Box>
 									{log.entries.map((entry, index) => (
 										<Box
 											key={index}
@@ -487,47 +687,62 @@ const FoodHistory: React.FC = () => {
 												borderRadius: 1,
 												mb: 1,
 												backgroundColor: "grey.50",
+												display: "flex",
+												justifyContent: "space-between",
+												alignItems: "start",
 											}}
 										>
-											<Typography variant="subtitle2" fontWeight="600">
-												{entry.mealName}
-												{entry.quantity > 1 && (
-													<Typography
-														component="span"
-														variant="body2"
-														color="text.secondary"
-														sx={{ ml: 1 }}
-													>
-														x{entry.quantity}
-													</Typography>
-												)}
-											</Typography>
-											<Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-												<Chip
-													label={`${entry.carbs.toFixed(1)}g UH`}
-													size="small"
-													color="primary"
-													variant="outlined"
-												/>
-												<Chip
-													label={`${entry.protein.toFixed(1)}g P`}
-													size="small"
-													color="secondary"
-													variant="outlined"
-												/>
-												<Chip
-													label={`${entry.fat.toFixed(1)}g M`}
-													size="small"
-													color="warning"
-													variant="outlined"
-												/>
-												<Chip
-													label={`${entry.calories.toFixed(0)} kcal`}
-													size="small"
-													color="success"
-													variant="outlined"
-												/>
+											<Box sx={{ flex: 1 }}>
+												<Typography variant="subtitle2" fontWeight="600">
+													{entry.name}
+													{entry.quantity > 1 && (
+														<Typography
+															component="span"
+															variant="body2"
+															color="text.secondary"
+															sx={{ ml: 1 }}
+														>
+															x{entry.quantity}
+														</Typography>
+													)}
+												</Typography>
+												<Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+													<Chip
+														label={`${entry.carbs.toFixed(1)}g UH`}
+														size="small"
+														color="primary"
+														variant="outlined"
+													/>
+													<Chip
+														label={`${entry.protein.toFixed(1)}g P`}
+														size="small"
+														color="secondary"
+														variant="outlined"
+													/>
+													<Chip
+														label={`${entry.fat.toFixed(1)}g M`}
+														size="small"
+														color="warning"
+														variant="outlined"
+													/>
+													<Chip
+														label={`${entry.calories.toFixed(0)} kcal`}
+														size="small"
+														color="success"
+														variant="outlined"
+													/>
+												</Box>
 											</Box>
+											<IconButton
+												size="small"
+												onClick={(e) => {
+													setMenuAnchor(e.currentTarget);
+													setSelectedLog(log);
+													setSelectedEntryIndex(index);
+												}}
+											>
+												<MoreVertOutlined />
+											</IconButton>
 										</Box>
 									))}
 								</Box>
@@ -537,20 +752,221 @@ const FoodHistory: React.FC = () => {
 				})}
 			</Box>
 
-			{/* Context menu */}
+			{/* Entry Context Menu */}
 			<Menu
 				anchorEl={menuAnchor}
 				open={Boolean(menuAnchor)}
 				onClose={() => setMenuAnchor(null)}
 			>
 				<MenuItem
+					onClick={() => {
+						if (selectedLog && selectedEntryIndex !== null) {
+							handleEditEntry(
+								selectedLog,
+								{
+									...selectedLog.entries[selectedEntryIndex],
+									index: selectedEntryIndex,
+									date: selectedLog.date,
+								},
+								selectedEntryIndex
+							);
+						}
+					}}
+				>
+					<EditOutlined sx={{ mr: 1 }} />
+					Uredi obrok
+				</MenuItem>
+				<MenuItem
+					onClick={() => {
+						if (selectedLog && selectedEntryIndex !== null) {
+							handleDeleteEntry(selectedLog, selectedEntryIndex);
+						}
+					}}
+					sx={{ color: "error.main" }}
+				>
+					<DeleteOutlined sx={{ mr: 1 }} />
+					Obriši obrok
+				</MenuItem>
+			</Menu>
+
+			{/* Day Context Menu */}
+			<Menu
+				anchorEl={dayMenuAnchor}
+				open={Boolean(dayMenuAnchor)}
+				onClose={() => setDayMenuAnchor(null)}
+			>
+				<MenuItem
 					onClick={() => selectedLog && handleDeleteLog(selectedLog)}
 					sx={{ color: "error.main" }}
 				>
 					<DeleteOutlined sx={{ mr: 1 }} />
-					Obriši dan
+					Obriši ceo dan
 				</MenuItem>
 			</Menu>
+
+			{/* Add Meal Dialog */}
+			<Dialog
+				open={addMealDialog}
+				onClose={() => setAddMealDialog(false)}
+				maxWidth="sm"
+				fullWidth
+			>
+				<DialogTitle>
+					Dodaj obrok za {selectedDate && formatDate(selectedDate)}
+				</DialogTitle>
+				<DialogContent>
+					<Box sx={{ pt: 2 }}>
+						<Autocomplete
+							options={meals}
+							getOptionLabel={(meal) => meal.name}
+							value={selectedMeal}
+							onChange={(_, newValue) => setSelectedMeal(newValue)}
+							renderInput={(params) => (
+								<TextField
+									{...params}
+									label="Odaberite obrok"
+									fullWidth
+									margin="normal"
+								/>
+							)}
+							sx={{ mb: 3 }}
+						/>
+
+						<TextField
+							type="number"
+							label="Količina (porcije)"
+							value={quantity}
+							onChange={(e) => setQuantity(Number(e.target.value) || 1)}
+							inputProps={{ min: 0.1, step: 0.1 }}
+							fullWidth
+							sx={{ mb: 3 }}
+						/>
+
+						{previewMacros && (
+							<Card sx={{ mt: 2 }}>
+								<CardContent>
+									<Typography variant="subtitle2" gutterBottom>
+										Pregled makronutrijenata:
+									</Typography>
+									<Grid container spacing={2}>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												UH: {previewMacros.carbs.toFixed(1)}g
+											</Typography>
+										</Grid>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												Proteini: {previewMacros.protein.toFixed(1)}g
+											</Typography>
+										</Grid>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												Masti: {previewMacros.fat.toFixed(1)}g
+											</Typography>
+										</Grid>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												Kalorije: {previewMacros.calories.toFixed(0)}
+											</Typography>
+										</Grid>
+									</Grid>
+								</CardContent>
+							</Card>
+						)}
+					</Box>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setAddMealDialog(false)}>Otkaži</Button>
+					<Button
+						onClick={handleAddMealToDay}
+						variant="contained"
+						disabled={!selectedMeal || quantity <= 0 || isSubmitting}
+					>
+						{isSubmitting ? <CircularProgress size={20} /> : "Dodaj"}
+					</Button>
+				</DialogActions>
+			</Dialog>
+
+			{/* Edit Meal Dialog */}
+			<Dialog
+				open={editMealDialog}
+				onClose={() => setEditMealDialog(false)}
+				maxWidth="sm"
+				fullWidth
+			>
+				<DialogTitle>Uredi obrok</DialogTitle>
+				<DialogContent>
+					<Box sx={{ pt: 2 }}>
+						<Autocomplete
+							options={meals}
+							getOptionLabel={(meal) => meal.name}
+							value={selectedMeal}
+							onChange={(_, newValue) => setSelectedMeal(newValue)}
+							renderInput={(params) => (
+								<TextField
+									{...params}
+									label="Odaberite obrok"
+									fullWidth
+									margin="normal"
+								/>
+							)}
+							sx={{ mb: 3 }}
+						/>
+
+						<TextField
+							type="number"
+							label="Količina (porcije)"
+							value={quantity}
+							onChange={(e) => setQuantity(Number(e.target.value) || 1)}
+							inputProps={{ min: 0.1, step: 0.1 }}
+							fullWidth
+							sx={{ mb: 3 }}
+						/>
+
+						{previewMacros && (
+							<Card sx={{ mt: 2 }}>
+								<CardContent>
+									<Typography variant="subtitle2" gutterBottom>
+										Pregled makronutrijenata:
+									</Typography>
+									<Grid container spacing={2}>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												UH: {previewMacros.carbs.toFixed(1)}g
+											</Typography>
+										</Grid>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												Proteini: {previewMacros.protein.toFixed(1)}g
+											</Typography>
+										</Grid>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												Masti: {previewMacros.fat.toFixed(1)}g
+											</Typography>
+										</Grid>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												Kalorije: {previewMacros.calories.toFixed(0)}
+											</Typography>
+										</Grid>
+									</Grid>
+								</CardContent>
+							</Card>
+						)}
+					</Box>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setEditMealDialog(false)}>Otkaži</Button>
+					<Button
+						onClick={handleUpdateEntry}
+						variant="contained"
+						disabled={!selectedMeal || quantity <= 0 || isSubmitting}
+					>
+						{isSubmitting ? <CircularProgress size={20} /> : "Ažuriraj"}
+					</Button>
+				</DialogActions>
+			</Dialog>
 		</Box>
 	);
 };

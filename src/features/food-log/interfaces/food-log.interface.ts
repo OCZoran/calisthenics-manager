@@ -23,7 +23,7 @@ export interface MealFormData {
 // Daily food log interfaces
 export interface FoodLogEntry {
 	mealId: string;
-	mealName: string;
+	name: string;
 	quantity: number; // koliko porcija
 	carbs: number;
 	protein: number;

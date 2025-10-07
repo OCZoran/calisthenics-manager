@@ -176,6 +176,113 @@ export async function POST(req: NextRequest) {
 	}
 }
 
+export async function PUT(req: NextRequest) {
+	try {
+		const user = await getUserFromToken(req);
+		const { db } = await getDatabase();
+		const { date, entryIndex, mealId, quantity } = await req.json();
+
+		if (!date || entryIndex === undefined || !mealId || !quantity) {
+			return NextResponse.json(
+				{ error: "Date, entryIndex, mealId and quantity are required" },
+				{ status: 400 }
+			);
+		}
+
+		// Dohvati meal podatke
+		const meal = await db
+			.collection("meals")
+			.findOne({ _id: new ObjectId(mealId), userId: user.id });
+
+		if (!meal) {
+			return NextResponse.json({ error: "Meal not found" }, { status: 404 });
+		}
+
+		// Dohvati dnevni log
+		const dailyLog = await db
+			.collection("dailyFoodLogs")
+			.findOne({ userId: user.id, date });
+
+		if (!dailyLog) {
+			return NextResponse.json(
+				{ error: "Daily food log not found" },
+				{ status: 404 }
+			);
+		}
+
+		const index = parseInt(entryIndex);
+		if (index < 0 || index >= dailyLog.entries.length) {
+			return NextResponse.json(
+				{ error: "Invalid entry index" },
+				{ status: 400 }
+			);
+		}
+
+		// Kreiraj ažurirani entry
+		const updatedEntry = {
+			mealId: mealId,
+			mealName: meal.name,
+			name: meal.name,
+			quantity: Number(quantity),
+			carbs: Math.round(meal.carbs * quantity * 10) / 10,
+			protein: Math.round(meal.protein * quantity * 10) / 10,
+			fat: Math.round(meal.fat * quantity * 10) / 10,
+			calories: Math.round(meal.calories * quantity),
+		};
+
+		// Zameni stari entry sa novim
+		const updatedEntries = [...dailyLog.entries];
+		updatedEntries[index] = updatedEntry;
+
+		// Kalkuliši nove totale
+		const totals = updatedEntries.reduce(
+			(
+				acc: {
+					totalCarbs: any;
+					totalProtein: any;
+					totalFat: any;
+					totalCalories: any;
+				},
+				curr: { carbs: any; protein: any; fat: any; calories: any }
+			) => ({
+				totalCarbs: acc.totalCarbs + curr.carbs,
+				totalProtein: acc.totalProtein + curr.protein,
+				totalFat: acc.totalFat + curr.fat,
+				totalCalories: acc.totalCalories + curr.calories,
+			}),
+			{ totalCarbs: 0, totalProtein: 0, totalFat: 0, totalCalories: 0 }
+		);
+
+		const updateData = {
+			entries: updatedEntries,
+			totalCarbs: Math.round(totals.totalCarbs * 10) / 10,
+			totalProtein: Math.round(totals.totalProtein * 10) / 10,
+			totalFat: Math.round(totals.totalFat * 10) / 10,
+			totalCalories: Math.round(totals.totalCalories),
+			updatedAt: new Date().toISOString(),
+		};
+
+		await db
+			.collection("dailyFoodLogs")
+			.updateOne({ _id: dailyLog._id }, { $set: updateData });
+
+		const updatedLog = await db
+			.collection("dailyFoodLogs")
+			.findOne({ _id: dailyLog._id });
+
+		return NextResponse.json({
+			...updatedLog,
+			_id: updatedLog?._id.toString(),
+		});
+	} catch (error) {
+		console.error("Error updating food log entry:", error);
+		return NextResponse.json(
+			{ error: "Failed to update food log entry" },
+			{ status: 500 }
+		);
+	}
+}
+
 // DELETE - ukloni entry iz dnevnog loga
 export async function DELETE(req: NextRequest) {
 	try {

@@ -33,14 +33,14 @@ import {
 	MoreVertOutlined,
 	RestaurantMenuOutlined,
 	SettingsOutlined,
+	EditOutlined,
 } from "@mui/icons-material";
-import {
-	Meal,
-	DailyFoodLog,
-	FoodGoals,
-	MacroProgress,
-} from "../interfaces/food-log.interface";
 import AdsClickOutlinedIcon from "@mui/icons-material/AdsClickOutlined";
+import {
+	DailyFoodLog,
+	FoodLogEntry,
+	Meal,
+} from "../interfaces/food-log.interface";
 
 interface DailyTrackerProps {
 	meals: Meal[];
@@ -54,18 +54,21 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 	onLogUpdated,
 }) => {
 	const [addMealDialog, setAddMealDialog] = useState(false);
+	const [editMealDialog, setEditMealDialog] = useState(false);
 	const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
-	const [quantity, setQuantity] = useState<number>(1);
+	const [quantity, setQuantity] = useState(1);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [goalsDialog, setGoalsDialog] = useState(false);
-	const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+	const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 	const [selectedEntryIndex, setSelectedEntryIndex] = useState<number | null>(
 		null
 	);
 	const [isLoading, setIsLoading] = useState(false);
+	type EditingEntry = (FoodLogEntry & { index: number }) | null;
+	const [editingEntry, setEditingEntry] = useState<EditingEntry>(null);
 
-	const [goals, setGoals] = useState<FoodGoals>(() => {
+	const [goals, setGoals] = useState(() => {
 		if (typeof window !== "undefined") {
 			const savedGoals = localStorage.getItem("foodGoals");
 			if (savedGoals) {
@@ -79,7 +82,7 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 		return { carbs: 150, protein: 120, fat: 80, calories: 2000 };
 	});
 
-	const [tempGoals, setTempGoals] = useState<FoodGoals>(goals);
+	const [tempGoals, setTempGoals] = useState(goals);
 
 	const today = new Date().toISOString().split("T")[0];
 	const todayFormatted = new Date().toLocaleDateString("sr-RS", {
@@ -95,7 +98,7 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 		}
 	}, [goals]);
 
-	const calculateProgress = (current: number, goal: number): MacroProgress => ({
+	const calculateProgress = (current: number, goal: number) => ({
 		current,
 		goal,
 		percentage: goal > 0 ? Math.min((current / goal) * 100, 100) : 0,
@@ -148,9 +151,68 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 			setQuantity(1);
 		} catch (error) {
 			console.error("Error adding meal:", error);
-			setError(
-				error instanceof Error ? error.message : "Greška pri dodavanju obroka"
-			);
+			if (error instanceof Error) {
+				setError(error.message || "Greška pri dodavanju obroka");
+			} else {
+				setError("Greška pri dodavanju obroka");
+			}
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	const handleEditEntry = (entry: FoodLogEntry, index: number) => {
+		setEditingEntry({ ...entry, index });
+		const meal = meals.find(
+			(m) => m._id === entry.mealId || m.name === entry.name
+		);
+		setSelectedMeal(meal || null);
+		setQuantity(entry.quantity);
+		setEditMealDialog(true);
+		setMenuAnchor(null);
+	};
+
+	const handleUpdateEntry = async () => {
+		if (!selectedMeal || quantity <= 0 || editingEntry === null) {
+			setError("Morate odabrati obrok i količinu");
+			return;
+		}
+
+		setIsSubmitting(true);
+		setError(null);
+
+		try {
+			const response = await fetch("/api/daily-food-log/update-entry", {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					date: today,
+					entryIndex: editingEntry.index,
+					mealId: selectedMeal._id,
+					quantity,
+				}),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || "Greška pri ažuriranju obroka");
+			}
+
+			const updatedLog = await response.json();
+			onLogUpdated(updatedLog);
+			setEditMealDialog(false);
+			setEditingEntry(null);
+			setSelectedMeal(null);
+			setQuantity(1);
+		} catch (error) {
+			console.error("Error updating entry:", error);
+			if (error instanceof Error) {
+				setError(error.message || "Greška pri ažuriranju obroka");
+			} else {
+				setError("Greška pri ažuriranju obroka");
+			}
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -179,9 +241,11 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 			setSelectedEntryIndex(null);
 		} catch (error) {
 			console.error("Error deleting entry:", error);
-			setError(
-				error instanceof Error ? error.message : "Greška pri brisanju unosa"
-			);
+			if (error instanceof Error) {
+				setError(error.message || "Greška pri brisanju unosa");
+			} else {
+				setError("Greška pri brisanju unosa");
+			}
 		} finally {
 			setIsLoading(false);
 		}
@@ -209,7 +273,6 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 				</Alert>
 			)}
 
-			{/* Header */}
 			<Box sx={{ mb: 4 }}>
 				<Box
 					sx={{
@@ -241,7 +304,6 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 				</Box>
 			</Box>
 
-			{/* Progress Cards */}
 			<Grid container spacing={3} sx={{ mb: 4 }}>
 				<Grid size={{ xs: 12, sm: 6, md: 3 }}>
 					<Card>
@@ -332,7 +394,6 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 				</Grid>
 			</Grid>
 
-			{/* Add Meal Button */}
 			<Box sx={{ mb: 4 }}>
 				<Button
 					variant="contained"
@@ -350,7 +411,6 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 				)}
 			</Box>
 
-			{/* Today's Entries */}
 			<Card>
 				<CardContent>
 					<Typography variant="h6" gutterBottom>
@@ -368,7 +428,7 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 						</Box>
 					) : (
 						<Box>
-							{todayLog.entries.map((entry, index) => (
+							{todayLog.entries.map((entry: FoodLogEntry, index: number) => (
 								<Accordion key={index} sx={{ mb: 1 }}>
 									<AccordionSummary
 										expandIcon={<ExpandMoreOutlined />}
@@ -388,7 +448,7 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 										>
 											<Box>
 												<Typography variant="subtitle1" fontWeight="600">
-													{entry.mealName}
+													{entry.name}
 													{entry.quantity > 1 && (
 														<Typography
 															component="span"
@@ -441,10 +501,10 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 									</AccordionSummary>
 									<AccordionDetails>
 										<Typography variant="body2" color="text.secondary">
-											Po porciji: {entry.carbs / entry.quantity}g UH,{" "}
-											{entry.protein / entry.quantity}g proteina,{" "}
-											{entry.fat / entry.quantity}g masti,{" "}
-											{Math.round(entry.calories / entry.quantity)} kcal
+											Po porciji: {(entry.carbs / entry.quantity).toFixed(1)}g
+											UH, {(entry.protein / entry.quantity).toFixed(1)}g
+											proteina, {(entry.fat / entry.quantity).toFixed(1)}g
+											masti, {Math.round(entry.calories / entry.quantity)} kcal
 										</Typography>
 									</AccordionDetails>
 								</Accordion>
@@ -535,6 +595,87 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 				</DialogActions>
 			</Dialog>
 
+			{/* Edit Meal Dialog */}
+			<Dialog
+				open={editMealDialog}
+				onClose={() => setEditMealDialog(false)}
+				maxWidth="sm"
+				fullWidth
+			>
+				<DialogTitle>Uredi obrok</DialogTitle>
+				<DialogContent>
+					<Box sx={{ pt: 2 }}>
+						<Autocomplete
+							options={meals}
+							getOptionLabel={(meal) => meal.name}
+							value={selectedMeal}
+							onChange={(_, newValue) => setSelectedMeal(newValue)}
+							renderInput={(params) => (
+								<TextField
+									{...params}
+									label="Odaberite obrok"
+									fullWidth
+									margin="normal"
+								/>
+							)}
+							sx={{ mb: 3 }}
+						/>
+
+						<TextField
+							type="number"
+							label="Količina (porcije)"
+							value={quantity}
+							onChange={(e) => setQuantity(Number(e.target.value) || 1)}
+							inputProps={{ min: 0.1, step: 0.1 }}
+							fullWidth
+							sx={{ mb: 3 }}
+						/>
+
+						{previewMacros && (
+							<Card sx={{ mt: 2 }}>
+								<CardContent>
+									<Typography variant="subtitle2" gutterBottom>
+										Pregled makronutrijenata:
+									</Typography>
+									<Grid container spacing={2}>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												UH: {previewMacros.carbs.toFixed(1)}g
+											</Typography>
+										</Grid>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												Proteini: {previewMacros.protein.toFixed(1)}g
+											</Typography>
+										</Grid>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												Masti: {previewMacros.fat.toFixed(1)}g
+											</Typography>
+										</Grid>
+										<Grid size={{ xs: 6 }}>
+											<Typography variant="body2">
+												Kalorije: {previewMacros.calories.toFixed(0)}
+											</Typography>
+										</Grid>
+									</Grid>
+								</CardContent>
+							</Card>
+						)}
+					</Box>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setEditMealDialog(false)}>Otkaži</Button>
+					<Button
+						onClick={handleUpdateEntry}
+						variant="contained"
+						disabled={!selectedMeal || quantity <= 0 || isSubmitting}
+					>
+						{isSubmitting ? <CircularProgress size={20} /> : "Ažuriraj"}
+					</Button>
+				</DialogActions>
+			</Dialog>
+
 			{/* Goals Dialog */}
 			<Dialog open={goalsDialog} onClose={() => setGoalsDialog(false)}>
 				<DialogTitle>
@@ -551,7 +692,7 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 								label="Ugljeni hidrati (g)"
 								value={tempGoals.carbs}
 								onChange={(e) =>
-									setTempGoals((prev) => ({
+									setTempGoals((prev: typeof tempGoals) => ({
 										...prev,
 										carbs: Number(e.target.value) || 0,
 									}))
@@ -566,7 +707,7 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 								label="Proteini (g)"
 								value={tempGoals.protein}
 								onChange={(e) =>
-									setTempGoals((prev) => ({
+									setTempGoals((prev: typeof tempGoals) => ({
 										...prev,
 										protein: Number(e.target.value) || 0,
 									}))
@@ -581,7 +722,7 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 								label="Masti (g)"
 								value={tempGoals.fat}
 								onChange={(e) =>
-									setTempGoals((prev) => ({
+									setTempGoals((prev: typeof tempGoals) => ({
 										...prev,
 										fat: Number(e.target.value) || 0,
 									}))
@@ -596,7 +737,7 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 								label="Kalorije"
 								value={tempGoals.calories}
 								onChange={(e) =>
-									setTempGoals((prev) => ({
+									setTempGoals((prev: typeof tempGoals) => ({
 										...prev,
 										calories: Number(e.target.value) || 0,
 									}))
@@ -621,6 +762,20 @@ const DailyTracker: React.FC<DailyTrackerProps> = ({
 				open={Boolean(menuAnchor)}
 				onClose={() => setMenuAnchor(null)}
 			>
+				<MenuItem
+					onClick={() => {
+						if (selectedEntryIndex !== null && todayLog) {
+							handleEditEntry(
+								todayLog.entries[selectedEntryIndex],
+								selectedEntryIndex
+							);
+						}
+					}}
+					disabled={isLoading}
+				>
+					<EditOutlined sx={{ mr: 1 }} />
+					Uredi
+				</MenuItem>
 				<MenuItem
 					onClick={() =>
 						selectedEntryIndex !== null && handleDeleteEntry(selectedEntryIndex)
