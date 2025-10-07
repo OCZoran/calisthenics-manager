@@ -29,9 +29,11 @@ export async function POST(request: Request) {
 			);
 		}
 
+		// ✅ Dodaj expiration time - 30 dana
 		const token = jwt.sign(
 			{ id: user._id, email: user.email },
-			process.env.JWT_SECRET as string
+			process.env.JWT_SECRET as string,
+			{ expiresIn: "30d" } // Token važi 30 dana
 		);
 
 		const response = NextResponse.json({
@@ -44,9 +46,13 @@ export async function POST(request: Request) {
 		});
 
 		const isProd = process.env.NODE_ENV === "production";
+
+		// ✅ Dodaj Max-Age na cookie - 30 dana (u sekundama)
+		const maxAge = 30 * 24 * 60 * 60; // 30 dana
+
 		response.headers.set(
 			"Set-Cookie",
-			`token=${token}; Path=/; HttpOnly; SameSite=Lax${
+			`token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${
 				isProd ? "; Secure" : ""
 			}`
 		);

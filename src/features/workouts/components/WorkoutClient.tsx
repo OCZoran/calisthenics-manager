@@ -874,6 +874,8 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 					onCancel={handleCancelForm}
 					isLoading={isLoading}
 					workouts={workouts}
+					trainingPlans={trainingPlans}
+					activePlanId={activePlan?._id}
 				/>
 			)}
 

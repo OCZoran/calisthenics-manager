@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import {
 	Box,
-	Card,
 	CardContent,
 	TextField,
 	Button,
@@ -32,6 +31,13 @@ import {
 	Tooltip,
 } from "@mui/material";
 import {
+	DragDropContext,
+	Droppable,
+	Draggable,
+	DropResult,
+} from "@hello-pangea/dnd";
+
+import {
 	Add,
 	Delete,
 	Save,
@@ -42,6 +48,7 @@ import {
 	Close,
 	Event,
 	Category,
+	DragIndicator,
 } from "@mui/icons-material";
 import { format, parseISO } from "date-fns";
 import { Workout } from "@/global/interfaces/workout.interface";
@@ -184,8 +191,48 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		}
 	}, [formData.type, workouts, workout]);
 
+	const handleDragEnd = (result: DropResult) => {
+		if (!result.destination) return;
+
+		const items = Array.from(formData.exercises);
+		const [reorderedItem] = items.splice(result.source.index, 1);
+		items.splice(result.destination.index, 0, reorderedItem);
+
+		setFormData({ ...formData, exercises: items });
+
+		// Ažuriraj expanded exercises indekse
+		setExpandedExercises((prev) => {
+			const newExpanded: number[] = [];
+			prev.forEach((oldIndex) => {
+				if (oldIndex === result.source.index) {
+					newExpanded.push(result.destination!.index);
+				} else if (
+					oldIndex > result.source.index &&
+					oldIndex <= result.destination!.index
+				) {
+					newExpanded.push(oldIndex - 1);
+				} else if (
+					oldIndex < result.source.index &&
+					oldIndex >= result.destination!.index
+				) {
+					newExpanded.push(oldIndex + 1);
+				} else {
+					newExpanded.push(oldIndex);
+				}
+			});
+			return newExpanded;
+		});
+	};
+
 	const handleTypeChange = (newType: string) => {
 		setFormData({ ...formData, type: newType });
+		setErrors((prev) =>
+			prev.filter(
+				(e) =>
+					e !== "Tip treninga je obavezan" &&
+					e !== "Prvo izaberite tip treninga"
+			)
+		);
 	};
 
 	const copyWorkout = (workoutToCopy: Workout) => {
@@ -211,6 +258,12 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	};
 
 	const addExercise = () => {
+		if (!formData.type || formData.type.trim() === "") {
+			const msg = "Prvo izaberite tip treninga";
+			setErrors((prev) => (prev.includes(msg) ? prev : [...prev, msg]));
+			return;
+		}
+
 		const newExercises = [
 			...formData.exercises,
 			{ name: "", sets: [{ reps: "", rest: "", weight: "", hold: "" }] },
@@ -382,8 +435,8 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 			/>
 
 			{/* Main Form Card */}
-			<Card sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}>
-				<CardContent sx={{ p: { xs: 2, sm: 4 } }}>
+			<Box>
+				<Box>
 					<Collapse in={errors.length > 0}>
 						<Alert
 							severity="error"
@@ -517,213 +570,280 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 												Kopiraj prethodni
 											</Button>
 										)}
-									<Button
-										variant="contained"
-										startIcon={<Add />}
-										onClick={addExercise}
-										sx={{
-											borderRadius: 2,
-											boxShadow: 2,
-											"&:hover": {
-												boxShadow: 4,
-											},
-										}}
-										size={isMobile ? "small" : "medium"}
-									>
-										Dodaj vježbu
-									</Button>
 								</Box>
 							</Box>
 
-							<Stack spacing={3}>
-								{formData.exercises.map((exercise, exerciseIndex) => (
-									<Paper
-										key={exerciseIndex}
-										elevation={0}
-										sx={{
-											border: "2px solid",
-											borderColor: expandedExercises.includes(exerciseIndex)
-												? "primary.main"
-												: "grey.200",
-											borderRadius: 3,
-											overflow: "hidden",
-											transition: "all 0.2s ease-in-out",
-											"&:hover": {
-												borderColor: "primary.main",
-												boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-											},
-										}}
-									>
-										<CardContent sx={{ p: 3 }}>
-											<Box
-												sx={{
-													display: "flex",
-													alignItems: "center",
-													gap: 2,
-													width: "100%",
-													mb: expandedExercises.includes(exerciseIndex) ? 3 : 0,
-												}}
-											>
-												<Box
-													sx={{
-														display: "flex",
-														alignItems: "center",
-														gap: 2,
-														width: "100%",
-													}}
+							<DragDropContext onDragEnd={handleDragEnd}>
+								<Droppable droppableId="exercises">
+									{(provided) => (
+										<Stack
+											spacing={3}
+											{...provided.droppableProps}
+											ref={provided.innerRef}
+										>
+											{formData.exercises.map((exercise, exerciseIndex) => (
+												<Draggable
+													key={exerciseIndex}
+													draggableId={`exercise-${exerciseIndex}`}
+													index={exerciseIndex}
 												>
-													<Box sx={{ flexGrow: 1, width: "100%" }}>
-														<FormControl fullWidth required>
-															<InputLabel>{`Vježba ${
-																exerciseIndex + 1
-															}`}</InputLabel>
-															<Select
-																value={exercise.name || ""}
-																label={`Vježba ${exerciseIndex + 1}`}
-																onChange={(e) =>
-																	updateExercise(
-																		exerciseIndex,
-																		"name",
-																		e.target.value
-																	)
-																}
-																sx={{
-																	borderRadius: 2,
-																	backgroundColor: "background.paper",
-																}}
-																size={isMobile ? "small" : "medium"}
-																disabled={loadingExercises}
-															>
-																{loadingExercises ? (
-																	<MenuItem value="">
-																		Učitavam vježbe...
-																	</MenuItem>
-																) : availableExercises.length === 0 ? (
-																	<MenuItem value="">
-																		Nema dostupnih vježbi
-																	</MenuItem>
-																) : (
-																	availableExercises
-																		.filter(
-																			(ex) =>
-																				!formData.type ||
-																				!ex.type ||
-																				ex.type.length === 0 ||
-																				ex.type.includes(formData.type)
+													{(provided, snapshot) => (
+														<Paper
+															ref={provided.innerRef}
+															{...provided.draggableProps}
+															elevation={snapshot.isDragging ? 8 : 0}
+															sx={{
+																border: "2px solid",
+																borderColor: snapshot.isDragging
+																	? "primary.dark"
+																	: expandedExercises.includes(exerciseIndex)
+																	? "primary.main"
+																	: "grey.200",
+																borderRadius: 3,
+																overflow: "hidden",
+																transition: "all 0.2s ease-in-out",
+																backgroundColor: snapshot.isDragging
+																	? "primary.50"
+																	: "background.paper",
+																"&:hover": {
+																	borderColor: "primary.main",
+																	boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+																},
+															}}
+														>
+															<CardContent sx={{ p: 3 }}>
+																<Box
+																	sx={{
+																		display: "flex",
+																		alignItems: "center",
+																		gap: 2,
+																		width: "100%",
+																		mb: expandedExercises.includes(
+																			exerciseIndex
 																		)
-																		.map((ex) => (
-																			<MenuItem key={ex._id} value={ex.name}>
-																				<Box
+																			? 3
+																			: 0,
+																	}}
+																>
+																	{/* Drag Handle */}
+																	<Box
+																		{...provided.dragHandleProps}
+																		sx={{
+																			cursor: "grab",
+																			display: "flex",
+																			alignItems: "center",
+																			color: "text.secondary",
+																			"&:active": {
+																				cursor: "grabbing",
+																			},
+																			"&:hover": {
+																				color: "primary.main",
+																			},
+																		}}
+																	>
+																		<DragIndicator />
+																	</Box>
+
+																	<Box
+																		sx={{
+																			display: "flex",
+																			alignItems: "center",
+																			gap: 2,
+																			width: "100%",
+																		}}
+																	>
+																		<Box sx={{ flexGrow: 1, width: "100%" }}>
+																			<FormControl fullWidth required>
+																				<InputLabel>{`Vježba ${
+																					exerciseIndex + 1
+																				}`}</InputLabel>
+																				<Select
+																					value={exercise.name || ""}
+																					label={`Vježba ${exerciseIndex + 1}`}
+																					onChange={(e) =>
+																						updateExercise(
+																							exerciseIndex,
+																							"name",
+																							e.target.value
+																						)
+																					}
 																					sx={{
-																						display: "flex",
-																						alignItems: "center",
-																						gap: 1,
+																						borderRadius: 2,
+																						backgroundColor: "background.paper",
 																					}}
+																					size={isMobile ? "small" : "medium"}
+																					disabled={loadingExercises}
 																				>
-																					{ex.name}
-																					{ex.muscleGroups &&
-																						ex.muscleGroups.length > 0 && (
-																							<Typography
-																								variant="caption"
-																								color="text.secondary"
-																							>
-																								({ex.muscleGroups.join(", ")})
-																							</Typography>
-																						)}
-																				</Box>
-																			</MenuItem>
-																		))
-																)}
-															</Select>
-														</FormControl>
+																					{loadingExercises ? (
+																						<MenuItem value="">
+																							Učitavam vježbe...
+																						</MenuItem>
+																					) : availableExercises.length ===
+																					  0 ? (
+																						<MenuItem value="">
+																							Nema dostupnih vježbi
+																						</MenuItem>
+																					) : (
+																						availableExercises
+																							.filter(
+																								(ex) =>
+																									!formData.type ||
+																									!ex.type ||
+																									ex.type.length === 0 ||
+																									ex.type.includes(
+																										formData.type
+																									)
+																							)
+																							.map((ex) => (
+																								<MenuItem
+																									key={ex._id}
+																									value={ex.name}
+																								>
+																									<Box
+																										sx={{
+																											display: "flex",
+																											alignItems: "center",
+																											gap: 1,
+																										}}
+																									>
+																										{ex.name}
+																										{ex.muscleGroups &&
+																											ex.muscleGroups.length >
+																												0 && (
+																												<Typography
+																													variant="caption"
+																													color="text.secondary"
+																												>
+																													(
+																													{ex.muscleGroups.join(
+																														", "
+																													)}
+																													)
+																												</Typography>
+																											)}
+																									</Box>
+																								</MenuItem>
+																							))
+																					)}
+																				</Select>
+																			</FormControl>
 
-														{/* Custom input polje ako je odabrano __custom__ */}
-														{exercise.name === "__custom__" && (
-															<TextField
-																label="Naziv vježbe"
-																value=""
-																onChange={(e) =>
-																	updateExercise(
-																		exerciseIndex,
-																		"name",
-																		e.target.value
-																	)
-																}
-																fullWidth
-																autoFocus
-																sx={{
-																	mt: 2,
-																	"& .MuiOutlinedInput-root": {
-																		borderRadius: 2,
-																		backgroundColor: "background.paper",
-																	},
-																}}
-																size={isMobile ? "small" : "medium"}
-															/>
-														)}
-													</Box>
-												</Box>
-												<Box sx={{ display: "flex", gap: 1 }}>
-													<Tooltip
-														title={
-															expandedExercises.includes(exerciseIndex)
-																? "Skupi"
-																: "Proširi"
-														}
-													>
-														<IconButton
-															onClick={() =>
-																toggleExerciseExpansion(exerciseIndex)
-															}
-															color="primary"
-															sx={{
-																backgroundColor: "primary.50",
-																"&:hover": {
-																	backgroundColor: "primary.100",
-																},
-															}}
-															size={isMobile ? "small" : "medium"}
-														>
-															{expandedExercises.includes(exerciseIndex) ? (
-																<ExpandLess />
-															) : (
-																<ExpandMore />
-															)}
-														</IconButton>
-													</Tooltip>
-													<Tooltip title="Ukloni vježbu">
-														<IconButton
-															onClick={() => removeExercise(exerciseIndex)}
-															color="error"
-															sx={{
-																backgroundColor: "error.50",
-																"&:hover": {
-																	backgroundColor: "error.100",
-																},
-															}}
-															size={isMobile ? "small" : "medium"}
-														>
-															<Delete />
-														</IconButton>
-													</Tooltip>
-												</Box>
-											</Box>
+																			{exercise.name === "__custom__" && (
+																				<TextField
+																					label="Naziv vježbe"
+																					value=""
+																					onChange={(e) =>
+																						updateExercise(
+																							exerciseIndex,
+																							"name",
+																							e.target.value
+																						)
+																					}
+																					fullWidth
+																					autoFocus
+																					sx={{
+																						mt: 2,
+																						"& .MuiOutlinedInput-root": {
+																							borderRadius: 2,
+																							backgroundColor:
+																								"background.paper",
+																						},
+																					}}
+																					size={isMobile ? "small" : "medium"}
+																				/>
+																			)}
+																		</Box>
+																	</Box>
+																	<Box sx={{ display: "flex", gap: 1 }}>
+																		<Tooltip
+																			title={
+																				expandedExercises.includes(
+																					exerciseIndex
+																				)
+																					? "Skupi"
+																					: "Proširi"
+																			}
+																		>
+																			<IconButton
+																				onClick={() =>
+																					toggleExerciseExpansion(exerciseIndex)
+																				}
+																				color="primary"
+																				sx={{
+																					backgroundColor: "primary.50",
+																					"&:hover": {
+																						backgroundColor: "primary.100",
+																					},
+																				}}
+																				size={isMobile ? "small" : "medium"}
+																			>
+																				{expandedExercises.includes(
+																					exerciseIndex
+																				) ? (
+																					<ExpandLess />
+																				) : (
+																					<ExpandMore />
+																				)}
+																			</IconButton>
+																		</Tooltip>
+																		<Tooltip title="Ukloni vježbu">
+																			<IconButton
+																				onClick={() =>
+																					removeExercise(exerciseIndex)
+																				}
+																				color="error"
+																				sx={{
+																					backgroundColor: "error.50",
+																					"&:hover": {
+																						backgroundColor: "error.100",
+																					},
+																				}}
+																				size={isMobile ? "small" : "medium"}
+																			>
+																				<Delete />
+																			</IconButton>
+																		</Tooltip>
+																	</Box>
+																</Box>
 
-											{/* Exercise Sets */}
-											<Collapse in={expandedExercises.includes(exerciseIndex)}>
-												<WorkoutAddSet
-													exercise={exercise}
-													exerciseIndex={exerciseIndex}
-													isMobile={isMobile}
-													addSet={addSet}
-													updateSet={updateSet}
-													removeSet={removeSet}
-												/>
-											</Collapse>
-										</CardContent>
-									</Paper>
-								))}
-							</Stack>
+																<Collapse
+																	in={expandedExercises.includes(exerciseIndex)}
+																>
+																	<WorkoutAddSet
+																		exercise={exercise}
+																		exerciseIndex={exerciseIndex}
+																		isMobile={isMobile}
+																		addSet={addSet}
+																		updateSet={updateSet}
+																		removeSet={removeSet}
+																	/>
+																</Collapse>
+															</CardContent>
+														</Paper>
+													)}
+												</Draggable>
+											))}
+											{provided.placeholder}
+										</Stack>
+									)}
+								</Droppable>
+							</DragDropContext>
+							<Button
+								variant="contained"
+								startIcon={<Add />}
+								onClick={addExercise}
+								sx={{
+									marginTop: 3,
+									borderRadius: 2,
+									boxShadow: 2,
+									"&:hover": {
+										boxShadow: 4,
+									},
+								}}
+								size={isMobile ? "small" : "medium"}
+							>
+								Dodaj vježbu
+							</Button>
 						</Box>
 
 						<Divider sx={{ mb: 4 }} />
@@ -778,8 +898,8 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 							</Button>
 						</Box>
 					</form>
-				</CardContent>
-			</Card>
+				</Box>
+			</Box>
 
 			{/* Copy Workout Dialog */}
 			<Dialog

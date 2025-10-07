@@ -6,7 +6,6 @@ import {
 	TextField,
 	IconButton,
 	Button,
-	Stack,
 	Paper,
 	InputAdornment,
 	Typography,
@@ -17,6 +16,8 @@ import {
 	InputLabel,
 	Select,
 	MenuItem,
+	Tabs,
+	Tab,
 } from "@mui/material";
 import {
 	Add,
@@ -84,6 +85,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 	const [activeTimer, setActiveTimer] = useState<number | null>(null);
 	const [timeLeft, setTimeLeft] = useState<number>(0);
 	const [completedSets, setCompletedSets] = useState(new Set());
+	const [currentTab, setCurrentTab] = useState(0);
 	const intervalRef = useRef<NodeJS.Timeout | null>(null);
 	const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -147,6 +149,13 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 		};
 	}, []);
 
+	useEffect(() => {
+		// Automatski prebaci na novi tab kad se doda set
+		if (currentTab >= exercise.sets.length) {
+			setCurrentTab(exercise.sets.length - 1);
+		}
+	}, [exercise.sets.length, currentTab]);
+
 	const formatTime = (seconds: number) => {
 		const mins = Math.floor(seconds / 60);
 		const secs = seconds % 60;
@@ -157,6 +166,22 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 		return set.hold && String(set.hold).trim() !== "";
 	};
 
+	const handleAddSet = () => {
+		addSet(exerciseIndex);
+		// Prebaci na novi tab
+		setTimeout(() => {
+			setCurrentTab(exercise.sets.length);
+		}, 50);
+	};
+
+	const handleRemoveSet = (setIndex: number) => {
+		removeSet(exerciseIndex, setIndex);
+		// Ako je uklonjen trenutni tab, prebaci na prethodni
+		if (currentTab >= exercise.sets.length - 1 && currentTab > 0) {
+			setCurrentTab(currentTab - 1);
+		}
+	};
+
 	return (
 		<Box sx={{ pt: 2, borderTop: "1px solid", borderColor: "grey.200" }}>
 			<Box
@@ -164,130 +189,305 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 					display: "flex",
 					justifyContent: "space-between",
 					alignItems: "center",
-					mb: 3,
+					mb: 2,
 				}}
 			>
 				<Typography variant="subtitle1" fontWeight="medium">
-					Setovi
+					Setovi ({exercise.sets.length})
 				</Typography>
 				<Button
 					size="small"
 					variant="outlined"
 					startIcon={<Add />}
-					onClick={() => addSet(exerciseIndex)}
+					onClick={handleAddSet}
 					sx={{ borderRadius: 2 }}
 				>
 					Dodaj set
 				</Button>
 			</Box>
 
-			<Stack spacing={2}>
-				{exercise.sets.map((set, setIndex) => {
-					const isCompleted = completedSets.has(setIndex);
-					const holdMode = isHoldSet(set);
-					const hasRestTime = set.rest && parseInt(set.rest) > 0;
-					const hasValidData =
-						(set.reps && parseInt(set.reps) > 0) ||
-						(set.hold && parseInt(set.hold) > 0);
+			{/* Tabs za setove */}
+			<Paper sx={{ mb: 2, borderRadius: 2 }}>
+				<Tabs
+					value={currentTab}
+					onChange={(_, newValue) => setCurrentTab(newValue)}
+					variant="scrollable"
+					scrollButtons="auto"
+					sx={{
+						borderBottom: 1,
+						borderColor: "divider",
+						"& .MuiTab-root": {
+							minWidth: isMobile ? 80 : 120,
+							fontWeight: 600,
+						},
+					}}
+				>
+					{exercise.sets.map((set, setIndex) => {
+						const isCompleted = completedSets.has(setIndex);
+						const holdMode = isHoldSet(set);
 
-					const showTimerButton = hasRestTime && !isCompleted;
-					const canStartTimer = hasRestTime && hasValidData && !isCompleted;
+						return (
+							<Tab
+								key={setIndex}
+								label={
+									<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+										<Typography variant="body2" fontWeight="inherit">
+											Set {setIndex + 1}
+										</Typography>
+										{isCompleted && (
+											<CheckCircle
+												sx={{ fontSize: 16, color: "success.main" }}
+											/>
+										)}
+										{holdMode && (
+											<AccessTime
+												sx={{ fontSize: 16, color: "secondary.main" }}
+											/>
+										)}
+										{set.band && (
+											<FiberManualRecord
+												sx={{
+													fontSize: 12,
+													color: getBandColor(set.band),
+												}}
+											/>
+										)}
+									</Box>
+								}
+								sx={{
+									backgroundColor: isCompleted ? "success.50" : "transparent",
+									"&.Mui-selected": {
+										backgroundColor: isCompleted ? "success.100" : "primary.50",
+									},
+								}}
+							/>
+						);
+					})}
+				</Tabs>
+			</Paper>
 
-					return (
-						<Paper
-							key={setIndex}
+			{/* Prikaz trenutnog seta */}
+			{exercise.sets.map((set, setIndex) => {
+				if (setIndex !== currentTab) return null;
+
+				const isCompleted = completedSets.has(setIndex);
+				const holdMode = isHoldSet(set);
+				const hasRestTime = set.rest && parseInt(set.rest) > 0;
+				const hasValidData =
+					(set.reps && parseInt(set.reps) > 0) ||
+					(set.hold && parseInt(set.hold) > 0);
+
+				const showTimerButton = hasRestTime && !isCompleted;
+				const canStartTimer = hasRestTime && hasValidData && !isCompleted;
+
+				return (
+					<Paper
+						key={setIndex}
+						sx={{
+							p: 2.5,
+							backgroundColor: isCompleted ? "success.50" : "grey.50",
+							border: "1px solid",
+							borderColor: isCompleted ? "success.200" : "grey.200",
+							borderRadius: 2,
+							opacity: isCompleted ? 0.8 : 1,
+						}}
+					>
+						<Box
 							sx={{
-								p: 2.5,
-								backgroundColor: isCompleted ? "success.50" : "grey.50",
-								border: "1px solid",
-								borderColor: isCompleted ? "success.200" : "grey.200",
-								borderRadius: 2,
-								opacity: isCompleted ? 0.8 : 1,
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "space-between",
+								mb: 2,
 							}}
 						>
 							<Box
 								sx={{
 									display: "flex",
 									alignItems: "center",
-									justifyAlignment: "space-between",
-									mb: 2,
+									gap: 1,
+									flexWrap: "wrap",
 								}}
 							>
-								<Box
-									sx={{
-										display: "flex",
-										alignItems: "center",
-										gap: 1,
-										flexWrap: "wrap",
-									}}
-								>
+								<Chip
+									label={`Set ${setIndex + 1}`}
+									size="small"
+									color={isCompleted ? "success" : "primary"}
+									icon={<FitnessCenter />}
+									variant="filled"
+								/>
+								{holdMode && (
 									<Chip
-										label={`Set ${setIndex + 1}`}
+										label="Hold"
 										size="small"
-										color={isCompleted ? "success" : "primary"}
-										icon={<FitnessCenter />}
+										color="secondary"
+										icon={<AccessTime />}
+										variant="outlined"
+									/>
+								)}
+								{set.band && (
+									<Chip
+										label={getBandLabel(set.band)}
+										size="small"
+										icon={<FiberManualRecord />}
+										sx={{
+											backgroundColor: getBandColor(set.band),
+											color: "white",
+											"& .MuiChip-icon": { color: "white" },
+										}}
+									/>
+								)}
+								{isCompleted && (
+									<Chip
+										label="Završeno"
+										size="small"
+										color="success"
+										icon={<CheckCircle />}
 										variant="filled"
 									/>
-									{holdMode && (
-										<Chip
-											label="Hold"
-											size="small"
-											color="secondary"
-											icon={<AccessTime />}
-											variant="outlined"
-										/>
-									)}
-									{set.band && (
-										<Chip
-											label={getBandLabel(set.band)}
-											size="small"
-											icon={<FiberManualRecord />}
-											sx={{
-												backgroundColor: getBandColor(set.band),
-												color: "white",
-												"& .MuiChip-icon": { color: "white" },
-											}}
-										/>
-									)}
-									{isCompleted && (
-										<Chip
-											label="Završeno"
-											size="small"
-											color="success"
-											icon={<CheckCircle />}
-											variant="filled"
-										/>
-									)}
-								</Box>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									{exercise.sets.length > 1 && (
-										<Tooltip title="Ukloni set">
-											<IconButton
-												size="small"
-												onClick={() => removeSet(exerciseIndex, setIndex)}
-												color="error"
-												sx={{
-													backgroundColor: "error.50",
-													"&:hover": { backgroundColor: "error.100" },
-												}}
-											>
-												<Delete fontSize="small" />
-											</IconButton>
-										</Tooltip>
-									)}
-								</Box>
+								)}
 							</Box>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								{exercise.sets.length > 1 && (
+									<Tooltip title="Ukloni set">
+										<IconButton
+											size="small"
+											onClick={() => handleRemoveSet(setIndex)}
+											color="error"
+											sx={{
+												backgroundColor: "error.50",
+												"&:hover": { backgroundColor: "error.100" },
+											}}
+										>
+											<Delete fontSize="small" />
+										</IconButton>
+									</Tooltip>
+								)}
+							</Box>
+						</Box>
 
-							<Grid container spacing={2} alignItems="center">
-								{/* Hold polje */}
-								<Grid size={{ xs: 12, sm: holdMode ? 6 : 3 }}>
+						<Grid container spacing={2} alignItems="center">
+							<Grid size={{ xs: 6 }}>
+								<TextField
+									fullWidth
+									type="number"
+									label="Hold (s)"
+									value={set.hold || ""}
+									onChange={(e) =>
+										updateSet(exerciseIndex, setIndex, "hold", e.target.value)
+									}
+									inputProps={{ min: 0 }}
+									size="small"
+									disabled={isCompleted && !activeTimer}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<AccessTime
+													sx={{ fontSize: 18, color: "text.secondary" }}
+												/>
+											</InputAdornment>
+										),
+									}}
+									sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+								/>
+							</Grid>
+
+							{!holdMode && (
+								<Grid size={{ xs: 6 }}>
 									<TextField
 										fullWidth
 										type="number"
-										label="Hold (s)"
-										value={set.hold || ""}
+										label="Ponavljanja"
+										value={set.reps || ""}
 										onChange={(e) =>
-											updateSet(exerciseIndex, setIndex, "hold", e.target.value)
+											updateSet(exerciseIndex, setIndex, "reps", e.target.value)
+										}
+										inputProps={{ min: 0 }}
+										size="small"
+										required={!holdMode}
+										disabled={isCompleted && !activeTimer}
+										InputProps={{
+											startAdornment: (
+												<InputAdornment position="start">
+													<Repeat
+														sx={{ fontSize: 18, color: "text.secondary" }}
+													/>
+												</InputAdornment>
+											),
+										}}
+										sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+									/>
+								</Grid>
+							)}
+
+							<Grid size={{ xs: 6 }}>
+								<TextField
+									fullWidth
+									type="number"
+									label="Težina (kg)"
+									value={set.weight || ""}
+									onChange={(e) =>
+										updateSet(exerciseIndex, setIndex, "weight", e.target.value)
+									}
+									inputProps={{ min: 0, step: "0.5" }}
+									size="small"
+									disabled={isCompleted && !activeTimer}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<MonitorWeight
+													sx={{ fontSize: 18, color: "text.secondary" }}
+												/>
+											</InputAdornment>
+										),
+									}}
+									sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+								/>
+							</Grid>
+
+							<Grid size={{ xs: 6 }}>
+								<FormControl fullWidth size="small">
+									<InputLabel>Traka</InputLabel>
+									<Select
+										value={set.band || ""}
+										onChange={(e) =>
+											updateSet(exerciseIndex, setIndex, "band", e.target.value)
+										}
+										label="Traka"
+										disabled={isCompleted && !activeTimer}
+										sx={{ borderRadius: 2 }}
+									>
+										{BAND_OPTIONS.map((option) => (
+											<MenuItem key={option.value} value={option.value}>
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														gap: 1,
+													}}
+												>
+													<FiberManualRecord
+														sx={{
+															fontSize: 16,
+															color: option.color,
+														}}
+													/>
+													{option.label}
+												</Box>
+											</MenuItem>
+										))}
+									</Select>
+								</FormControl>
+							</Grid>
+
+							<Grid size={{ xs: 12 }}>
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+									<TextField
+										fullWidth
+										type="number"
+										label="Odmor (s)"
+										value={set.rest || ""}
+										onChange={(e) =>
+											updateSet(exerciseIndex, setIndex, "rest", e.target.value)
 										}
 										inputProps={{ min: 0 }}
 										size="small"
@@ -295,7 +495,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 										InputProps={{
 											startAdornment: (
 												<InputAdornment position="start">
-													<AccessTime
+													<Timer
 														sx={{ fontSize: 18, color: "text.secondary" }}
 													/>
 												</InputAdornment>
@@ -303,242 +503,85 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 										}}
 										sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
 									/>
-								</Grid>
-
-								{/* Ponavljanja */}
-								{!holdMode && (
-									<Grid size={{ xs: 12, sm: 3 }}>
-										<TextField
-											fullWidth
-											type="number"
-											label="Ponavljanja"
-											value={set.reps || ""}
-											onChange={(e) =>
-												updateSet(
-													exerciseIndex,
-													setIndex,
-													"reps",
-													e.target.value
-												)
+									{showTimerButton && (
+										<Tooltip
+											title={
+												canStartTimer
+													? "Pokreni odmor"
+													: "Unesite broj ponavljanja ili hold vrijeme da pokrenete timer"
 											}
-											inputProps={{ min: 0 }}
-											size="small"
-											required={!holdMode}
-											disabled={isCompleted && !activeTimer}
-											InputProps={{
-												startAdornment: (
-													<InputAdornment position="start">
-														<Repeat
-															sx={{ fontSize: 18, color: "text.secondary" }}
-														/>
-													</InputAdornment>
-												),
-											}}
-											sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-										/>
-									</Grid>
-								)}
-
-								{/* Težina */}
-								<Grid size={{ xs: 12, sm: holdMode ? 3 : 3 }}>
-									<TextField
-										fullWidth
-										type="number"
-										label="Težina (kg)"
-										value={set.weight || ""}
-										onChange={(e) =>
-											updateSet(
-												exerciseIndex,
-												setIndex,
-												"weight",
-												e.target.value
-											)
-										}
-										inputProps={{ min: 0, step: "0.5" }}
-										size="small"
-										disabled={isCompleted && !activeTimer}
-										InputProps={{
-											startAdornment: (
-												<InputAdornment position="start">
-													<MonitorWeight
-														sx={{ fontSize: 18, color: "text.secondary" }}
-													/>
-												</InputAdornment>
-											),
-										}}
-										sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-									/>
-								</Grid>
-
-								{/* NOVO: Band Selector */}
-								<Grid size={{ xs: 12, sm: 3 }}>
-									<FormControl fullWidth size="small">
-										<InputLabel>Traka</InputLabel>
-										<Select
-											value={set.band || ""}
-											onChange={(e) =>
-												updateSet(
-													exerciseIndex,
-													setIndex,
-													"band",
-													e.target.value
-												)
-											}
-											label="Traka"
-											disabled={isCompleted && !activeTimer}
-											sx={{ borderRadius: 2 }}
 										>
-											{BAND_OPTIONS.map((option) => (
-												<MenuItem key={option.value} value={option.value}>
-													<Box
-														sx={{
-															display: "flex",
-															alignItems: "center",
-															gap: 1,
-														}}
-													>
-														<FiberManualRecord
-															sx={{
-																fontSize: 16,
-																color: option.color,
-															}}
-														/>
-														{option.label}
-													</Box>
-												</MenuItem>
-											))}
-										</Select>
-									</FormControl>
-								</Grid>
-
-								{/* Odmor */}
-								<Grid size={{ xs: 12, sm: 3 }}>
-									<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-										<TextField
-											fullWidth
-											type="number"
-											label="Odmor (s)"
-											value={set.rest || ""}
-											onChange={(e) =>
-												updateSet(
-													exerciseIndex,
-													setIndex,
-													"rest",
-													e.target.value
-												)
-											}
-											inputProps={{ min: 0 }}
-											size="small"
-											disabled={isCompleted && !activeTimer}
-											InputProps={{
-												startAdornment: (
-													<InputAdornment position="start">
-														<Timer
-															sx={{ fontSize: 18, color: "text.secondary" }}
-														/>
-													</InputAdornment>
-												),
-											}}
-											sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-										/>
-										{showTimerButton && (
-											<Tooltip
-												title={
-													canStartTimer
-														? "Pokreni odmor"
-														: "Unesite broj ponavljanja ili hold vrijeme da pokrenete timer"
-												}
-											>
-												<Box sx={{ position: "relative" }}>
-													<IconButton
-														size="small"
-														onClick={() =>
-															startTimer(setIndex, parseInt(set.rest || "0"))
-														}
-														disabled={!canStartTimer || activeTimer !== null}
-														color="primary"
-														sx={{
+											<Box sx={{ position: "relative" }}>
+												<IconButton
+													size="small"
+													onClick={() =>
+														startTimer(setIndex, parseInt(set.rest || "0"))
+													}
+													disabled={!canStartTimer || activeTimer !== null}
+													color="primary"
+													sx={{
+														backgroundColor: canStartTimer
+															? "primary.50"
+															: "grey.100",
+														"&:hover": {
 															backgroundColor: canStartTimer
-																? "primary.50"
-																: "grey.100",
-															"&:hover": {
-																backgroundColor: canStartTimer
-																	? "primary.100"
-																	: "grey.200",
-															},
-															"&:disabled": { backgroundColor: "grey.200" },
+																? "primary.100"
+																: "grey.200",
+														},
+														"&:disabled": { backgroundColor: "grey.200" },
+													}}
+												>
+													<PlayArrow fontSize="small" />
+												</IconButton>
+												{activeTimer === setIndex && (
+													<CircularProgress
+														size={32}
+														value={
+															((parseInt(set.rest as any) - timeLeft) /
+																parseInt(set.rest as any)) *
+															100
+														}
+														variant="determinate"
+														sx={{
+															position: "absolute",
+															top: 0,
+															left: 0,
+															color: "primary.main",
 														}}
-													>
-														<PlayArrow fontSize="small" />
-													</IconButton>
-													{activeTimer === setIndex && (
-														<CircularProgress
-															size={32}
-															value={
-																((parseInt(set.rest as any) - timeLeft) /
-																	parseInt(set.rest as any)) *
-																100
-															}
-															variant="determinate"
-															sx={{
-																position: "absolute",
-																top: 0,
-																left: 0,
-																color: "primary.main",
-															}}
-														/>
-													)}
-												</Box>
-											</Tooltip>
-										)}
-									</Box>
-								</Grid>
+													/>
+												)}
+											</Box>
+										</Tooltip>
+									)}
+								</Box>
 							</Grid>
+						</Grid>
 
-							{activeTimer === setIndex && (
-								<Box
-									sx={{
-										mt: 2,
-										p: 1.5,
-										backgroundColor: timeLeft <= 3 ? "error.50" : "primary.50",
-										borderRadius: 2,
-										textAlign: "center",
-									}}
+						{activeTimer === setIndex && (
+							<Box
+								sx={{
+									mt: 2,
+									p: 1.5,
+									backgroundColor: timeLeft <= 3 ? "error.50" : "primary.50",
+									borderRadius: 2,
+									textAlign: "center",
+								}}
+							>
+								<Typography
+									variant="h6"
+									color={timeLeft <= 3 ? "error.main" : "primary.main"}
+									fontWeight="bold"
 								>
-									<Typography
-										variant="h6"
-										color={timeLeft <= 3 ? "error.main" : "primary.main"}
-										fontWeight="bold"
-									>
-										{formatTime(timeLeft)}
-									</Typography>
-									<Typography variant="caption" color="text.secondary">
-										Odmor u toku
-									</Typography>
-								</Box>
-							)}
-
-							{isMobile && (
-								<Box
-									sx={{
-										mt: 2,
-										pt: 2,
-										borderTop: "1px solid",
-										borderColor: "grey.300",
-									}}
-								>
-									<Typography variant="caption" color="text.secondary">
-										{holdMode ? `${set.hold}s hold` : `${set.reps} ponavljanja`}
-										{set.weight && ` × ${set.weight}kg`}
-										{set.band && ` • ${getBandLabel(set.band)}`}
-										{set.rest && ` • ${set.rest}s odmor`}
-									</Typography>
-								</Box>
-							)}
-						</Paper>
-					);
-				})}
-			</Stack>
+									{formatTime(timeLeft)}
+								</Typography>
+								<Typography variant="caption" color="text.secondary">
+									Odmor u toku
+								</Typography>
+							</Box>
+						)}
+					</Paper>
+				);
+			})}
 		</Box>
 	);
 };
