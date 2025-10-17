@@ -271,6 +271,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 					weight: set.weight?.toString() || "",
 					hold: (set as ExerciseSet).hold?.toString() || "",
 					band: (set as ExerciseSet).band || "",
+					isMax: set.isMax || false,
 				})),
 			})),
 			notes: `Kopirano iz treninga od ${format(
@@ -291,7 +292,12 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 
 		const newExercises = [
 			...formData.exercises,
-			{ name: "", sets: [{ reps: "", rest: "", weight: "", hold: "" }] },
+			{
+				name: "",
+				sets: [
+					{ reps: "", rest: "", weight: "", hold: "", band: "", isMax: false },
+				],
+			},
 		];
 		setFormData({ ...formData, exercises: newExercises });
 		setExpandedExercises([...expandedExercises, newExercises.length - 1]);
@@ -303,6 +309,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		weight: string;
 		hold: string;
 		band: string;
+		isMax?: boolean;
 	}
 	const addSet = (exerciseIndex: number) => {
 		const newExercises = [...formData.exercises];
@@ -326,6 +333,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				weight: lastSet.weight || "",
 				hold: lastSet.hold || "",
 				band: lastSet.band || "", // NOVO - kopira traku iz prethodnog seta
+				isMax: lastSet.isMax || false,
 			};
 		}
 
@@ -336,11 +344,20 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	const updateSet = (
 		exerciseIndex: number,
 		setIndex: number,
-		field: "reps" | "rest" | "weight" | "hold" | "band",
-		value: string
+		field: "isMax" | "reps" | "rest" | "weight" | "hold" | "band",
+		value: string | boolean
 	) => {
 		const newExercises = [...formData.exercises];
-		(newExercises[exerciseIndex].sets[setIndex] as ExerciseSet)[field] = value;
+
+		if (field === "isMax") {
+			(newExercises[exerciseIndex].sets[setIndex] as ExerciseSet).isMax =
+				value as boolean;
+		} else {
+			(newExercises[exerciseIndex].sets[setIndex] as ExerciseSet)[
+				field as "reps" | "rest" | "weight" | "hold" | "band"
+			] = value as string;
+		}
+
 		setFormData({ ...formData, exercises: newExercises });
 	};
 
@@ -360,39 +377,39 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				newErrors.push(`Vježba ${i + 1} mora imati barem jedan set`);
 			}
 			exercise.sets.forEach((set, j) => {
-				const reps = parseInt(set.reps) || 0;
-				const rest = parseInt(set.rest) || 0;
-				const weight = set.weight ? parseFloat(set.weight) : null;
+				// const reps = parseInt(set.reps) || 0;
+				// const rest = parseInt(set.rest) || 0;
+				// const weight = set.weight ? parseFloat(set.weight) : null;
 				const band = set.band || "";
-				const hold = (set as ExerciseSet).hold
-					? parseInt((set as ExerciseSet).hold)
-					: null;
+				// const hold = (set as ExerciseSet).hold
+				// ? parseInt((set as ExerciseSet).hold)
+				// : null;
 
 				// Promijenjena validacija - ili reps ili hold moraju biti postavljeni
-				if ((!set.reps || reps <= 0) && (!hold || hold <= 0)) {
-					newErrors.push(
-						`Set ${j + 1} vježbe ${
-							i + 1
-						} mora imati broj ponavljanja ili hold vrijeme veće od 0`
-					);
-				}
+				// if ((!set.reps || reps <= 0) && (!hold || hold <= 0)) {
+				// 	newErrors.push(
+				// 		`Set ${j + 1} vježbe ${
+				// 			i + 1
+				// 		} mora imati broj ponavljanja ili hold vrijeme veće od 0`
+				// 	);
+				// }
 
-				if (set.rest && rest < 0) {
-					newErrors.push(
-						`Set ${j + 1} vježbe ${i + 1} ne može imati negativan odmor`
-					);
-				}
-				if (weight !== null && weight < 0) {
-					newErrors.push(
-						`Set ${j + 1} vježbe ${i + 1} ne može imati negativnu težinu`
-					);
-				}
-				if (hold !== null && hold < 0) {
-					// Dodana validacija za hold
-					newErrors.push(
-						`Set ${j + 1} vježbe ${i + 1} ne može imati negativno hold vrijeme`
-					);
-				}
+				// if (set.rest && rest < 0) {
+				// 	newErrors.push(
+				// 		`Set ${j + 1} vježbe ${i + 1} ne može imati negativan odmor`
+				// 	);
+				// }
+				// if (weight !== null && weight < 0) {
+				// 	newErrors.push(
+				// 		`Set ${j + 1} vježbe ${i + 1} ne može imati negativnu težinu`
+				// 	);
+				// }
+				// if (hold !== null && hold < 0) {
+				// 	// Dodana validacija za hold
+				// 	newErrors.push(
+				// 		`Set ${j + 1} vježbe ${i + 1} ne može imati negativno hold vrijeme`
+				// 	);
+				// }
 
 				const validBands = ["", "green", "red", "black"];
 				if (band && !validBands.includes(band)) {

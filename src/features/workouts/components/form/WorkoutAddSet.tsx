@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from "react";
 import {
 	Box,
@@ -11,13 +10,14 @@ import {
 	Typography,
 	Tooltip,
 	Chip,
-	CircularProgress,
 	FormControl,
 	InputLabel,
 	Select,
 	MenuItem,
 	Tabs,
 	Tab,
+	Switch,
+	FormControlLabel,
 } from "@mui/material";
 import {
 	Add,
@@ -30,19 +30,21 @@ import {
 	AccessTime,
 	CheckCircle,
 	FiberManualRecord,
+	Whatshot,
 } from "@mui/icons-material";
 
-interface Set {
+interface WorkoutSet {
 	reps: string;
 	weight?: string;
 	rest?: string;
 	hold?: string;
 	band?: string;
+	isMax?: boolean;
 }
 
 interface Exercise {
 	name: string;
-	sets: Set[];
+	sets: WorkoutSet[];
 }
 
 interface WorkoutAddSetProps {
@@ -53,13 +55,13 @@ interface WorkoutAddSetProps {
 	updateSet: (
 		exerciseIndex: number,
 		setIndex: number,
-		field: "reps" | "weight" | "rest" | "hold" | "band",
-		value: string
+		field: "reps" | "weight" | "rest" | "hold" | "band" | "isMax",
+		value: string | boolean
 	) => void;
 	removeSet: (exerciseIndex: number, setIndex: number) => void;
 }
 
-export const BAND_OPTIONS = [
+const BAND_OPTIONS = [
 	{ value: "", label: "Bez trake", color: "#9E9E9E" },
 	{ value: "green", label: "Zelena ", color: "#4CAF50" },
 	{ value: "red", label: "Crvena ", color: "#F44336" },
@@ -84,16 +86,16 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 }) => {
 	const [activeTimer, setActiveTimer] = useState<number | null>(null);
 	const [timeLeft, setTimeLeft] = useState<number>(0);
-	const [completedSets, setCompletedSets] = useState(new Set());
+	const [completedSets, setCompletedSets] = useState<Set<number>>(new Set());
 	const [currentTab, setCurrentTab] = useState(0);
 	const intervalRef = useRef<NodeJS.Timeout | null>(null);
 	const audioContextRef = useRef<AudioContext | null>(null);
 
 	const createBeep = () => {
 		if (!audioContextRef.current) {
-			const AudioCtx =
-				window.AudioContext || (window as any).webkitAudioContext;
-			audioContextRef.current = new AudioCtx();
+			audioContextRef.current = new (window.AudioContext ||
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				(window as any).webkitAudioContext)();
 		}
 
 		const ctx = audioContextRef.current;
@@ -126,7 +128,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 				if (prev <= 1) {
 					clearInterval(intervalRef.current!);
 					setActiveTimer(null);
-					setCompletedSets((prevCompleted: any) =>
+					setCompletedSets((prevCompleted: Set<number>) =>
 						new Set(prevCompleted).add(setIndex)
 					);
 					return 0;
@@ -150,7 +152,6 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 	}, []);
 
 	useEffect(() => {
-		// Automatski prebaci na novi tab kad se doda set
 		if (currentTab >= exercise.sets.length) {
 			setCurrentTab(exercise.sets.length - 1);
 		}
@@ -162,13 +163,12 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 		return `${mins}:${secs.toString().padStart(2, "0")}`;
 	};
 
-	const isHoldSet = (set: Set) => {
-		return set.hold && String(set.hold).trim() !== "";
+	const isHoldSet = (s: WorkoutSet) => {
+		return s.hold && String(s.hold).trim() !== "";
 	};
 
 	const handleAddSet = () => {
 		addSet(exerciseIndex);
-		// Prebaci na novi tab
 		setTimeout(() => {
 			setCurrentTab(exercise.sets.length);
 		}, 50);
@@ -176,7 +176,6 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 
 	const handleRemoveSet = (setIndex: number) => {
 		removeSet(exerciseIndex, setIndex);
-		// Ako je uklonjen trenutni tab, prebaci na prethodni
 		if (currentTab >= exercise.sets.length - 1 && currentTab > 0) {
 			setCurrentTab(currentTab - 1);
 		}
@@ -206,7 +205,6 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 				</Button>
 			</Box>
 
-			{/* Tabs za setove */}
 			<Paper sx={{ mb: 2, borderRadius: 2 }}>
 				<Tabs
 					value={currentTab}
@@ -225,6 +223,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 					{exercise.sets.map((set, setIndex) => {
 						const isCompleted = completedSets.has(setIndex);
 						const holdMode = isHoldSet(set);
+						const isMaxEffort = set.isMax === true;
 
 						return (
 							<Tab
@@ -234,6 +233,9 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 										<Typography variant="body2" fontWeight="inherit">
 											Set {setIndex + 1}
 										</Typography>
+										{isMaxEffort && (
+											<Whatshot sx={{ fontSize: 16, color: "error.main" }} />
+										)}
 										{isCompleted && (
 											<CheckCircle
 												sx={{ fontSize: 16, color: "success.main" }}
@@ -255,9 +257,17 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									</Box>
 								}
 								sx={{
-									backgroundColor: isCompleted ? "success.50" : "transparent",
+									backgroundColor: isMaxEffort
+										? "error.50"
+										: isCompleted
+										? "success.50"
+										: "transparent",
 									"&.Mui-selected": {
-										backgroundColor: isCompleted ? "success.100" : "primary.50",
+										backgroundColor: isMaxEffort
+											? "error.100"
+											: isCompleted
+											? "success.100"
+											: "primary.50",
 									},
 								}}
 							/>
@@ -266,12 +276,12 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 				</Tabs>
 			</Paper>
 
-			{/* Prikaz trenutnog seta */}
 			{exercise.sets.map((set, setIndex) => {
 				if (setIndex !== currentTab) return null;
 
 				const isCompleted = completedSets.has(setIndex);
 				const holdMode = isHoldSet(set);
+				const isMaxEffort = set.isMax === true;
 				const hasRestTime = set.rest && parseInt(set.rest) > 0;
 				const hasValidData =
 					(set.reps && parseInt(set.reps) > 0) ||
@@ -285,9 +295,17 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 						key={setIndex}
 						sx={{
 							p: 2.5,
-							backgroundColor: isCompleted ? "success.50" : "grey.50",
-							border: "1px solid",
-							borderColor: isCompleted ? "success.200" : "grey.200",
+							backgroundColor: isMaxEffort
+								? "error.50"
+								: isCompleted
+								? "success.50"
+								: "grey.50",
+							border: "2px solid",
+							borderColor: isMaxEffort
+								? "error.300"
+								: isCompleted
+								? "success.200"
+								: "grey.200",
 							borderRadius: 2,
 							opacity: isCompleted ? 0.8 : 1,
 						}}
@@ -311,16 +329,27 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 								<Chip
 									label={`Set ${setIndex + 1}`}
 									size="small"
-									color={isCompleted ? "success" : "primary"}
+									color={
+										isMaxEffort ? "error" : isCompleted ? "success" : "primary"
+									}
 									icon={<FitnessCenter />}
 									variant="filled"
 								/>
+								{isMaxEffort && (
+									<Chip
+										label="MAX EFFORT"
+										size="small"
+										color="error"
+										icon={<Whatshot />}
+										variant="filled"
+									/>
+								)}
 								{holdMode && (
 									<Chip
 										label="Hold"
 										size="small"
 										color="secondary"
-									icon={<AccessTime />}
+										icon={<AccessTime />}
 										variant="outlined"
 									/>
 								)}
@@ -365,12 +394,57 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 							</Box>
 						</Box>
 
+						{/* MAX EFFORT Toggle */}
+						<Box sx={{ mb: 2 }}>
+							<FormControlLabel
+								control={
+									<Switch
+										checked={isMaxEffort}
+										onChange={(e) =>
+											updateSet(
+												exerciseIndex,
+												setIndex,
+												"isMax",
+												e.target.checked
+											)
+										}
+										color="error"
+									/>
+								}
+								label={
+									<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+										<Whatshot
+											sx={{
+												fontSize: 18,
+												color: isMaxEffort ? "error.main" : "text.secondary",
+											}}
+										/>
+										<Typography
+											variant="body2"
+											fontWeight={isMaxEffort ? "bold" : "normal"}
+										>
+											Max Effort (Do otkaza)
+										</Typography>
+									</Box>
+								}
+							/>
+							{isMaxEffort && (
+								<Typography
+									variant="caption"
+									color="error.main"
+									sx={{ ml: 4, display: "block" }}
+								>
+									Set izveden do maksimalnog zamora
+								</Typography>
+							)}
+						</Box>
+
 						<Grid container spacing={2} alignItems="center">
 							<Grid size={{ xs: 6 }}>
 								<TextField
 									fullWidth
 									type="number"
-									label="Hold (s)"
+									label={isMaxEffort ? "Max Hold (s)" : "Hold (s)"}
 									value={set.hold || ""}
 									onChange={(e) =>
 										updateSet(exerciseIndex, setIndex, "hold", e.target.value)
@@ -396,14 +470,14 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									<TextField
 										fullWidth
 										type="number"
-										label="Ponavljanja"
+										label={isMaxEffort ? "Max Reps" : "Ponavljanja"}
 										value={set.reps || ""}
 										onChange={(e) =>
 											updateSet(exerciseIndex, setIndex, "reps", e.target.value)
 										}
 										inputProps={{ min: 0 }}
 										size="small"
-										required={!holdMode}
+										// required={!holdMode}
 										disabled={isCompleted && !activeTimer}
 										InputProps={{
 											startAdornment: (
@@ -511,46 +585,27 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 													: "Unesite broj ponavljanja ili hold vrijeme da pokrenete timer"
 											}
 										>
-											<Box sx={{ position: "relative" }}>
-												<IconButton
-													size="small"
-													onClick={() =>
-														startTimer(setIndex, parseInt(set.rest || "0"))
-													}
-													disabled={!canStartTimer || activeTimer !== null}
-													color="primary"
-													sx={{
+											<IconButton
+												size="small"
+												onClick={() =>
+													startTimer(setIndex, parseInt(set.rest || "0"))
+												}
+												disabled={!canStartTimer || activeTimer !== null}
+												color="primary"
+												sx={{
+													backgroundColor: canStartTimer
+														? "primary.50"
+														: "grey.100",
+													"&:hover": {
 														backgroundColor: canStartTimer
-															? "primary.50"
-															: "grey.100",
-														"&:hover": {
-															backgroundColor: canStartTimer
-																? "primary.100"
-																: "grey.200",
-														},
-														"&:disabled": { backgroundColor: "grey.200" },
-													}}
-												>
-													<PlayArrow fontSize="small" />
-												</IconButton>
-												{activeTimer === setIndex && (
-													<CircularProgress
-														size={32}
-														value={
-															((parseInt(set.rest as any) - timeLeft) /
-																parseInt(set.rest as any)) *
-															100
-														}
-														variant="determinate"
-														sx={{
-															position: "absolute",
-															top: 0,
-															left: 0,
-															color: "primary.main",
-														}}
-													/>
-												)}
-											</Box>
+															? "primary.100"
+															: "grey.200",
+													},
+													"&:disabled": { backgroundColor: "grey.200" },
+												}}
+											>
+												<PlayArrow fontSize="small" />
+											</IconButton>
 										</Tooltip>
 									)}
 								</Box>

@@ -97,7 +97,6 @@ export async function POST(request: Request) {
 			}
 		}
 
-		// Sanitization & validation of sets - sa podrškom za hold i band
 		const sanitizeExercises = (exs: any[]) =>
 			exs.map((ex) => ({
 				name: ex.name,
@@ -115,10 +114,11 @@ export async function POST(request: Request) {
 						set.hold !== undefined && set.hold !== ""
 							? parseInt(set.hold, 10)
 							: null;
-
-					// NOVO: Parsiranje band vrijednosti
 					const band =
 						set.band !== undefined && set.band !== "" ? set.band : "";
+
+					// NOVO: Parsiranje isMax flaga
+					const isMax = set.isMax === true;
 
 					// Logika za reps ovisno o tome da li je hold postavljen
 					let reps: number;
@@ -133,8 +133,8 @@ export async function POST(request: Request) {
 								: 0;
 					}
 
-					// Validacija parsiranih brojeva
-					if (hold === null && (isNaN(reps) || reps < 0)) {
+					// Validacija - za max setove možemo imati 0 reps/hold jer je "do otkaza"
+					if (!isMax && hold === null && (isNaN(reps) || reps < 0)) {
 						throw new Error(`Invalid reps value for exercise "${ex.name}"`);
 					}
 					if (isNaN(rest) || rest < 0) {
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
 						throw new Error(`Invalid hold value for exercise "${ex.name}"`);
 					}
 
-					// NOVO: Validacija band vrijednosti
+					// Validacija band vrijednosti
 					const validBands = ["", "green", "red", "black"];
 					if (band && !validBands.includes(band)) {
 						throw new Error(`Invalid band value for exercise "${ex.name}"`);
@@ -164,15 +164,18 @@ export async function POST(request: Request) {
 						sanitizedSet.hold = hold;
 					}
 
-					// NOVO: Dodaj band ako postoji
 					if (band && band !== "") {
 						sanitizedSet.band = band;
+					}
+
+					// NOVO: Dodaj isMax ako je true
+					if (isMax) {
+						sanitizedSet.isMax = true;
 					}
 
 					return sanitizedSet;
 				}),
 			}));
-
 		let sanitizedExercises;
 		try {
 			sanitizedExercises = sanitizeExercises(workoutData.exercises);
