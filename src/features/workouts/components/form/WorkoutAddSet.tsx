@@ -320,7 +320,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 										label="Hold"
 										size="small"
 										color="secondary"
-										icon={<AccessTime />}
+									icon={<AccessTime />}
 										variant="outlined"
 									/>
 								)}

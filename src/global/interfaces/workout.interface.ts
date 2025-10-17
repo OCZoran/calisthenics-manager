@@ -31,6 +31,4 @@ export interface WorkoutFormData {
 	notes?: string;
 	synced: boolean;
 	exercises: Exercise[];
-	
 }
-

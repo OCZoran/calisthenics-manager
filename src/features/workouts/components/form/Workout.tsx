@@ -49,9 +49,13 @@ import {
 	Event,
 	Category,
 	DragIndicator,
+	History,
 } from "@mui/icons-material";
 import { format, parseISO } from "date-fns";
-import { Workout } from "@/global/interfaces/workout.interface";
+import {
+	Workout,
+	WorkoutFormData,
+} from "@/global/interfaces/workout.interface";
 import {
 	ExerciseDefinition,
 	TrainingPlan,
@@ -59,6 +63,7 @@ import {
 import { formatDate } from "@/global/utils/format-date";
 import WorkoutAddSet from "./WorkoutAddSet";
 import WorkoutFormHeader from "./WorkoutFormHeader";
+import { useDraftAutosave } from "../WorkoutDraft";
 
 interface WorkoutFormProps {
 	workout?: Workout;
@@ -142,10 +147,30 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		planId: workout?.planId || activePlanId || "",
 	});
 
+	const [showDraftDialog, setShowDraftDialog] = useState(false);
+	const [draftData, setDraftData] = useState<WorkoutFormData | null>(null);
+
+	const { hasDraft, loadDraft, clearDraft } = useDraftAutosave(formData, {
+		isEditMode: !!workout,
+		workoutId: workout?._id,
+	});
+
 	const [errors, setErrors] = useState<string[]>([]);
 	const [expandedExercises, setExpandedExercises] = useState<number[]>([]);
 	const [showCopyDialog, setShowCopyDialog] = useState(false);
 	const [availableWorkouts, setAvailableWorkouts] = useState<Workout[]>([]);
+
+	useEffect(() => {
+		if (workout) return;
+
+		if (hasDraft()) {
+			const draft = loadDraft();
+			if (draft) {
+				setDraftData(draft);
+				setShowDraftDialog(true);
+			}
+		}
+	}, [hasDraft, loadDraft, workout]);
 
 	useEffect(() => {
 		const fetchExercises = async () => {
@@ -414,9 +439,35 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 
 		try {
 			await onSubmit(formData);
+			// Obriši draft nakon uspešnog čuvanja
+			clearDraft();
 		} catch (error) {
 			console.error("Error submitting workout:", error);
 		}
+	};
+
+	const handleRestoreDraft = () => {
+		if (draftData) {
+			setFormData({
+				date: draftData.date || new Date().toISOString().split("T")[0],
+				type: draftData.type || "",
+				notes: draftData.notes || "",
+				synced: draftData.synced ?? true,
+				exercises: draftData.exercises || [],
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				planId: (draftData as any).planId ?? activePlanId ?? "",
+			});
+			setExpandedExercises(
+				(draftData.exercises || []).map((_, index) => index)
+			);
+		}
+		setShowDraftDialog(false);
+	};
+
+	const handleDiscardDraft = () => {
+		clearDraft();
+		setDraftData(null);
+		setShowDraftDialog(false);
 	};
 
 	const getWorkoutTypeColor = (type: string) => {
@@ -1056,6 +1107,97 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 						fullWidth={isMobile}
 					>
 						Otkaži
+					</Button>
+				</DialogActions>
+			</Dialog>
+
+			<Dialog
+				open={showDraftDialog}
+				onClose={handleDiscardDraft}
+				maxWidth="sm"
+				fullWidth
+				fullScreen={isMobile}
+				PaperProps={{
+					sx: {
+						borderRadius: isMobile ? 0 : 3,
+						m: isMobile ? 0 : 2,
+					},
+				}}
+			>
+				<DialogTitle>
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							gap: 2,
+						}}
+					>
+						<Box
+							sx={{
+								p: 1,
+								borderRadius: 2,
+								backgroundColor: "warning.main",
+								color: "white",
+								display: "flex",
+							}}
+						>
+							<History />
+						</Box>
+						<Box>
+							<Typography variant="h6">Pronađen nedovršeni trening</Typography>
+							<Typography variant="body2" color="text.secondary">
+								Želite li nastaviti sa prethodnim treningom?
+							</Typography>
+						</Box>
+					</Box>
+				</DialogTitle>
+				<DialogContent>
+					{draftData && (
+						<Box sx={{ mb: 2 }}>
+							<Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+								<Typography variant="body2" gutterBottom>
+									<strong>Tip:</strong>{" "}
+									{workoutTypes.find((wt) => wt.value === draftData.type)
+										?.label || "Nije izabran"}
+								</Typography>
+								<Typography variant="body2" gutterBottom>
+									<strong>Vježbe:</strong> {draftData.exercises.length}
+								</Typography>
+								{draftData.exercises.length > 0 && (
+									<Typography variant="body2" sx={{ mt: 1 }}>
+										{draftData.exercises.map((e) => e.name).join(", ")}
+									</Typography>
+								)}
+							</Alert>
+							<Typography variant="body2" color="text.secondary">
+								Možete nastaviti sa prethodnim treningom ili započeti novi.
+							</Typography>
+						</Box>
+					)}
+				</DialogContent>
+				<DialogActions
+					sx={{
+						px: 3,
+						pb: 3,
+						gap: 1,
+						flexDirection: isMobile ? "column" : "row",
+					}}
+				>
+					<Button
+						onClick={handleDiscardDraft}
+						variant="outlined"
+						fullWidth={isMobile}
+						sx={{ borderRadius: 2 }}
+					>
+						Odbaci i započni novi
+					</Button>
+					<Button
+						onClick={handleRestoreDraft}
+						variant="contained"
+						fullWidth={isMobile}
+						sx={{ borderRadius: 2 }}
+					>
+						Nastavi sa prethodnim
 					</Button>
 				</DialogActions>
 			</Dialog>
