@@ -31,6 +31,7 @@ import {
 	CheckCircle,
 	FiberManualRecord,
 	Whatshot,
+	Edit,
 } from "@mui/icons-material";
 
 interface WorkoutSet {
@@ -285,7 +286,8 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 				const hasRestTime = set.rest && parseInt(set.rest) > 0;
 				const hasValidData =
 					(set.reps && parseInt(set.reps) > 0) ||
-					(set.hold && parseInt(set.hold) > 0);
+					(set.hold && parseInt(set.hold) > 0) ||
+					isMaxEffort;
 
 				const showTimerButton = hasRestTime && !isCompleted;
 				const canStartTimer = hasRestTime && hasValidData && !isCompleted;
@@ -376,6 +378,27 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 								)}
 							</Box>
 							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								{isCompleted && (
+									<Tooltip title="Omogući izmjenu">
+										<IconButton
+											size="small"
+											onClick={() => {
+												setCompletedSets((prev) => {
+													const newSet = new Set(prev);
+													newSet.delete(setIndex);
+													return newSet;
+												});
+											}}
+											color="warning"
+											sx={{
+												backgroundColor: "warning.50",
+												"&:hover": { backgroundColor: "warning.100" },
+											}}
+										>
+											<Edit fontSize="small" />
+										</IconButton>
+									</Tooltip>
+								)}
 								{exercise.sets.length > 1 && (
 									<Tooltip title="Ukloni set">
 										<IconButton
@@ -477,7 +500,6 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 										}
 										inputProps={{ min: 0 }}
 										size="small"
-										// required={!holdMode}
 										disabled={isCompleted && !activeTimer}
 										InputProps={{
 											startAdornment: (
@@ -582,7 +604,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 											title={
 												canStartTimer
 													? "Pokreni odmor"
-													: "Unesite broj ponavljanja ili hold vrijeme da pokrenete timer"
+													: "Unesite broj ponavljanja, hold vrijeme ili označite Max Effort"
 											}
 										>
 											<IconButton
@@ -605,6 +627,29 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 												}}
 											>
 												<PlayArrow fontSize="small" />
+											</IconButton>
+										</Tooltip>
+									)}
+									{!isCompleted && (
+										<Tooltip title="Označi set kao završen">
+											<IconButton
+												size="small"
+												onClick={() => {
+													if (activeTimer === setIndex && intervalRef.current) {
+														clearInterval(intervalRef.current);
+														setActiveTimer(null);
+													}
+													setCompletedSets((prev) =>
+														new Set(prev).add(setIndex)
+													);
+												}}
+												color="success"
+												sx={{
+													backgroundColor: "success.50",
+													"&:hover": { backgroundColor: "success.100" },
+												}}
+											>
+												<CheckCircle fontSize="small" />
 											</IconButton>
 										</Tooltip>
 									)}
