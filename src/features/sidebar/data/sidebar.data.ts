@@ -14,7 +14,7 @@ export const sidebarUserData = [
 		icon: DashboardOutlinedIcon,
 		path: "/",
 	},
-	{
+{
 		id: 2,
 		text: "Workouts",
 		icon: FitnessCenterOutlinedIcon,
@@ -28,9 +28,9 @@ export const sidebarUserData = [
 	},
 	{
 		id: 4,
-		text: "Status",
+		text: "Goals",
 		icon: TimelineIcon,
-		path: "/status",
+		path: "/goals",
 	},
 	{
 		id: 5,

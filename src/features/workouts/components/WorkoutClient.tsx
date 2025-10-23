@@ -43,7 +43,6 @@ import axiosInstance from "@/services/axios-public.instance";
 import { TrainingPlan } from "@/global/interfaces/training-plan.interface";
 import TrainingPlans from "./training-plan/TrainingPlan";
 import ExerciseClient from "../exercise/ExerciseClient";
-import GoalTracker from "@/features/goals/components/Goals";
 
 interface WorkoutClientProps {
 	initialWorkouts: Workout[];
@@ -506,7 +505,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 		return (
 			<Paper sx={{ p: 3, mb: 3 }}>
-				<GoalTracker />
 				<Box sx={{ mb: 2 }}>
 					<Tabs
 						value={viewMode}

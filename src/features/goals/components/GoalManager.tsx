@@ -20,6 +20,8 @@ import {
 	Typography,
 	Chip,
 	Alert,
+	LinearProgress,
+	Tooltip,
 } from "@mui/material";
 import {
 	AddOutlined,
@@ -31,6 +33,7 @@ import {
 	PlayCircleOutlined,
 	CalendarTodayOutlined,
 	EmojiEventsOutlined,
+	ImageOutlined,
 } from "@mui/icons-material";
 import { Goal } from "../goal.interface";
 import UploadImageBox from "@/features/workouts/components/UploadImageBox";
@@ -268,52 +271,6 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 					alignItems: "center",
 				}}
 			>
-				{/* <Grid size={{ xs: 12, md: 6 }}>
-					<FormControl fullWidth variant="outlined" required>
-						<InputLabel>Kategorija</InputLabel>
-						<Select
-							value={formData.category}
-							onChange={(e) =>
-								setFormData({ ...formData, category: e.target.value })
-							}
-							label="Kategorija"
-						>
-							{CATEGORIES.map((cat) => (
-								<MenuItem key={cat} value={cat}>
-									{cat}
-								</MenuItem>
-							))}
-						</Select>
-					</FormControl>
-				</Grid>
-
-				<FormControl size="small" sx={{ minWidth: 150 }}>
-					<InputLabel>Težina</InputLabel>
-					<Select
-						value={filterDifficulty}
-						label="Težina"
-						onChange={(e) => setFilterDifficulty(e.target.value)}
-					>
-						<MenuItem value="all">Sve</MenuItem>
-						<MenuItem value="Easy">Easy</MenuItem>
-						<MenuItem value="Intermediate">Intermediate</MenuItem>
-						<MenuItem value="Advanced">Advanced</MenuItem>
-					</Select>
-				</FormControl>
-
-				<FormControl size="small" sx={{ minWidth: 150 }}>
-					<InputLabel>Status</InputLabel>
-					<Select
-						value={filterCompleted}
-						label="Status"
-						onChange={(e) => setFilterCompleted(e.target.value)}
-					>
-						<MenuItem value="all">Svi</MenuItem>
-						<MenuItem value="active">Aktivni</MenuItem>
-						<MenuItem value="completed">Ostvareni</MenuItem>
-					</Select>
-				</FormControl> */}
-
 				<Button
 					variant="contained"
 					startIcon={<AddOutlined />}
@@ -362,318 +319,611 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 						</Card>
 					</Grid>
 				) : (
-					filteredGoals.map((goal) => (
-						<Grid size={{ xs: 12, sm: 6, md: 4 }} key={goal._id}>
-							<Card
-								sx={{
-									height: "100%",
-									display: "flex",
-									flexDirection: "column",
-									borderRadius: 3,
-									boxShadow: goal.completed ? 1 : 2,
-									border: "1px solid",
-									borderColor: goal.completed ? "success.light" : "divider",
-									position: "relative",
-									cursor: onGoalClick ? "pointer" : "default",
-									transition: "all 0.3s ease",
-									"&:hover": {
-										transform: onGoalClick ? "translateY(-4px)" : "none",
-										boxShadow: goal.completed ? 2 : 4,
-									},
-								}}
-								onClick={() => onGoalClick && onGoalClick(goal)}
-							>
-								{goal.completed && (
-									<Box
-										sx={{
-											position: "absolute",
-											top: 12,
-											left: 12,
-											zIndex: 2,
-											bgcolor: "success.main",
-											color: "white",
-											borderRadius: 2,
-											px: 1.5,
-											py: 0.5,
-											display: "flex",
-											alignItems: "center",
-											gap: 0.5,
-											boxShadow: 2,
-										}}
-									>
-										<EmojiEventsOutlined sx={{ fontSize: 18 }} />
-										<Typography variant="caption" fontWeight="600">
-											Ostvareno
-										</Typography>
-									</Box>
-								)}
+					filteredGoals.map((goal) => {
+						const progressUpdates =
+							goal.updates?.filter((u) => u.status === "progress").length || 0;
+						const totalUpdates = goal.updates?.length || 0;
+						const progressPercentage =
+							totalUpdates > 0 ? (progressUpdates / totalUpdates) * 100 : 0;
 
-								{goal.images && goal.images.length > 0 && (
-									<Box
-										sx={{
-											position: "relative",
-											width: "100%",
-											height: 220,
-											overflow: "hidden",
-											borderRadius: "12px 12px 0 0",
-											bgcolor: "grey.100",
-										}}
-									>
-										{isVideo(goal.images[0]) ? (
-											<Box
-												sx={{
-													position: "relative",
-													width: "100%",
-													height: "100%",
-												}}
-											>
-												<video
-													src={goal.images[0]}
-													style={{
+						const daysSinceStart = Math.floor(
+							(new Date().getTime() - new Date(goal.startDate).getTime()) /
+								(1000 * 60 * 60 * 24)
+						);
+
+						const getDifficultyLabel = (diff: string) => {
+							switch (diff) {
+								case "Easy":
+									return "Lako";
+								case "Intermediate":
+									return "Srednje";
+								case "Advanced":
+									return "Napredno";
+								default:
+									return diff;
+							}
+						};
+
+						const getDifficultyStyle = (diff: string) => {
+							switch (diff) {
+								case "Easy":
+									return { bg: "#e8f5e9", text: "#2e7d32" };
+								case "Intermediate":
+									return { bg: "#fff3e0", text: "#e65100" };
+								case "Advanced":
+									return { bg: "#ffebee", text: "#c62828" };
+								default:
+									return { bg: "#e8f5e9", text: "#2e7d32" };
+							}
+						};
+
+						const diffStyle = getDifficultyStyle(goal.difficulty);
+
+						return (
+							<Grid size={{ xs: 12, sm: 6, md: 4 }} key={goal._id}>
+								<Card
+									sx={{
+										height: "100%",
+										display: "flex",
+										flexDirection: "column",
+										borderRadius: 3,
+										boxShadow: goal.completed
+											? "0 2px 8px rgba(76, 175, 80, 0.12)"
+											: "0 2px 8px rgba(0,0,0,0.06)",
+										border: "1px solid",
+										borderColor: goal.completed ? "success.light" : "grey.200",
+										overflow: "hidden",
+										cursor: onGoalClick ? "pointer" : "default",
+										transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+										position: "relative",
+										"&:hover": {
+											transform: onGoalClick ? "translateY(-4px)" : "none",
+											boxShadow: goal.completed
+												? "0 8px 20px rgba(76, 175, 80, 0.2)"
+												: "0 8px 20px rgba(0,0,0,0.1)",
+											borderColor: goal.completed
+												? "success.main"
+												: "primary.light",
+										},
+										"&:active": {
+											transform: onGoalClick ? "translateY(-2px)" : "none",
+										},
+									}}
+									onClick={() => onGoalClick && onGoalClick(goal)}
+								>
+									{/* Hero Image Section */}
+									{goal.images && goal.images.length > 0 && (
+										<Box
+											sx={{
+												position: "relative",
+												width: "100%",
+												height: 220,
+												overflow: "hidden",
+												bgcolor: "grey.100",
+											}}
+										>
+											{isVideo(goal.images[0]) ? (
+												<Box
+													sx={{
+														position: "relative",
 														width: "100%",
 														height: "100%",
+													}}
+												>
+													<video
+														src={goal.images[0]}
+														style={{
+															width: "100%",
+															height: "100%",
+															objectFit: "cover",
+														}}
+													/>
+													<Box
+														sx={{
+															position: "absolute",
+															inset: 0,
+															display: "flex",
+															alignItems: "center",
+															justifyContent: "center",
+															bgcolor: "rgba(0,0,0,0.25)",
+															transition: "background-color 0.2s",
+															"&:hover": {
+																bgcolor: "rgba(0,0,0,0.35)",
+															},
+														}}
+													>
+														<PlayCircleOutlined
+															sx={{
+																fontSize: 56,
+																color: "white",
+																opacity: 0.95,
+																filter:
+																	"drop-shadow(0 2px 8px rgba(0,0,0,0.3))",
+																transition: "transform 0.2s",
+																"&:hover": {
+																	transform: "scale(1.1)",
+																},
+															}}
+														/>
+													</Box>
+												</Box>
+											) : (
+												<Image
+													src={goal.images[0]}
+													alt={goal.title}
+													fill
+													style={{
 														objectFit: "cover",
 													}}
 												/>
-												<PlayCircleOutlined
+											)}
+
+											{/* Media Count Badge */}
+											{goal.images.length > 1 && (
+												<Chip
+													icon={<ImageOutlined sx={{ fontSize: 16 }} />}
+													label={goal.images.length}
+													size="small"
 													sx={{
 														position: "absolute",
-														top: "50%",
-														left: "50%",
-														transform: "translate(-50%, -50%)",
-														fontSize: 64,
+														bottom: 12,
+														right: 12,
+														bgcolor: "rgba(0,0,0,0.7)",
 														color: "white",
-														opacity: 0.9,
-														filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))",
+														fontWeight: 600,
+														fontSize: "0.75rem",
+														backdropFilter: "blur(12px)",
+														border: "1px solid rgba(255,255,255,0.15)",
+														"& .MuiChip-icon": {
+															color: "white",
+														},
+													}}
+												/>
+											)}
+
+											{/* Completed Badge */}
+											{goal.completed && (
+												<Box
+													sx={{
+														position: "absolute",
+														top: 12,
+														left: 12,
+														bgcolor: "success.main",
+														color: "white",
+														borderRadius: 2,
+														px: 1.5,
+														py: 0.5,
+														display: "flex",
+														alignItems: "center",
+														gap: 0.5,
+														boxShadow: "0 2px 8px rgba(76, 175, 80, 0.35)",
+														fontWeight: 700,
+														fontSize: "0.813rem",
+													}}
+												>
+													<EmojiEventsOutlined sx={{ fontSize: 18 }} />
+													Ostvareno
+												</Box>
+											)}
+
+											{/* Subtle Gradient Overlay */}
+											<Box
+												sx={{
+													position: "absolute",
+													bottom: 0,
+													left: 0,
+													right: 0,
+													height: "40%",
+													background:
+														"linear-gradient(to top, rgba(0,0,0,0.4), transparent)",
+													pointerEvents: "none",
+												}}
+											/>
+										</Box>
+									)}
+
+									<CardContent sx={{ flexGrow: 1, p: 2.5 }}>
+										{/* Header with Title and Completion Toggle */}
+										<Box sx={{ mb: 2 }}>
+											<Box
+												sx={{
+													display: "flex",
+													gap: 1.5,
+													alignItems: "flex-start",
+												}}
+											>
+												<Tooltip
+													title={
+														goal.completed
+															? "Označi kao nedovršeno"
+															: "Označi kao ostvareno"
+													}
+													arrow
+													placement="top"
+												>
+													<IconButton
+														size="large"
+														onClick={(e) => {
+															e.stopPropagation();
+															handleToggleComplete(goal);
+														}}
+														sx={{
+															color: goal.completed
+																? "success.main"
+																: "grey.400",
+															p: 0,
+															"&:hover": {
+																bgcolor: goal.completed
+																	? "rgba(76, 175, 80, 0.08)"
+																	: "rgba(0,0,0,0.04)",
+																color: goal.completed
+																	? "success.dark"
+																	: "grey.600",
+															},
+															transition: "all 0.2s",
+														}}
+													>
+														{goal.completed ? (
+															<CheckCircleOutlined sx={{ fontSize: 28 }} />
+														) : (
+															<RadioButtonUncheckedOutlined
+																sx={{ fontSize: 28 }}
+															/>
+														)}
+													</IconButton>
+												</Tooltip>
+
+												<Box sx={{ flex: 1, minWidth: 0 }}>
+													<Typography
+														variant="h6"
+														sx={{
+															fontWeight: 700,
+															fontSize: "1.125rem",
+															lineHeight: 1.4,
+															mb: 1,
+															color: "text.primary",
+															overflow: "hidden",
+															textOverflow: "ellipsis",
+															display: "-webkit-box",
+															WebkitLineClamp: 2,
+															WebkitBoxOrient: "vertical",
+														}}
+													>
+														{goal.title}
+													</Typography>
+
+													<Box
+														sx={{
+															display: "flex",
+															gap: 0.75,
+															flexWrap: "wrap",
+														}}
+													>
+														<Chip
+															label={getDifficultyLabel(goal.difficulty)}
+															size="small"
+															sx={{
+																bgcolor: diffStyle.bg,
+																color: diffStyle.text,
+																fontWeight: 700,
+																fontSize: "0.688rem",
+																height: 22,
+																borderRadius: 1.5,
+																"& .MuiChip-label": {
+																	px: 1,
+																},
+															}}
+														/>
+														<Chip
+															label={goal.category}
+															size="small"
+															sx={{
+																bgcolor: "grey.100",
+																color: "text.secondary",
+																fontWeight: 600,
+																fontSize: "0.688rem",
+																height: 22,
+																borderRadius: 1.5,
+																"& .MuiChip-label": {
+																	px: 1,
+																},
+															}}
+														/>
+													</Box>
+												</Box>
+											</Box>
+										</Box>
+
+										{/* Description */}
+										{goal.description && (
+											<Typography
+												variant="body2"
+												sx={{
+													color: "text.secondary",
+													lineHeight: 1.6,
+													mb: 2,
+													display: "-webkit-box",
+													WebkitLineClamp: 2,
+													WebkitBoxOrient: "vertical",
+													overflow: "hidden",
+												}}
+											>
+												{goal.description}
+											</Typography>
+										)}
+
+										{/* Progress Section */}
+										{totalUpdates > 0 && (
+											<Box
+												sx={{
+													mb: 2,
+													p: 1.5,
+													bgcolor: "grey.50",
+													borderRadius: 2,
+													border: "1px solid",
+													borderColor: "grey.200",
+												}}
+											>
+												<Box
+													sx={{
+														display: "flex",
+														justifyContent: "space-between",
+														alignItems: "center",
+														mb: 1,
+													}}
+												>
+													<Typography
+														variant="caption"
+														fontWeight={600}
+														color="text.secondary"
+													>
+														Napredak
+													</Typography>
+													<Typography
+														variant="caption"
+														fontWeight={700}
+														color="primary.main"
+													>
+														{progressUpdates}/{totalUpdates}
+													</Typography>
+												</Box>
+												<LinearProgress
+													variant="determinate"
+													value={progressPercentage}
+													sx={{
+														height: 6,
+														borderRadius: 3,
+														bgcolor: "grey.200",
+														"& .MuiLinearProgress-bar": {
+															borderRadius: 3,
+															background:
+																"linear-gradient(90deg, #667eea 0%, #764ba2 100%)",
+														},
 													}}
 												/>
 											</Box>
-										) : (
-											<Image
-												src={goal.images[0]}
-												alt={goal.title}
-												fill
-												style={{
-													objectFit: "cover",
-												}}
-											/>
 										)}
-										{goal.images.length > 1 && (
-											<Chip
-												label={`+${goal.images.length - 1}`}
-												size="small"
-												sx={{
-													position: "absolute",
-													bottom: 12,
-													right: 12,
-													bgcolor: "rgba(0,0,0,0.7)",
-													color: "white",
-													fontWeight: 600,
-													backdropFilter: "blur(4px)",
-												}}
-											/>
-										)}
-									</Box>
-								)}
 
-								<CardContent sx={{ flexGrow: 1, p: 2.5 }}>
-									<Box
-										sx={{
-											display: "flex",
-											justifyContent: "space-between",
-											alignItems: "start",
-											mb: 2,
-											gap: 1,
-										}}
-									>
-										<Typography
-											variant="h6"
-											component="div"
+										{/* Info Grid */}
+										<Box
 											sx={{
-												flex: 1,
-												fontWeight: 600,
-												fontSize: "1.1rem",
-												lineHeight: 1.3,
+												display: "flex",
+												flexDirection: "column",
+												gap: 1.25,
 											}}
 										>
-											{goal.title}
-										</Typography>
-										<IconButton
-											size="medium"
-											onClick={(e) => {
-												e.stopPropagation();
-												handleToggleComplete(goal);
-											}}
-											sx={{
-												color: goal.completed
-													? "success.main"
-													: "action.disabled",
-												"&:hover": {
-													bgcolor: goal.completed
-														? "success.lighter"
-														: "action.hover",
-												},
-											}}
-										>
-											{goal.completed ? (
-												<CheckCircleOutlined sx={{ fontSize: 28 }} />
-											) : (
-												<RadioButtonUncheckedOutlined sx={{ fontSize: 28 }} />
-											)}
-										</IconButton>
-									</Box>
-
-									<Box
-										sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}
-									>
-										<Chip
-											label={goal.difficulty}
-											color={getDifficultyColor(goal.difficulty)}
-											size="small"
-											sx={{
-												fontWeight: 600,
-												borderRadius: 1.5,
-											}}
-										/>
-										<Chip
-											label={goal.category}
-											size="small"
-											variant="outlined"
-											sx={{
-												fontWeight: 500,
-												borderRadius: 1.5,
-											}}
-										/>
-									</Box>
-
-									{goal.description && (
-										<Typography
-											variant="body2"
-											color="text.secondary"
-											sx={{
-												mb: 2,
-												lineHeight: 1.6,
-												display: "-webkit-box",
-												WebkitLineClamp: 2,
-												WebkitBoxOrient: "vertical",
-												overflow: "hidden",
-											}}
-										>
-											{goal.description}
-										</Typography>
-									)}
-
-									<Box
-										sx={{
-											display: "flex",
-											flexDirection: "column",
-											gap: 1,
-											pt: 1,
-											borderTop: "1px solid",
-											borderColor: "divider",
-										}}
-									>
-										<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-											<CalendarTodayOutlined
-												sx={{ fontSize: 16, color: "text.secondary" }}
-											/>
-											<Typography
-												variant="caption"
-												color="text.secondary"
-												fontWeight={500}
-											>
-												Početak:{" "}
-												{new Date(goal.startDate).toLocaleDateString("sr-RS")}
-											</Typography>
-										</Box>
-
-										{goal.updates && goal.updates.length > 0 && (
 											<Box
 												sx={{
 													display: "flex",
 													alignItems: "center",
-													gap: 0.5,
+													gap: 1.25,
 												}}
 											>
-												<TrendingUpOutlined
-													sx={{ fontSize: 16, color: "primary.main" }}
-												/>
-												<Typography
-													variant="caption"
-													color="primary.main"
-													fontWeight={600}
+												<Box
+													sx={{
+														bgcolor: "primary.lighter",
+														width: 32,
+														height: 32,
+														borderRadius: "50%",
+														display: "flex",
+														alignItems: "center",
+														justifyContent: "center",
+														flexShrink: 0,
+													}}
 												>
-													{goal.updates.length} update
-													{goal.updates.length !== 1 ? "a" : ""}
-												</Typography>
+													<CalendarTodayOutlined
+														sx={{ fontSize: 16, color: "primary.main" }}
+													/>
+												</Box>
+												<Box sx={{ minWidth: 0 }}>
+													<Typography
+														variant="caption"
+														color="text.secondary"
+														fontWeight={500}
+														display="block"
+														sx={{ lineHeight: 1.2 }}
+													>
+														Započeto
+													</Typography>
+													<Typography
+														variant="body2"
+														fontWeight={600}
+														color="text.primary"
+														sx={{ fontSize: "0.875rem" }}
+													>
+														{new Date(goal.startDate).toLocaleDateString(
+															"sr-RS",
+															{
+																day: "numeric",
+																month: "short",
+																year: "numeric",
+															}
+														)}{" "}
+														• {daysSinceStart} dana
+													</Typography>
+												</Box>
 											</Box>
-										)}
 
-										{goal.completed && goal.completedAt && (
-											<Box
-												sx={{ display: "flex", alignItems: "center", gap: 1 }}
+											{goal.updates && goal.updates.length > 0 && (
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														gap: 1.25,
+													}}
+												>
+													<Box
+														sx={{
+															bgcolor: "info.lighter",
+															width: 32,
+															height: 32,
+															borderRadius: "50%",
+															display: "flex",
+															alignItems: "center",
+															justifyContent: "center",
+															flexShrink: 0,
+														}}
+													>
+														<TrendingUpOutlined
+															sx={{ fontSize: 16, color: "info.main" }}
+														/>
+													</Box>
+													<Box sx={{ minWidth: 0 }}>
+														<Typography
+															variant="caption"
+															color="text.secondary"
+															fontWeight={500}
+															display="block"
+															sx={{ lineHeight: 1.2 }}
+														>
+															Update-a
+														</Typography>
+														<Typography
+															variant="body2"
+															fontWeight={600}
+															color="text.primary"
+															sx={{ fontSize: "0.875rem" }}
+														>
+															{totalUpdates}{" "}
+															{totalUpdates === 1 ? "update" : "update-a"}
+														</Typography>
+													</Box>
+												</Box>
+											)}
+
+											{goal.completed && goal.completedAt && (
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														gap: 1.25,
+													}}
+												>
+													<Box
+														sx={{
+															bgcolor: "success.lighter",
+															width: 32,
+															height: 32,
+															borderRadius: "50%",
+															display: "flex",
+															alignItems: "center",
+															justifyContent: "center",
+															flexShrink: 0,
+														}}
+													>
+														<EmojiEventsOutlined
+															sx={{ fontSize: 16, color: "success.main" }}
+														/>
+													</Box>
+													<Box sx={{ minWidth: 0 }}>
+														<Typography
+															variant="caption"
+															color="text.secondary"
+															fontWeight={500}
+															display="block"
+															sx={{ lineHeight: 1.2 }}
+														>
+															Ostvareno
+														</Typography>
+														<Typography
+															variant="body2"
+															fontWeight={600}
+															color="success.main"
+															sx={{ fontSize: "0.875rem" }}
+														>
+															{new Date(goal.completedAt).toLocaleDateString(
+																"sr-RS",
+																{
+																	day: "numeric",
+																	month: "short",
+																	year: "numeric",
+																}
+															)}
+														</Typography>
+													</Box>
+												</Box>
+											)}
+										</Box>
+									</CardContent>
+
+									{/* Action Buttons */}
+									<Box
+										sx={{
+											px: 2.5,
+											pb: 2.5,
+											pt: 2,
+											display: "flex",
+											gap: 1,
+											borderTop: "1px solid",
+											borderColor: "divider",
+										}}
+										onClick={(e) => e.stopPropagation()}
+									>
+										<Tooltip title="Uredi cilj" arrow>
+											<IconButton
+												size="small"
+												onClick={() => handleOpenDialog(goal)}
+												sx={{
+													bgcolor: "primary.lighter",
+													color: "primary.main",
+													width: 36,
+													height: 36,
+													"&:hover": {
+														bgcolor: "primary.light",
+														color: "primary.dark",
+													},
+													transition: "all 0.2s",
+												}}
 											>
-												<EmojiEventsOutlined
-													sx={{ fontSize: 16, color: "success.main" }}
-												/>
-												<Typography
-													variant="caption"
-													color="success.main"
-													fontWeight={600}
-												>
-													Ostvareno:{" "}
-													{new Date(goal.completedAt).toLocaleDateString(
-														"sr-RS"
-													)}
-												</Typography>
-											</Box>
-										)}
+												<EditOutlined sx={{ fontSize: 18 }} />
+											</IconButton>
+										</Tooltip>
+										<Tooltip title="Obriši cilj" arrow>
+											<IconButton
+												size="small"
+												onClick={() => handleDelete(goal._id)}
+												sx={{
+													bgcolor: "error.lighter",
+													color: "error.main",
+													width: 36,
+													height: 36,
+													"&:hover": {
+														bgcolor: "error.light",
+														color: "error.dark",
+													},
+													transition: "all 0.2s",
+												}}
+											>
+												<DeleteOutlined sx={{ fontSize: 18 }} />
+											</IconButton>
+										</Tooltip>
 									</Box>
-								</CardContent>
-
-								<Box
-									sx={{
-										px: 2,
-										pb: 2,
-										display: "flex",
-										gap: 1,
-										borderTop: "1px solid",
-										borderColor: "divider",
-										pt: 1.5,
-									}}
-									onClick={(e) => e.stopPropagation()}
-								>
-									<IconButton
-										size="small"
-										onClick={() => handleOpenDialog(goal)}
-										sx={{
-											color: "primary.main",
-											"&:hover": {
-												bgcolor: "primary.lighter",
-											},
-										}}
-									>
-										<EditOutlined />
-									</IconButton>
-									<IconButton
-										size="small"
-										onClick={() => handleDelete(goal._id)}
-										sx={{
-											color: "error.main",
-											"&:hover": {
-												bgcolor: "error.lighter",
-											},
-										}}
-									>
-										<DeleteOutlined />
-									</IconButton>
-								</Box>
-							</Card>
-						</Grid>
-					))
+								</Card>
+							</Grid>
+						);
+					})
 				)}
 			</Grid>
-
 			<Dialog
 				open={openDialog}
 				onClose={handleCloseDialog}
