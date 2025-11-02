@@ -152,15 +152,16 @@ const GoalsClient: React.FC = () => {
 					sx={{ display: "flex", alignItems: "center", gap: 2 }}
 				>
 					<FlagOutlined sx={{ fontSize: 40, color: "primary.main" }} />
-					Moji Ciljevi
+					My goals
 				</Typography>
 				<Box sx={{ display: "flex", gap: 2, alignItems: "center", mt: 2 }}>
 					<Typography variant="body1" color="text.secondary">
-						Pratite i postižite svoje fitnes ciljeve
+						Track and achieve your fitness goals with our comprehensive goal
+						management features.
 					</Typography>
 					<Chip
 						icon={<EmojiEventsOutlined />}
-						label={`${completedGoals}/${totalGoals} ostvareno`}
+						label={`${completedGoals}/${totalGoals} achieved`}
 						color={completionRate === 100 ? "success" : "primary"}
 						variant="outlined"
 					/>
@@ -182,13 +183,13 @@ const GoalsClient: React.FC = () => {
 				>
 					<Tab
 						icon={<AddCircleOutlineOutlined />}
-						label="Svi Ciljevi"
+						label="All Goals"
 						{...a11yProps(0)}
 						sx={{ fontWeight: 600 }}
 					/>
 					<Tab
 						icon={<EmojiEventsOutlined />}
-						label="Progres"
+						label="Progress"
 						{...a11yProps(1)}
 						sx={{ fontWeight: 600 }}
 					/>

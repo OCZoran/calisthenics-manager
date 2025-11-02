@@ -76,7 +76,7 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goals }) => {
 									sx={{ fontSize: 32, color: "primary.main", mr: 2 }}
 								/>
 								<Typography variant="h5" component="h2" fontWeight="bold">
-									Ukupan Progres
+									Total Progress
 								</Typography>
 							</Box>
 							<Box sx={{ mb: 2 }}>
@@ -88,7 +88,7 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goals }) => {
 									}}
 								>
 									<Typography variant="body2" color="text.secondary">
-										Ostvareno ciljeva
+										Completed Goals
 									</Typography>
 									<Typography variant="body2" fontWeight="bold">
 										{completedGoals} / {totalGoals}
@@ -116,7 +116,7 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goals }) => {
 					<Card>
 						<CardContent>
 							<Typography variant="h6" gutterBottom color="text.secondary">
-								Ukupno Ciljeva
+								Total Goals
 							</Typography>
 							<Typography variant="h3" fontWeight="bold">
 								{totalGoals}
@@ -129,7 +129,7 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goals }) => {
 					<Card sx={{ bgcolor: "success.light" }}>
 						<CardContent>
 							<Typography variant="h6" gutterBottom>
-								Ostvareno
+								Completed
 							</Typography>
 							<Typography variant="h3" fontWeight="bold">
 								{completedGoals}
@@ -142,7 +142,7 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goals }) => {
 					<Card sx={{ bgcolor: "info.light" }}>
 						<CardContent>
 							<Typography variant="h6" gutterBottom>
-								Aktivno
+								Active
 							</Typography>
 							<Typography variant="h3" fontWeight="bold">
 								{activeGoals}
@@ -155,7 +155,7 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goals }) => {
 					<Card sx={{ bgcolor: "warning.light" }}>
 						<CardContent>
 							<Typography variant="h6" gutterBottom>
-								Stopa uspjeha
+								Success Rate
 							</Typography>
 							<Typography variant="h3" fontWeight="bold">
 								{completionRate.toFixed(0)}%
@@ -175,7 +175,7 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goals }) => {
 									size="small"
 									sx={{ mr: 1 }}
 								/>
-								<Typography variant="h6">Lagani Ciljevi</Typography>
+								<Typography variant="h6">Easy Goals</Typography>
 							</Box>
 							<Box sx={{ mb: 1 }}>
 								<Box
@@ -213,7 +213,7 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goals }) => {
 									size="small"
 									sx={{ mr: 1 }}
 								/>
-								<Typography variant="h6">Srednji Ciljevi</Typography>
+								<Typography variant="h6">Intermediate Goals</Typography>
 							</Box>
 							<Box sx={{ mb: 1 }}>
 								<Box
@@ -251,7 +251,7 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goals }) => {
 									size="small"
 									sx={{ mr: 1 }}
 								/>
-								<Typography variant="h6">Napredni Ciljevi</Typography>
+								<Typography variant="h6">Advanced Goals</Typography>
 							</Box>
 							<Box sx={{ mb: 1 }}>
 								<Box
@@ -288,7 +288,7 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goals }) => {
 									sx={{ fontSize: 28, color: "success.main", mr: 2 }}
 								/>
 								<Typography variant="h6" fontWeight="bold">
-									Nedavno Ostvareni Ciljevi
+									Recently Completed Goals
 								</Typography>
 							</Box>
 							{recentlyCompleted.length === 0 ? (
@@ -297,7 +297,7 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ goals }) => {
 									textAlign="center"
 									sx={{ py: 3 }}
 								>
-									Još uvijek nemate ostvarenih ciljeva
+									You have not completed any goals yet
 								</Typography>
 							) : (
 								<List>

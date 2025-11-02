@@ -15,11 +15,13 @@ import {
 	AddCircleOutlineOutlined,
 	TodayOutlined,
 	HistoryOutlined,
+	AssessmentOutlined,
 } from "@mui/icons-material";
 import MealManager from "./MealManager";
 import { DailyFoodLog, Meal } from "../interfaces/food-log.interface";
 import FoodHistory from "./FoodHistory";
 import DailyTracker from "./DailyTracker";
+import WeeklySummary from "./WeeklySummary";
 
 interface TabPanelProps {
 	children?: React.ReactNode;
@@ -188,9 +190,39 @@ const FoodLogClient: React.FC = () => {
 						{...a11yProps(2)}
 						sx={{ fontWeight: 600 }}
 					/>
+					<Tab
+						icon={<AssessmentOutlined />}
+						label="Nedeljni pregled"
+						{...a11yProps(3)}
+						sx={{ fontWeight: 600 }}
+					/>
 				</Tabs>
 			</Box>
 
+			<TabPanel value={tabValue} index={0}>
+				<MealManager
+					meals={meals}
+					onMealAdded={handleMealAdded}
+					onMealUpdated={handleMealUpdated}
+					onMealDeleted={handleMealDeleted}
+				/>
+			</TabPanel>
+
+			<TabPanel value={tabValue} index={1}>
+				<DailyTracker
+					meals={meals}
+					todayLog={todayLog}
+					onLogUpdated={handleTodayLogUpdated}
+				/>
+			</TabPanel>
+
+			<TabPanel value={tabValue} index={2}>
+				<FoodHistory />
+			</TabPanel>
+
+			<TabPanel value={tabValue} index={3}>
+				<WeeklySummary />
+			</TabPanel>
 			<TabPanel value={tabValue} index={0}>
 				<MealManager
 					meals={meals}

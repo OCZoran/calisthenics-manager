@@ -759,7 +759,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							<TextField
 								fullWidth
 								type="date"
-								label="Datum početka"
+								label="Start date"
 								value={formData.startDate}
 								onChange={(e) =>
 									setFormData({ ...formData, startDate: e.target.value })

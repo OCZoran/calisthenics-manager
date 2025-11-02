@@ -48,14 +48,14 @@ interface GoalManagerProps {
 }
 
 const CATEGORIES = [
-	"Fleksibilnost",
-	"Mobilnost",
-	"Vještina",
-	"Snaga",
-	"Kilaza",
-	"Ponavljanja",
-	"Izdržljivost",
-	"Drugo",
+	"Flexibility",
+	"Mobility",
+	"Skill",
+	"Strength",
+	"Weight",
+	"Repetitions",
+	"Endurance",
+	"Other",
 ];
 
 const GoalManager: React.FC<GoalManagerProps> = ({
@@ -191,7 +191,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 	};
 
 	const handleDelete = async (goalId: string) => {
-		if (!confirm("Da li ste sigurni da želite obrisati ovaj cilj?")) return;
+		if (!confirm("Are you sure you want to delete this goal?")) return;
 
 		try {
 			const response = await fetch(`/api/goals?id=${goalId}`, {
@@ -287,7 +287,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 						},
 					}}
 				>
-					Dodaj Cilj
+					Add New Goal
 				</Button>
 			</Box>
 
@@ -309,10 +309,10 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 										sx={{ fontSize: 60, color: "text.disabled", mb: 2 }}
 									/>
 									<Typography variant="h6" color="text.secondary" gutterBottom>
-										Nema ciljeva za prikaz
+										No goals found
 									</Typography>
 									<Typography variant="body2" color="text.disabled">
-										Dodajte svoj prvi cilj i počnite praćenje napretka
+										Add your first goal and start tracking your progress
 									</Typography>
 								</Box>
 							</CardContent>
@@ -334,11 +334,11 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 						const getDifficultyLabel = (diff: string) => {
 							switch (diff) {
 								case "Easy":
-									return "Lako";
+									return "Easy";
 								case "Intermediate":
-									return "Srednje";
+									return "Intermediate";
 								case "Advanced":
-									return "Napredno";
+									return "Advanced";
 								default:
 									return diff;
 							}
@@ -843,7 +843,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 															display="block"
 															sx={{ lineHeight: 1.2 }}
 														>
-															Ostvareno
+															Achieved
 														</Typography>
 														<Typography
 															variant="body2"
@@ -879,7 +879,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 										}}
 										onClick={(e) => e.stopPropagation()}
 									>
-										<Tooltip title="Uredi cilj" arrow>
+										<Tooltip title="Edit Goal" arrow>
 											<IconButton
 												size="small"
 												onClick={() => handleOpenDialog(goal)}
@@ -898,7 +898,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 												<EditOutlined sx={{ fontSize: 18 }} />
 											</IconButton>
 										</Tooltip>
-										<Tooltip title="Obriši cilj" arrow>
+										<Tooltip title="Delete Goal" arrow>
 											<IconButton
 												size="small"
 												onClick={() => handleDelete(goal._id)}
@@ -936,7 +936,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 				}}
 			>
 				<DialogTitle sx={{ pb: 1, fontSize: "1.5rem", fontWeight: 600 }}>
-					{editingGoal ? "Izmeni Cilj" : "Dodaj Novi Cilj"}
+					{editingGoal ? "Edit Goal" : "Add New Goal"}
 				</DialogTitle>
 				<DialogContent>
 					{error && (
@@ -951,14 +951,14 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 								<TextField
 									autoFocus
 									fullWidth
-									label="Naziv cilja *"
+									label="Goal Name *"
 									type="text"
 									variant="outlined"
 									value={formData.title}
 									onChange={(e) =>
 										setFormData({ ...formData, title: e.target.value })
 									}
-									placeholder="npr. Dodaj 20kg na bench press"
+									placeholder="e.g. Add 20kg to bench press"
 									sx={{
 										"& .MuiOutlinedInput-root": {
 											borderRadius: 2,
@@ -973,7 +973,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 									fontWeight={500}
 									sx={{ mb: 1.5, color: "text.secondary" }}
 								>
-									Kategorija *
+									Category *
 								</Typography>
 								<Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
 									{CATEGORIES.map((cat) => (
@@ -1005,7 +1005,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 
 							<Grid size={{ xs: 12, md: 6 }}>
 								<FormControl fullWidth variant="outlined">
-									<InputLabel>Težina</InputLabel>
+									<InputLabel>Difficulty</InputLabel>
 									<Select
 										value={formData.difficulty}
 										onChange={(e) =>
@@ -1017,7 +1017,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 													| "Advanced",
 											})
 										}
-										label="Težina"
+										label="Difficulty"
 										sx={{
 											borderRadius: 2,
 										}}
@@ -1033,7 +1033,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 								<TextField
 									fullWidth
 									type="date"
-									label="Datum početka"
+									label="Start Date"
 									value={formData.startDate}
 									onChange={(e) =>
 										setFormData({ ...formData, startDate: e.target.value })
@@ -1052,12 +1052,12 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 									fullWidth
 									multiline
 									rows={3}
-									label="Opis (opciono)"
+									label="Description (optional)"
 									value={formData.description}
 									onChange={(e) =>
 										setFormData({ ...formData, description: e.target.value })
 									}
-									placeholder="Dodaj detalje o svom cilju..."
+									placeholder="Add details about your goal..."
 									sx={{
 										"& .MuiOutlinedInput-root": {
 											borderRadius: 2,
@@ -1070,7 +1070,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 								<UploadImageBox
 									onUploadSuccess={handleMediaUpload}
 									endpoint="/api/goals-photos"
-									label="Dodaj slike ili video"
+									label="Add Images or Videos"
 									maxSizeMB={50}
 									multiple={true}
 									acceptedFormats="image/*,video/*"
@@ -1082,8 +1082,8 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 									color="text.secondary"
 									sx={{ mt: 1.5, display: "block" }}
 								>
-									Dozvoljeni formati: JPG, PNG, GIF, WebP, MP4, MOV, AVI, WebM
-									(max 10MB za slike, 50MB za video)
+									Allowed formats: JPG, PNG, GIF, WebP, MP4, MOV, AVI, WebM (max
+									10MB for images, 50MB for videos)
 								</Typography>
 							</Grid>
 						</Grid>
@@ -1097,7 +1097,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 							px: 3,
 						}}
 					>
-						Otkaži
+						Cancel
 					</Button>
 					<Button
 						onClick={handleSubmit}
@@ -1112,7 +1112,7 @@ const GoalManager: React.FC<GoalManagerProps> = ({
 							},
 						}}
 					>
-						{editingGoal ? "Sačuvaj" : "Dodaj Cilj"}
+						{editingGoal ? "Save" : "Add Goal"}
 					</Button>
 				</DialogActions>
 			</Dialog>
