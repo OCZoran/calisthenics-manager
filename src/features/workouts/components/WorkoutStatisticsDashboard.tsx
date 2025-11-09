@@ -54,19 +54,19 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 }) => {
 	const [selectedType, setSelectedType] = useState<string>("all");
 
-	// Filter workouts po planu ako je proslijeđen
+	// Filter workouts by plan if planId exists
 	const planWorkouts = useMemo(() => {
 		if (!planId) return workouts;
 		return workouts.filter((w) => w.planId === planId);
 	}, [workouts, planId]);
 
-	// Filter po tipu treninga
+	// Filter by workout type
 	const filteredWorkouts = useMemo(() => {
 		if (selectedType === "all") return planWorkouts;
 		return planWorkouts.filter((w) => w.type === selectedType);
 	}, [planWorkouts, selectedType]);
 
-	// Grupisanje treninga po tipovima za filter dugmad
+	// Group workouts by type for filter buttons
 	const workoutsByType = useMemo(() => {
 		return planWorkouts.reduce((acc, workout) => {
 			const type = workout.type;
@@ -78,10 +78,9 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 		}, {} as Record<string, Workout[]>);
 	}, [planWorkouts]);
 
-	// PROŠIRENI KOD - sa hold statistikama
+	// EXTENDED: includes hold time statistics
 	const transformedWorkouts = useMemo(() => {
 		return filteredWorkouts.map((workout) => {
-			// Izračunavanje ukupnih ponavljanja
 			const totalReps = workout.exercises.reduce((sum, exercise) => {
 				return (
 					sum +
@@ -91,7 +90,6 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 				);
 			}, 0);
 
-			// Izračunavanje ukupnog hold vremena
 			const totalHoldTime = workout.exercises.reduce((sum, exercise) => {
 				return (
 					sum +
@@ -101,7 +99,6 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 				);
 			}, 0);
 
-			// Izračunavanje ukupnog volumena (samo weighted vježbe)
 			const totalVolume = workout.exercises.reduce((sum, exercise) => {
 				return (
 					sum +
@@ -109,15 +106,13 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 						const weight = parseFloat(set.weight || "0") || 0;
 						const reps = parseInt(set.reps) || 0;
 						const hold = parseInt((set as { hold: string }).hold) || 0;
-						// Volumen može biti od reps ili hold setova sa težinom
 						const effectiveVolume =
-							reps > 0 ? weight * reps : hold > 0 ? weight * (hold / 10) : 0; // hold/10 kao konverzija
+							reps > 0 ? weight * reps : hold > 0 ? weight * (hold / 10) : 0;
 						return setSum + effectiveVolume;
 					}, 0)
 				);
 			}, 0);
 
-			// Izračunavanje prosječnog vremena odmora
 			const allRestTimes = workout.exercises.flatMap((exercise) =>
 				exercise.sets.map((set) => parseInt(set.rest) || 0)
 			);
@@ -129,7 +124,6 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 					  )
 					: 0;
 
-			// Kreiranje statistika po vježbama
 			const exerciseStats = workout.exercises.map((exercise) => {
 				const exerciseTotalReps = exercise.sets.reduce(
 					(sum, set) => sum + (parseInt(set.reps) || 0),
@@ -157,7 +151,6 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 						  )
 						: 0;
 
-				// Određivanje tipa vježbe
 				const hasWeight = exercise.sets.some(
 					(set) => parseFloat(set.weight || "0") > 0
 				);
@@ -200,7 +193,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 		});
 	}, [filteredWorkouts]);
 
-	// Analiza napretka sa hold podrškom
+	// Progress analysis
 	const progressAnalysis = useMemo(() => {
 		if (transformedWorkouts.length < 2) return null;
 
@@ -209,13 +202,11 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 				new Date(a.workoutDate).getTime() - new Date(b.workoutDate).getTime()
 		);
 
-		// Trend analiza za različite tipove
 		const bodyweightData: { date: string; reps: number }[] = [];
 		const weightedData: { date: string; volume: number }[] = [];
 		const holdData: { date: string; holdTime: number }[] = [];
 		const restTimeData: { date: string; rest: number; type: string }[] = [];
 
-		// Grupiranje vježbi po tipu sa hold podrškom
 		const exerciseProgress: {
 			[key: string]: {
 				type: string;
@@ -229,7 +220,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 		} = {};
 
 		sortedWorkouts.forEach((workout) => {
-			const date = new Date(workout.workoutDate).toLocaleDateString("sr-RS", {
+			const date = new Date(workout.workoutDate).toLocaleDateString("en-US", {
 				day: "2-digit",
 				month: "2-digit",
 			});
@@ -249,7 +240,6 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 					totalHoldTime += exercise.totalHoldTime;
 				}
 
-				// Praćenje napretka po vježbama
 				if (!exerciseProgress[exercise.exerciseName]) {
 					exerciseProgress[exercise.exerciseName] = {
 						type: exercise.exerciseType,
@@ -294,12 +284,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 			});
 		});
 
-		// Izračunavanje trendova
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const calculateTrend = <T extends Record<string, any>>(
-			data: T[],
-			key: keyof T
-		): number => {
+		const calculateTrend = (data: any[], key: string): number => {
 			if (data.length < 2) return 0;
 			const first = Number(data[0][key]);
 			const last = Number(data[data.length - 1][key]);
@@ -326,7 +311,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 		};
 	}, [transformedWorkouts]);
 
-	// Statistike plana sa hold podrškom
+	// Plan statistics
 	const planStats = useMemo(() => {
 		const totalWorkouts = transformedWorkouts.length;
 		const totalReps = transformedWorkouts.reduce(
@@ -347,7 +332,6 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 				  totalWorkouts
 				: 0;
 
-		// Distribucija tipova treninga
 		const workoutTypes = transformedWorkouts.reduce(
 			(acc: { [key: string]: number }, w) => {
 				acc[w.workoutType] = (acc[w.workoutType] || 0) + 1;
@@ -404,10 +388,10 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 				<div className="text-center py-12">
 					<Activity className="mx-auto mb-4 text-gray-400" size={64} />
 					<h3 className="text-xl font-semibold text-gray-600 mb-2">
-						Nedovoljno podataka za analizu
+						Not enough data for analysis
 					</h3>
 					<p className="text-gray-500">
-						Potrebno je minimum 2 treninga za prikaz napretka.
+						You need at least 2 workouts to show progress
 						{selectedType !== "all" &&
 							` (${workoutTypeConfig[selectedType]?.label || selectedType})`}
 					</p>
@@ -421,13 +405,13 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 			{/* Header */}
 			<div className="text-center mb-8">
 				<h1 className="text-3xl font-bold text-gray-900 mb-2">
-					{planId ? `Napredak: ${planName}` : "Napredak Trening Plana"}
+					{planId ? `Progress: ${planName}` : "Workout Plan Progress"}
 				</h1>
 				<p className="text-gray-600">
-					Analiza {planStats.totalWorkouts} treninga
+					Analysis of {planStats.totalWorkouts} workouts
 					{selectedType !== "all" &&
 						` - ${workoutTypeConfig[selectedType]?.label || selectedType}`}
-					- Pratite svoj napredak kroz vrijeme
+					- Track your improvement over time
 				</p>
 			</div>
 
@@ -436,7 +420,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 				<div className="flex items-center gap-4 mb-3">
 					<Filter className="text-blue-500" size={20} />
 					<span className="font-medium text-gray-800">
-						Filtriraj po tipu treninga:
+						Filter by workout type:
 					</span>
 				</div>
 				<div className="flex gap-2 flex-wrap">
@@ -448,7 +432,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 								: "bg-gray-100 text-gray-700 hover:bg-gray-200"
 						}`}
 					>
-						Svi trenizi ({planWorkouts.length})
+						All Workouts ({planWorkouts.length})
 					</button>
 					{Object.entries(workoutsByType).map(([type, typeWorkouts]) => (
 						<button
@@ -476,7 +460,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 				</div>
 			</div>
 
-			{/* Statistike - kartice sa hold podrškom */}
+			{/* Stats */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
 				<div className="bg-white rounded-xl shadow-sm border p-6">
 					<div className="flex items-center justify-between mb-2">
@@ -487,10 +471,10 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 					</div>
 					<p className="text-sm text-gray-600">
 						{selectedType === "all"
-							? "Ukupno treninga"
+							? "Total Workouts"
 							: `${
 									workoutTypeConfig[selectedType]?.label || selectedType
-							  } treninga`}
+							  } Workouts`}
 					</p>
 				</div>
 
@@ -501,7 +485,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 							{planStats.totalReps}
 						</span>
 					</div>
-					<p className="text-sm text-gray-600">Ukupno ponavljanja</p>
+					<p className="text-sm text-gray-600">Total Reps</p>
 				</div>
 
 				<div className="bg-white rounded-xl shadow-sm border p-6">
@@ -513,7 +497,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 								: "0"}
 						</span>
 					</div>
-					<p className="text-sm text-gray-600">Ukupno hold vrijeme</p>
+					<p className="text-sm text-gray-600">Total Hold Time</p>
 				</div>
 
 				<div className="bg-white rounded-xl shadow-sm border p-6">
@@ -525,7 +509,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 								: "0"}
 						</span>
 					</div>
-					<p className="text-sm text-gray-600">Ukupan volumen (kg)</p>
+					<p className="text-sm text-gray-600">Total Volume (kg)</p>
 				</div>
 
 				<div className="bg-white rounded-xl shadow-sm border p-6">
@@ -535,11 +519,11 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 							{planStats.avgRestTime}s
 						</span>
 					</div>
-					<p className="text-sm text-gray-600">Prosječan odmor</p>
+					<p className="text-sm text-gray-600">Average Rest</p>
 				</div>
 			</div>
 
-			{/* Trend kartice sa hold podrškom */}
+			{/* Trends */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 				{progressAnalysis.trends.bodyweight !== 0 && (
 					<div className="bg-white rounded-xl shadow-sm border p-6">
@@ -557,7 +541,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 							{progressAnalysis.trends.bodyweight > 0 ? "+" : ""}
 							{progressAnalysis.trends.bodyweight.toFixed(1)}%
 						</div>
-						<p className="text-sm text-gray-500">Promjena u ponavljanjima</p>
+						<p className="text-sm text-gray-500">Change in reps</p>
 					</div>
 				)}
 
@@ -575,7 +559,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 							{progressAnalysis.trends.weighted > 0 ? "+" : ""}
 							{progressAnalysis.trends.weighted.toFixed(1)}%
 						</div>
-						<p className="text-sm text-gray-500">Promjena u volumenu</p>
+						<p className="text-sm text-gray-500">Change in volume</p>
 					</div>
 				)}
 
@@ -593,13 +577,13 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 							{progressAnalysis.trends.hold > 0 ? "+" : ""}
 							{progressAnalysis.trends.hold.toFixed(1)}%
 						</div>
-						<p className="text-sm text-gray-500">Promjena u hold vremenu</p>
+						<p className="text-sm text-gray-500">Change in hold time</p>
 					</div>
 				)}
 
 				<div className="bg-white rounded-xl shadow-sm border p-6">
 					<div className="flex items-center justify-between mb-4">
-						<h3 className="font-semibold text-gray-800">Odmor</h3>
+						<h3 className="font-semibold text-gray-800">Rest Time</h3>
 						{getTrendIcon(-progressAnalysis.trends.rest)}
 					</div>
 					<div
@@ -610,17 +594,16 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 						{progressAnalysis.trends.rest > 0 ? "+" : ""}
 						{progressAnalysis.trends.rest.toFixed(1)}%
 					</div>
-					<p className="text-sm text-gray-500">Promjena u vremenu odmora</p>
+					<p className="text-sm text-gray-500">Change in rest time</p>
 				</div>
 			</div>
 
-			{/* Chartovi sa hold podrškom */}
+			{/* Charts */}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				{/* Bodyweight napredak */}
 				{progressAnalysis.bodyweightData.length > 0 && (
 					<div className="bg-white rounded-xl shadow-sm border p-6">
 						<h3 className="text-lg font-semibold text-gray-800 mb-4">
-							Bodyweight Napredak (Ponavljanja)
+							Bodyweight Progress (Reps)
 						</h3>
 						<ResponsiveContainer width="100%" height={250}>
 							<LineChart data={progressAnalysis.bodyweightData}>
@@ -640,11 +623,10 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 					</div>
 				)}
 
-				{/* Weighted napredak */}
 				{progressAnalysis.weightedData.length > 0 && (
 					<div className="bg-white rounded-xl shadow-sm border p-6">
 						<h3 className="text-lg font-semibold text-gray-800 mb-4">
-							Weighted Napredak (Volumen kg)
+							Weighted Progress (Volume kg)
 						</h3>
 						<ResponsiveContainer width="100%" height={250}>
 							<LineChart data={progressAnalysis.weightedData}>
@@ -664,11 +646,10 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 					</div>
 				)}
 
-				{/* Hold napredak - NOVO */}
 				{progressAnalysis.holdData.length > 0 && (
 					<div className="bg-white rounded-xl shadow-sm border p-6">
 						<h3 className="text-lg font-semibold text-gray-800 mb-4">
-							Hold Napredak (Sekunde)
+							Hold Progress (Seconds)
 						</h3>
 						<ResponsiveContainer width="100%" height={250}>
 							<LineChart data={progressAnalysis.holdData}>
@@ -678,7 +659,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 								<Tooltip
 									formatter={(value: number) => [
 										formatTime(value),
-										"Hold vrijeme",
+										"Hold Time",
 									]}
 								/>
 								<Line
@@ -693,10 +674,10 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 					</div>
 				)}
 
-				{/* Distribucija tipova treninga */}
+				{/* Workout Type Distribution */}
 				<div className="bg-white rounded-xl shadow-sm border p-6">
 					<h3 className="text-lg font-semibold text-gray-800 mb-4">
-						Distribucija Tipova Treninga
+						Workout Type Distribution
 					</h3>
 					<ResponsiveContainer width="100%" height={250}>
 						<PieChart>
@@ -720,10 +701,10 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 					</ResponsiveContainer>
 				</div>
 
-				{/* Vremena odmora */}
+				{/* Rest Time */}
 				<div className="bg-white rounded-xl shadow-sm border p-6">
 					<h3 className="text-lg font-semibold text-gray-800 mb-4">
-						Vremena Odmora (sekunde)
+						Rest Time (seconds)
 					</h3>
 					<ResponsiveContainer width="100%" height={250}>
 						<BarChart data={progressAnalysis.restTimeData}>
@@ -737,11 +718,11 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 				</div>
 			</div>
 
-			{/* Napredak po vježbama sa hold podrškom */}
+			{/* Exercise Progress */}
 			{Object.keys(progressAnalysis.exerciseProgress).length > 0 && (
 				<div className="bg-white rounded-xl shadow-sm border p-6">
 					<h3 className="text-lg font-semibold text-gray-800 mb-6">
-						Napredak po Vježbama
+						Exercise Progress
 					</h3>
 
 					<div className="grid gap-6">
@@ -769,7 +750,7 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 											{data.type === "bodyweight"
 												? "Body Weight"
 												: data.type === "hold-bodyweight"
-												? "Hold Body Weight"
+												? "Hold Bodyweight"
 												: data.type === "hold-weighted"
 												? "Hold Weighted"
 												: data.type === "weighted"
@@ -777,75 +758,6 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 												: "Mixed"}
 										</span>
 									</div>
-
-									<ResponsiveContainer width="100%" height={200}>
-										<LineChart data={data.data}>
-											<CartesianGrid strokeDasharray="3 3" />
-											<XAxis dataKey="date" />
-											<YAxis yAxisId="left" />
-											<YAxis yAxisId="right" orientation="right" />
-											<Tooltip
-												formatter={(value: number | string, name: string) => {
-													if (
-														name === "Ponavljanja" ||
-														name === "Volumen (kg)"
-													) {
-														return [value, name];
-													}
-													if (name === "Hold vrijeme") {
-														return [formatTime(Number(value)), name];
-													}
-													if (name === "Odmor (s)") {
-														return [value, name];
-													}
-													return [value, name];
-												}}
-											/>
-											<Line
-												yAxisId="left"
-												type="monotone"
-												dataKey="value"
-												stroke={
-													data.type === "bodyweight"
-														? "#10B981"
-														: data.type.includes("hold")
-														? "#6366F1"
-														: "#3B82F6"
-												}
-												strokeWidth={2}
-												dot={{ r: 4 }}
-												name={
-													data.type === "bodyweight"
-														? "Ponavljanja"
-														: data.type.includes("hold")
-														? "Hold vrijeme"
-														: "Volumen (kg)"
-												}
-											/>
-											{data.data.some((d) => d.holdTime && d.holdTime > 0) && (
-												<Line
-													yAxisId="left"
-													type="monotone"
-													dataKey="holdTime"
-													stroke="#8B5CF6"
-													strokeWidth={2}
-													strokeDasharray="3 3"
-													dot={{ r: 3 }}
-													name="Hold vrijeme"
-												/>
-											)}
-											<Line
-												yAxisId="right"
-												type="monotone"
-												dataKey="rest"
-												stroke="#F59E0B"
-												strokeWidth={2}
-												strokeDasharray="5 5"
-												dot={{ r: 3 }}
-												name="Odmor (s)"
-											/>
-										</LineChart>
-									</ResponsiveContainer>
 								</div>
 							)
 						)}
