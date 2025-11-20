@@ -46,12 +46,13 @@ import ExerciseClient from "../exercise/ExerciseClient";
 
 interface WorkoutClientProps {
 	initialWorkouts: Workout[];
+	userEmail: string;
 }
 
 type ViewMode = "current" | "history" | "all";
 type PlanManagerView = "plans" | "exercises"; // Novi tip za upravljanje viewom
 
-const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
+const WorkoutClient = ({ initialWorkouts, userEmail }: WorkoutClientProps) => {
 	const [workouts, setWorkouts] = useState<Workout[]>(initialWorkouts);
 	const [showForm, setShowForm] = useState(false);
 	const [showPlanManager, setShowPlanManager] = useState(false);
@@ -242,7 +243,10 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	const handleAddWorkout = () => {
 		if (!activePlan) {
 			setShowPlanManager(true);
-			showSnackbar("Potrebno je prvo kreirati trening plan", "warning");
+			showSnackbar(
+				"You need to create an active training plan first",
+				"warning"
+			);
 			return;
 		}
 
@@ -275,7 +279,10 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 	const handleCreateWorkout = () => {
 		if (!activePlan) {
 			setShowPlanManager(true);
-			showSnackbar("Potrebno je prvo kreirati aktivni trening plan", "warning");
+			showSnackbar(
+				"You need to create an active training plan first",
+				"warning"
+			);
 			return;
 		}
 		handleAddWorkout();
@@ -294,7 +301,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 	const handleManualSync = async () => {
 		if (!isOnline) {
-			showSnackbar("Nema internet konekcije", "warning");
+			showSnackbar("No internet connection", "warning");
 			return;
 		}
 
@@ -305,10 +312,10 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		setIsSyncing(true);
 		try {
 			await manualSync();
-			showSnackbar("Sinhronizacija uspešna!", "success");
+			showSnackbar("Synchronization successful!", "success");
 		} catch (error) {
-			console.error("Greška pri sync:", error);
-			showSnackbar("Greška pri sinhronizaciji", "error");
+			console.error("Error during sync:", error);
+			showSnackbar("Error during synchronization", "error");
 		} finally {
 			setIsSyncing(false);
 		}
@@ -326,11 +333,11 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 						});
 
 						await refreshWorkouts();
-						showSnackbar("Trening je uspešno ažuriran!", "success");
+						showSnackbar("Workout successfully updated!", "success");
 					} else if (!editingWorkout.synced) {
 						if (!editingWorkout._id) {
 							showSnackbar(
-								"Greška: Nedostaje ID treninga za offline ažuriranje",
+								"Error: Missing workout ID for offline update",
 								"error"
 							);
 							return;
@@ -359,14 +366,14 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 										: w
 								)
 							);
-							showSnackbar("Offline trening je ažuriran!", "success");
+							showSnackbar("Offline workout successfully updated!", "success");
 						} else {
-							showSnackbar("Greška pri ažuriranju offline treninga", "error");
+							showSnackbar("Error updating offline workout", "error");
 							return;
 						}
 					} else {
 						showSnackbar(
-							"Editovanje sinhronizovanih treninga nije dostupno offline",
+							"Editing synced workouts is not available offline",
 							"warning"
 						);
 						return;
@@ -376,12 +383,12 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 
 					if (result.offline) {
 						showSnackbar(
-							"Trening sačuvan offline - sinhronizaće se kad se vrati internet",
+							"Workout saved offline - will sync when internet is back",
 							"warning"
 						);
 					} else {
 						await refreshWorkouts();
-						showSnackbar("Trening je uspešno dodat!", "success");
+						showSnackbar("Workout successfully added!", "success");
 					}
 				}
 
@@ -392,7 +399,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				showSnackbar(
 					error.response?.data?.message ||
 						error.message ||
-						"Greška pri čuvanju treninga",
+						"Error saving workout",
 					"error"
 				);
 			} finally {
@@ -416,17 +423,17 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 						localStorage.setItem("pendingWorkouts", JSON.stringify(updated));
 					}
 					setWorkouts((prev) => prev.filter((w) => w._id !== workoutId));
-					showSnackbar("Offline trening je obrisan!", "success");
+					showSnackbar("Offline workout successfully deleted!", "success");
 					return;
 				} catch (error) {
-					console.error("Greška pri brisanju offline workout:", error);
-					showSnackbar("Greška pri brisanju treninga", "error");
+					console.error("Error deleting offline workout:", error);
+					showSnackbar("Error deleting workout", "error");
 					return;
 				}
 			}
 
 			if (!isOnline) {
-				showSnackbar("Brisanje nije dostupno offline", "warning");
+				showSnackbar("Deleting is not available offline", "warning");
 				throw new Error("Offline mode - delete not available");
 			}
 
@@ -436,13 +443,13 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				});
 
 				setWorkouts((prev) => prev.filter((w) => w._id !== workoutId));
-				showSnackbar("Trening je uspešno obrisan!", "success");
+				showSnackbar("Workout successfully deleted!", "success");
 			} catch (error: any) {
 				console.error("Error deleting workout:", error);
 				showSnackbar(
 					error.response?.data?.message ||
 						error.message ||
-						"Greška pri brisanju treninga",
+						"Error deleting workout",
 					"error"
 				);
 				throw error;
@@ -518,10 +525,10 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							iconPosition="start"
 							label={
 								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									Aktivni plan
+									Active Plan
 									{activePlan && (
 										<Chip
-											label="AKTIVAN"
+											label="ACTIVE"
 											color="success"
 											size="small"
 											sx={{ ml: 1 }}
@@ -536,7 +543,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							iconPosition="start"
 							label={
 								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									Istorija planova
+									History of Plans
 									<Chip
 										label={completedPlans.length}
 										color="primary"
@@ -553,7 +560,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							iconPosition="start"
 							label={
 								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									Svi treninzi
+									All Workouts
 									<Chip
 										label={workouts.length}
 										color="secondary"
@@ -570,10 +577,10 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				{viewMode === "current" && activePlan && (
 					<Alert severity="info" sx={{ mt: 2 }}>
 						<Typography variant="subtitle2" fontWeight="bold">
-							Aktivni plan: {activePlan.name}
+							Active Plan: {activePlan.name}
 						</Typography>
 						<Typography variant="body2">
-							{activePlan.description || "Nema opisa"} | Treninzi:{" "}
+							{activePlan.description || "No description"} | Workouts:{" "}
 							{filteredWorkouts.length}
 						</Typography>
 					</Alert>
@@ -582,10 +589,10 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				{viewMode === "current" && !activePlan && (
 					<Alert severity="warning" sx={{ mt: 2 }}>
 						<Typography variant="subtitle2" fontWeight="bold">
-							Nema aktivnog plana
+							No Active Plan
 						</Typography>
 						<Typography variant="body2">
-							Kreirajte novi trening plan za početak treniranja.
+							Create a new training plan to start working out.
 						</Typography>
 					</Alert>
 				)}
@@ -593,11 +600,11 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				{viewMode === "history" && (
 					<Box sx={{ mt: 2 }}>
 						<FormControl fullWidth>
-							<InputLabel>Izaberite plan za pregled</InputLabel>
+							<InputLabel>Select a plan to view</InputLabel>
 							<Select
 								value={selectedPlanId}
 								onChange={(e) => handlePlanSelectionChange(e.target.value)}
-								label="Izaberite plan za pregled"
+								label="Select a plan to view"
 							>
 								{trainingPlans.map((plan) => (
 									<MenuItem key={plan._id} value={plan._id}>
@@ -623,7 +630,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 												sx={{ ml: "auto" }}
 											>
 												{workouts.filter((w) => w.planId === plan._id).length}{" "}
-												treninga
+												workouts
 											</Typography>
 										</Box>
 									</MenuItem>
@@ -637,16 +644,16 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 									{currentPlan.name} - {currentPlan.status}
 								</Typography>
 								<Typography variant="body2">
-									{currentPlan.description || "Nema opisa"} | Treninzi:{" "}
+									{currentPlan.description || "No description"} | Workouts:{" "}
 									{filteredWorkouts.length}
 									{currentPlan.startDate &&
-										` | Početak: ${new Date(
+										` | Start: ${new Date(
 											currentPlan.startDate
 										).toLocaleDateString("sr-RS")}`}
 									{currentPlan.endDate &&
-										` | Završetak: ${new Date(
-											currentPlan.endDate
-										).toLocaleDateString("sr-RS")}`}
+										` | End: ${new Date(currentPlan.endDate).toLocaleDateString(
+											"sr-RS"
+										)}`}
 								</Typography>
 							</Alert>
 						)}
@@ -656,10 +663,10 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 				{viewMode === "all" && (
 					<Alert severity="info" sx={{ mt: 2 }}>
 						<Typography variant="subtitle2" fontWeight="bold">
-							Pregled svih treninga
+							All Workouts
 						</Typography>
 						<Typography variant="body2">
-							Ukupno {workouts.length} treninga kroz sve planove
+							Total {workouts.length} workouts across all plans
 						</Typography>
 					</Alert>
 				)}
@@ -667,7 +674,6 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 		);
 	};
 
-	// Ako je showPlanManager aktivan, prikaži Plan Manager ili Exercise Manager
 	if (showPlanManager) {
 		return (
 			<Box>
@@ -693,21 +699,21 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 									<Timeline
 										sx={{ mr: 2, color: "primary.main", fontSize: 32 }}
 									/>
-									Trening planovi
+									Training Plans
 								</>
 							) : (
 								<>
 									<FitnessCenterOutlined
 										sx={{ mr: 2, color: "primary.main", fontSize: 32 }}
 									/>
-									Baza vježbi
+									Exercise Library
 								</>
 							)}
 						</Typography>
 						<Typography variant="subtitle1" color="textSecondary">
 							{planManagerView === "plans"
-								? "Upravljajte svojim trening planovima"
-								: "Kreirajte i upravljajte vašim vježbama"}
+								? "Manage your training plans"
+								: "Create and manage your exercises"}
 						</Typography>
 					</Box>
 
@@ -719,7 +725,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							startIcon={<Timeline />}
 							size="large"
 						>
-							Planovi
+							Plans
 						</Button>
 						<Button
 							variant={
@@ -729,19 +735,18 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 							startIcon={<FitnessCenterOutlined />}
 							size="large"
 						>
-							Vježbe
+							Exercises
 						</Button>
 						<Button
 							variant="outlined"
 							onClick={handleClosePlanManager}
 							size="large"
 						>
-							Nazad na treninge
+							Back to Training
 						</Button>
 					</Box>
 				</Box>
 
-				{/* Prikaži odgovarajući content */}
 				{planManagerView === "plans" ? (
 					<TrainingPlans onPlanSelect={handlePlanSelect} />
 				) : (
@@ -792,14 +797,14 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 								fontSize: { xs: 24, sm: 28, md: 32 },
 							}}
 						/>
-						Moji treninzi
+						My Workouts
 					</Typography>
 					<Typography
 						variant="subtitle1"
 						color="textSecondary"
 						sx={{ fontSize: { xs: "0.9rem", sm: "1rem" } }}
 					>
-						Pratite i upravljajte svojim treninzima
+						Track and manage your workouts
 					</Typography>
 				</Box>
 
@@ -824,7 +829,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 								fontSize: { xs: "1rem", sm: "1.1rem" },
 							}}
 						>
-							Vježbe
+							Exercises
 						</Button>
 						<Button
 							variant="outlined"
@@ -838,7 +843,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 								fontSize: { xs: "1rem", sm: "1.1rem" },
 							}}
 						>
-							Planovi
+							Plans
 						</Button>
 						<Badge badgeContent={pendingWorkouts.length} color="warning">
 							<Button
@@ -860,7 +865,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 									transition: "all 0.2s ease-in-out",
 								}}
 							>
-								Dodaj trening
+								Add Workout
 							</Button>
 						</Badge>
 					</Box>
@@ -876,6 +881,7 @@ const WorkoutClient = ({ initialWorkouts }: WorkoutClientProps) => {
 					workouts={workouts}
 					trainingPlans={trainingPlans}
 					activePlanId={activePlan?._id}
+					userEmail={userEmail}
 				/>
 			)}
 

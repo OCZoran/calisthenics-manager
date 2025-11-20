@@ -41,16 +41,16 @@ export const EmptyWorkoutState: React.FC<EmptyWorkoutStateProps> = ({
 								startIcon={<Add />}
 								onClick={onCreateWorkout}
 							>
-								Dodaj trening
+								Add training
 							</Button>
 						)
 					}
 				>
 					<Typography variant="subtitle1" fontWeight="bold">
-						Aktivan plan: {activePlan?.name}
+						Active routine: {activePlan?.name}
 					</Typography>
 					<Typography variant="body2">
-						Počeo:{" "}
+						Beggining:{" "}
 						{activePlan?.startDate ? formatDate(activePlan.startDate) : "N/A"}
 					</Typography>
 				</Alert>

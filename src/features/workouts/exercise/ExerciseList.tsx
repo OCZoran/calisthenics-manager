@@ -120,7 +120,7 @@ const ExerciseList: React.FC<ExerciseListProps> = ({
 
 			if (!response.ok) {
 				const errorData = await response.json();
-				throw new Error(errorData.error || "Greška pri ažuriranju vježbe");
+				throw new Error(errorData.error || "Error");
 			}
 
 			const updatedExercise: ExerciseDefinition = {
@@ -138,7 +138,7 @@ const ExerciseList: React.FC<ExerciseListProps> = ({
 		} catch (error) {
 			console.error("Error updating exercise:", error);
 			setError(
-				error instanceof Error ? error.message : "Greška pri ažuriranju vježbe"
+				error instanceof Error ? error.message : "Error during exercise update"
 			);
 		} finally {
 			setIsUpdating(false);
@@ -161,7 +161,7 @@ const ExerciseList: React.FC<ExerciseListProps> = ({
 
 			if (!response.ok) {
 				const errorData = await response.json();
-				throw new Error(errorData.error || "Greška pri brisanju vježbe");
+				throw new Error(errorData.error || "Error during deletion of exercise");
 			}
 
 			onExerciseDeleted(selectedExercise._id!);
@@ -170,7 +170,9 @@ const ExerciseList: React.FC<ExerciseListProps> = ({
 		} catch (error) {
 			console.error("Error deleting exercise:", error);
 			setError(
-				error instanceof Error ? error.message : "Greška pri brisanju vježbe"
+				error instanceof Error
+					? error.message
+					: "Error during deletion of exercise"
 			);
 		} finally {
 			setIsDeleting(false);
@@ -232,7 +234,7 @@ const ExerciseList: React.FC<ExerciseListProps> = ({
 				<Box sx={{ display: "flex", alignItems: "center" }}>
 					<FitnessCenterOutlined sx={{ mr: 2, color: "primary.main" }} />
 					<Typography variant="h5" component="h2" fontWeight="600">
-						Vaše vježbe ({filteredExercises.length})
+						Your exercises ({filteredExercises.length})
 					</Typography>
 				</Box>
 			</Box>
@@ -243,19 +245,19 @@ const ExerciseList: React.FC<ExerciseListProps> = ({
 					<Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
 						<FilterListOutlined sx={{ mr: 1 }} />
 						<Typography variant="subtitle1" fontWeight="600">
-							Filteri
+							Filters
 						</Typography>
 					</Box>
 					<Grid container spacing={2}>
 						<Grid size={{ xs: 12, sm: 6 }}>
 							<FormControl fullWidth size="small">
-								<InputLabel>Kategorija</InputLabel>
+								<InputLabel>Categories</InputLabel>
 								<Select
 									value={filterCategory}
 									onChange={(e) => setFilterCategory(e.target.value)}
 									label="Kategorija"
 								>
-									<MenuItem value="all">Sve kategorije</MenuItem>
+									<MenuItem value="all">All categories</MenuItem>
 									{categories.map((cat) => (
 										<MenuItem key={cat} value={cat}>
 											{getCategoryLabel(cat)}
@@ -272,7 +274,7 @@ const ExerciseList: React.FC<ExerciseListProps> = ({
 									onChange={(e) => setFilterTag(e.target.value)}
 									label="Tag"
 								>
-									<MenuItem value="all">Svi tagovi</MenuItem>
+									<MenuItem value="all">All tags</MenuItem>
 									{availableTags.map((tag) => (
 										<MenuItem key={tag} value={tag}>
 											{getTagLabel(tag)}
@@ -285,7 +287,6 @@ const ExerciseList: React.FC<ExerciseListProps> = ({
 				</CardContent>
 			</Card>
 
-			{/* Exercise groups */}
 			{categories.map(
 				(category) =>
 					groupedExercises[category].length > 0 && (
@@ -364,7 +365,7 @@ const ExerciseList: React.FC<ExerciseListProps> = ({
 														size="small"
 														color="primary"
 													>
-														Edituj
+														Edit
 													</Button>
 													<Button
 														startIcon={<DeleteOutlined />}
@@ -372,7 +373,7 @@ const ExerciseList: React.FC<ExerciseListProps> = ({
 														size="small"
 														color="error"
 													>
-														Obriši
+														Delete
 													</Button>
 												</CardActions>
 											</Card>

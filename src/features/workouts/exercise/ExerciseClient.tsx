@@ -64,7 +64,7 @@ const ExerciseClient: React.FC = () => {
 			const response = await fetch("/api/exercises");
 
 			if (!response.ok) {
-				throw new Error("Greška pri učitavanju vježbi");
+				throw new Error("Failed to fetch exercises");
 			}
 
 			const data = await response.json();
@@ -72,7 +72,7 @@ const ExerciseClient: React.FC = () => {
 		} catch (error) {
 			console.error("Error fetching exercises:", error);
 			setError(
-				error instanceof Error ? error.message : "Greška pri učitavanju vježbi"
+				error instanceof Error ? error.message : "Failed to fetch exercises"
 			);
 		} finally {
 			setIsLoading(false);
@@ -85,7 +85,7 @@ const ExerciseClient: React.FC = () => {
 
 	const handleExerciseAdded = (newExercise: ExerciseDefinition) => {
 		setExercises((prev) => [...prev, newExercise]);
-		setTabValue(1); // Prebaci na tab sa listom
+		setTabValue(1);
 	};
 
 	const handleExerciseUpdated = (updatedExercise: ExerciseDefinition) => {
@@ -123,10 +123,10 @@ const ExerciseClient: React.FC = () => {
 					sx={{ display: "flex", alignItems: "center", gap: 2 }}
 				>
 					<FitnessCenterOutlined sx={{ fontSize: 40, color: "primary.main" }} />
-					Baza Vježbi
+					Exercise Database
 				</Typography>
 				<Typography variant="body1" color="text.secondary">
-					Kreirajte i upravljajte vašim vježbama po kategorijama
+					Create and manage your exercises by category
 				</Typography>
 			</Box>
 
@@ -145,13 +145,13 @@ const ExerciseClient: React.FC = () => {
 				>
 					<Tab
 						icon={<AddCircleOutline />}
-						label="Dodaj vježbu"
+						label="Add Exercise"
 						{...a11yProps(0)}
 						sx={{ fontWeight: 600 }}
 					/>
 					<Tab
 						icon={<FormatListBulletedOutlined />}
-						label={`Sve vježbe (${exercises.length})`}
+						label={`All Exercises (${exercises.length})`}
 						{...a11yProps(1)}
 						sx={{ fontWeight: 600 }}
 					/>

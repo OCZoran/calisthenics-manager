@@ -3,7 +3,11 @@ import { jwtVerify } from "jose";
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
 
-// Samo ove rute su dostupne bez tokena
+// Test korisnik sa ograničenim pristupom
+const RESTRICTED_EMAIL = "thiernoteresa@gmail.com";
+const ALLOWED_PATHS_FOR_RESTRICTED = ["/workouts"];
+
+// Samo ove rute su dosatupne bez tokena
 const publicRoutes = [
 	"/login",
 	"/registration",
@@ -34,6 +38,30 @@ const checkUserExists = async (userId: string): Promise<boolean> => {
 	} catch (error) {
 		console.error("Error checking user existence:", error);
 		return false;
+	}
+};
+
+const getUserEmail = async (userId: string): Promise<string | null> => {
+	try {
+		const response = await fetch(
+			`${process.env.NEXT_PUBLIC_BASE_URL}/api/users?id=${userId}`,
+			{
+				method: "GET",
+				headers: {
+					"Content-Type": "application/json",
+				},
+			}
+		);
+
+		if (!response.ok) {
+			return null;
+		}
+
+		const user = await response.json();
+		return user?.email || null;
+	} catch (error) {
+		console.error("Error fetching user email:", error);
+		return null;
 	}
 };
 
@@ -110,7 +138,7 @@ export default async function middleware(request: NextRequest) {
 			const result = await verifyToken(token);
 			if (result) {
 				// Korisnik je već prijavljen - preusmjeri ga sa public rute
-				const dashboardUrl = new URL("/workouts", request.url); // ili "/" ili bilo koja glavna stranica
+				const dashboardUrl = new URL("/workouts", request.url);
 				return NextResponse.redirect(dashboardUrl);
 			} else {
 				// Token postoji ali nije valjan - obriši ga
@@ -157,6 +185,23 @@ export default async function middleware(request: NextRequest) {
 		const redirectResponse = NextResponse.redirect(loginUrl);
 		redirectResponse.cookies.delete("token");
 		return redirectResponse;
+	}
+
+	// Provjeri da li je korisnik sa ograničenim pristupom
+	const userEmail = await getUserEmail(payload.id as string);
+
+	if (userEmail === RESTRICTED_EMAIL) {
+		// Provjeri da li pokušava pristupiti dozvoljenoj stranici
+		const isAllowed = ALLOWED_PATHS_FOR_RESTRICTED.some(
+			(allowedPath) =>
+				pathname === allowedPath || pathname.startsWith(`${allowedPath}/`)
+		);
+
+		// Ako nije dozvoljena stranica, redirectuj na workouts
+		if (!isAllowed) {
+			const workoutsUrl = new URL("/workouts", request.url);
+			return NextResponse.redirect(workoutsUrl);
+		}
 	}
 
 	// Sve je OK, nastavi dalje

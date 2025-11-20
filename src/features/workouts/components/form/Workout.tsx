@@ -74,6 +74,7 @@ interface WorkoutFormProps {
 	workouts: Workout[];
 	trainingPlans?: TrainingPlan[];
 	activePlanId?: string;
+	userEmail: string;
 }
 
 const workoutTypes = [
@@ -124,6 +125,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	trainingPlans = [],
 	activePlanId,
+	userEmail,
 }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -177,7 +179,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 			try {
 				setLoadingExercises(true);
 				const response = await fetch("/api/exercises");
-				if (!response.ok) throw new Error("Greška pri učitavanju vježbi");
+				if (!response.ok) throw new Error("Failed to fetch exercises");
 
 				const data = await response.json();
 				setAvailableExercises(data.exercises || []);
@@ -254,8 +256,8 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		setErrors((prev) =>
 			prev.filter(
 				(e) =>
-					e !== "Tip treninga je obavezan" &&
-					e !== "Prvo izaberite tip treninga"
+					e !== "Workout type is required" &&
+					e !== "Please select a workout type first before adding exercises"
 			)
 		);
 	};
@@ -274,7 +276,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 					isMax: set.isMax || false,
 				})),
 			})),
-			notes: `Kopirano iz treninga od ${format(
+			notes: `Copied from workout on ${format(
 				parseISO(workoutToCopy.date),
 				"dd.MM.yyyy"
 			)}`,
@@ -285,7 +287,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 
 	const addExercise = () => {
 		if (!formData.type || formData.type.trim() === "") {
-			const msg = "Prvo izaberite tip treninga";
+			const msg = "Please select a workout type first before adding exercises";
 			setErrors((prev) => (prev.includes(msg) ? prev : [...prev, msg]));
 			return;
 		}
@@ -364,17 +366,17 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	const validateForm = () => {
 		const newErrors: string[] = [];
 
-		if (!formData.date) newErrors.push("Datum je obavezan");
-		if (!formData.type) newErrors.push("Tip treninga je obavezan");
+		if (!formData.date) newErrors.push("Date is required");
+		if (!formData.type) newErrors.push("Workout type is required");
 		if (formData.exercises.length === 0)
-			newErrors.push("Dodajte barem jednu vježbu");
+			newErrors.push("Add at least one exercise");
 
 		formData.exercises.forEach((exercise, i) => {
 			if (!exercise.name.trim()) {
-				newErrors.push(`Naziv vježbe ${i + 1} je obavezan`);
+				newErrors.push(`Exercise ${i + 1} is required`);
 			}
 			if (exercise.sets.length === 0) {
-				newErrors.push(`Vježba ${i + 1} mora imati barem jedan set`);
+				newErrors.push(`Exercise ${i + 1} must have at least one set`);
 			}
 			exercise.sets.forEach((set, j) => {
 				// const reps = parseInt(set.reps) || 0;
@@ -413,7 +415,9 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 
 				const validBands = ["", "green", "red", "black"];
 				if (band && !validBands.includes(band)) {
-					newErrors.push(`Set ${j + 1} vježbe ${i + 1} ima nevalidnu traku`);
+					newErrors.push(
+						`Set ${j + 1} exercise ${i + 1} has invalid band value`
+					);
 				}
 			});
 		});
@@ -534,14 +538,14 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 								sx={{ mb: 3, display: "flex", alignItems: "center", gap: 1 }}
 							>
 								<Event color="primary" />
-								Osnovne informacije
+								Basic Information
 							</Typography>
 							<Grid container spacing={3}>
 								<Grid size={{ xs: 12, md: 6 }}>
 									<TextField
 										fullWidth
 										type="date"
-										label="Datum treninga"
+										label="Workout Date"
 										value={formData.date}
 										onChange={(e) =>
 											setFormData({ ...formData, date: e.target.value })
@@ -558,10 +562,10 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 
 								<Grid size={{ xs: 12, md: 6 }}>
 									<FormControl fullWidth required>
-										<InputLabel>Tip treninga</InputLabel>
+										<InputLabel>Workout Type</InputLabel>
 										<Select
 											value={formData.type}
-											label="Tip treninga"
+											label="Workout Type"
 											onChange={(e) => handleTypeChange(e.target.value)}
 											sx={{
 												borderRadius: 2,
@@ -613,7 +617,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 									sx={{ display: "flex", alignItems: "center", gap: 1 }}
 								>
 									<Category color="primary" />
-									Vježbe{" "}
+									Exercises{" "}
 									{formData.exercises.length > 0 &&
 										`(${formData.exercises.length})`}
 								</Typography>
@@ -635,7 +639,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 												}}
 												size={isMobile ? "small" : "medium"}
 											>
-												Kopiraj prethodni
+												Copy Previous Workout
 											</Button>
 										)}
 								</Box>
@@ -722,12 +726,14 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 																	>
 																		<Box sx={{ flexGrow: 1, width: "100%" }}>
 																			<FormControl fullWidth required>
-																				<InputLabel>{`Vježba ${
+																				<InputLabel>{`Exercise ${
 																					exerciseIndex + 1
 																				}`}</InputLabel>
 																				<Select
 																					value={exercise.name || ""}
-																					label={`Vježba ${exerciseIndex + 1}`}
+																					label={`Exercise ${
+																						exerciseIndex + 1
+																					}`}
 																					onChange={(e) =>
 																						updateExercise(
 																							exerciseIndex,
@@ -744,12 +750,12 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 																				>
 																					{loadingExercises ? (
 																						<MenuItem value="">
-																							Učitavam vježbe...
+																							Loading exercises...
 																						</MenuItem>
 																					) : availableExercises.length ===
 																					  0 ? (
 																						<MenuItem value="">
-																							Nema dostupnih vježbi
+																							No available exercises
 																						</MenuItem>
 																					) : (
 																						availableExercises
@@ -798,7 +804,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 
 																			{exercise.name === "__custom__" && (
 																				<TextField
-																					label="Naziv vježbe"
+																					label="Name of Exercise"
 																					value=""
 																					onChange={(e) =>
 																						updateExercise(
@@ -828,8 +834,8 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 																				expandedExercises.includes(
 																					exerciseIndex
 																				)
-																					? "Skupi"
-																					: "Proširi"
+																					? "Shrink"
+																					: "Expand"
 																			}
 																		>
 																			<IconButton
@@ -854,7 +860,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 																				)}
 																			</IconButton>
 																		</Tooltip>
-																		<Tooltip title="Ukloni vježbu">
+																		<Tooltip title="Remove Exercise">
 																			<IconButton
 																				onClick={() =>
 																					removeExercise(exerciseIndex)
@@ -884,6 +890,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 																		addSet={addSet}
 																		updateSet={updateSet}
 																		removeSet={removeSet}
+																		userEmail={userEmail}
 																	/>
 																</Collapse>
 															</CardContent>
@@ -910,7 +917,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 								}}
 								size={isMobile ? "small" : "medium"}
 							>
-								Dodaj vježbu
+								Add Exercise
 							</Button>
 						</Box>
 
@@ -962,7 +969,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 									},
 								}}
 							>
-								{isLoading ? "Čuvam..." : "Sačuvaj trening"}
+								{isLoading ? "Loading..." : "Save Workout"}
 							</Button>
 						</Box>
 					</form>
@@ -1005,12 +1012,12 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 							</Box>
 							<Box>
 								<Typography variant="h6">
-									Kopiraj{" "}
+									Copy{" "}
 									{workoutTypes.find((wt) => wt.value === formData.type)?.label}{" "}
-									trening
+									workout
 								</Typography>
 								<Typography variant="body2" color="text.secondary">
-									Dostupno {availableWorkouts.length} treninga
+									Available {availableWorkouts.length} workouts
 								</Typography>
 							</Box>
 						</Box>
@@ -1030,15 +1037,15 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				</DialogTitle>
 				<DialogContent>
 					<Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-						Izaberite trening koji želite kopirati. Sve vježbe, setovi i odmor
-						će biti kopirani.
+						Select a previous workout to copy its exercises and sets into the
+						current workout.
 					</Typography>
 
 					{availableWorkouts.length === 0 ? (
 						<Alert severity="info" sx={{ borderRadius: 2 }}>
-							Nema prethodnih{" "}
+							No available workouts{" "}
 							{workoutTypes.find((wt) => wt.value === formData.type)?.label}{" "}
-							treninga za kopiranje.
+							workouts to copy.
 						</Alert>
 					) : (
 						<List sx={{ maxHeight: 400, overflow: "auto" }}>
@@ -1097,7 +1104,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 												</Typography>
 												<Box sx={{ display: "flex", gap: 2 }}>
 													<Typography variant="caption" color="textSecondary">
-														<strong>Setovi:</strong>{" "}
+														<strong>Sets:</strong>{" "}
 														{w.exercises.reduce(
 															(total, ex) => total + ex.sets.length,
 															0
@@ -1105,7 +1112,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 													</Typography>
 													{w.notes && (
 														<Typography variant="caption" color="textSecondary">
-															<strong>Napomena</strong>
+															<strong>Notes</strong>
 														</Typography>
 													)}
 												</Box>
@@ -1123,7 +1130,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 						sx={{ borderRadius: 2 }}
 						fullWidth={isMobile}
 					>
-						Otkaži
+						Cancel
 					</Button>
 				</DialogActions>
 			</Dialog>
@@ -1161,9 +1168,9 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 							<History />
 						</Box>
 						<Box>
-							<Typography variant="h6">Pronađen nedovršeni trening</Typography>
+							<Typography variant="h6">Found Incomplete Workout</Typography>
 							<Typography variant="body2" color="text.secondary">
-								Želite li nastaviti sa prethodnim treningom?
+								Would you like to continue with the previous workout?
 							</Typography>
 						</Box>
 					</Box>
@@ -1173,12 +1180,12 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 						<Box sx={{ mb: 2 }}>
 							<Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
 								<Typography variant="body2" gutterBottom>
-									<strong>Tip:</strong>{" "}
+									<strong>Type:</strong>{" "}
 									{workoutTypes.find((wt) => wt.value === draftData.type)
-										?.label || "Nije izabran"}
+										?.label || "Not Selected"}
 								</Typography>
 								<Typography variant="body2" gutterBottom>
-									<strong>Vježbe:</strong> {draftData.exercises.length}
+									<strong>Exercises:</strong> {draftData.exercises.length}
 								</Typography>
 								{draftData.exercises.length > 0 && (
 									<Typography variant="body2" sx={{ mt: 1 }}>
@@ -1187,7 +1194,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 								)}
 							</Alert>
 							<Typography variant="body2" color="text.secondary">
-								Možete nastaviti sa prethodnim treningom ili započeti novi.
+								You can continue with the previous workout or start a new one.
 							</Typography>
 						</Box>
 					)}
@@ -1206,7 +1213,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 						fullWidth={isMobile}
 						sx={{ borderRadius: 2 }}
 					>
-						Odbaci i započni novi
+						Discard and Start New
 					</Button>
 					<Button
 						onClick={handleRestoreDraft}
@@ -1214,7 +1221,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 						fullWidth={isMobile}
 						sx={{ borderRadius: 2 }}
 					>
-						Nastavi sa prethodnim
+						Continue with Previous
 					</Button>
 				</DialogActions>
 			</Dialog>

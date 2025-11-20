@@ -81,7 +81,7 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({ onExerciseAdded }) => {
 		e.preventDefault();
 
 		if (!formData.name.trim() || !formData.category) {
-			setError("Naziv i kategorija su obavezni");
+			setError("Name and category are required");
 			return;
 		}
 
@@ -108,7 +108,7 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({ onExerciseAdded }) => {
 
 			if (!response.ok) {
 				const errorData = await response.json();
-				throw new Error(errorData.error || "Greška pri kreiranju vježbe");
+				throw new Error(errorData.error || "Error creating exercise");
 			}
 
 			const result = await response.json();
@@ -137,11 +137,11 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({ onExerciseAdded }) => {
 				notes: "",
 			});
 
-			setSuccess("Vježba je uspešno kreirana!");
+			setSuccess("Exercise successfully created!");
 		} catch (error) {
 			console.error("Error creating exercise:", error);
 			setError(
-				error instanceof Error ? error.message : "Greška pri kreiranju vježbe"
+				error instanceof Error ? error.message : "Error creating exercise"
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -169,7 +169,7 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({ onExerciseAdded }) => {
 			<Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
 				<AddCircleOutline sx={{ mr: 2, color: "primary.main" }} />
 				<Typography variant="h5" component="h2" fontWeight="600">
-					Dodaj novu vježbu
+					Add New Exercise
 				</Typography>
 			</Box>
 
@@ -193,24 +193,24 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({ onExerciseAdded }) => {
 								<TextField
 									fullWidth
 									required
-									label="Naziv vježbe"
-									placeholder="Npr. Pull-ups, Push-ups..."
+									label="Exercise Name"
+									placeholder="e.g., Pull-ups, Push-ups..."
 									value={formData.name}
 									onChange={(e) => handleInputChange("name", e.target.value)}
 									inputProps={{ maxLength: 100 }}
-									helperText={`${formData.name.length}/100 karaktera`}
+									helperText={`${formData.name.length}/100 characters`}
 								/>
 							</Grid>
 
 							<Grid size={{ xs: 12, md: 6 }}>
 								<FormControl fullWidth required>
-									<InputLabel>Kategorija pokreta</InputLabel>
+									<InputLabel>Movement Category</InputLabel>
 									<Select
 										value={formData.category}
 										onChange={(e) =>
 											handleInputChange("category", e.target.value)
 										}
-										label="Kategorija pokreta"
+										label="Movement Category"
 									>
 										{categories.map((cat) => (
 											<MenuItem key={cat} value={cat}>
@@ -218,23 +218,9 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({ onExerciseAdded }) => {
 											</MenuItem>
 										))}
 									</Select>
-									<FormHelperText>Primarna kategorija pokreta</FormHelperText>
+									<FormHelperText>Main movement category</FormHelperText>
 								</FormControl>
 							</Grid>
-
-							{/* <Grid size={{ xs: 12 }}>
-								<TextField
-									fullWidth
-									multiline
-									rows={2}
-									label="Opis vježbe"
-									placeholder="Kratko opišite vježbu..."
-									value={formData.description}
-									onChange={(e) =>
-										handleInputChange("description", e.target.value)
-									}
-								/>
-							</Grid> */}
 
 							<Grid size={{ xs: 12 }}>
 								<FormControlLabel
@@ -246,21 +232,20 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({ onExerciseAdded }) => {
 											}
 										/>
 									}
-									label="Vježba sa sopstvenom težinom (bodyweight)"
+									label="Bodyweight exercise"
 								/>
 							</Grid>
 
 							<Grid size={{ xs: 12 }}>
 								<Typography variant="subtitle1" fontWeight="600" gutterBottom>
-									Dodatni tagovi
+									Additional Tags
 								</Typography>
 								<Typography
 									variant="body2"
 									color="text.secondary"
 									sx={{ mb: 2 }}
 								>
-									Tagovi omogućavaju da vježba bude dostupna u svim tipovima
-									treninga
+									Tags allow this exercise to appear in multiple training types
 								</Typography>
 								<Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
 									{availableTags.map((tag) => (
@@ -294,7 +279,7 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({ onExerciseAdded }) => {
 										disabled={isSubmitting}
 										color="inherit"
 									>
-										Obriši polja
+										Clear Fields
 									</Button>
 									<Button
 										type="submit"
@@ -303,7 +288,7 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({ onExerciseAdded }) => {
 										disabled={isSubmitting || !isFormValid}
 										size="large"
 									>
-										{isSubmitting ? "Čuvanje..." : "Sačuvaj vježbu"}
+										{isSubmitting ? "Saving..." : "Save Exercise"}
 									</Button>
 								</Box>
 							</Grid>
@@ -317,7 +302,7 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({ onExerciseAdded }) => {
 				<Card elevation={1} sx={{ mt: 3, backgroundColor: "grey.50" }}>
 					<CardContent>
 						<Typography variant="h6" gutterBottom color="text.secondary">
-							💪 Pregled vježbe:
+							💪 Exercise Preview:
 						</Typography>
 
 						<Typography variant="h6" gutterBottom fontWeight="600">

@@ -47,7 +47,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 				backgroundColor: theme.palette.background.default,
 			}}
 		>
-			{isMobile ? <SidebarMobile user={user} /> : <SidebarDesktop />}
+			{isMobile ? (
+				<SidebarMobile user={user} />
+			) : (
+				<SidebarDesktop userEmail={user.email} />
+			)}
 
 			<Box
 				component="main"

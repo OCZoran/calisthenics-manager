@@ -60,6 +60,7 @@ interface WorkoutAddSetProps {
 		value: string | boolean
 	) => void;
 	removeSet: (exerciseIndex: number, setIndex: number) => void;
+	userEmail: string;
 }
 
 const BAND_OPTIONS = [
@@ -84,6 +85,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 	addSet,
 	updateSet,
 	removeSet,
+	userEmail,
 }) => {
 	const [activeTimer, setActiveTimer] = useState<number | null>(null);
 	const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -91,7 +93,6 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 	const [currentTab, setCurrentTab] = useState(0);
 	const intervalRef = useRef<NodeJS.Timeout | null>(null);
 	const audioContextRef = useRef<AudioContext | null>(null);
-
 	const createBeep = () => {
 		if (!audioContextRef.current) {
 			audioContextRef.current = new (window.AudioContext ||
@@ -193,7 +194,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 				}}
 			>
 				<Typography variant="subtitle1" fontWeight="medium">
-					Setovi ({exercise.sets.length})
+					Sets ({exercise.sets.length})
 				</Typography>
 				<Button
 					size="small"
@@ -202,7 +203,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 					onClick={handleAddSet}
 					sx={{ borderRadius: 2 }}
 				>
-					Dodaj set
+					Add set
 				</Button>
 			</Box>
 
@@ -369,7 +370,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 								)}
 								{isCompleted && (
 									<Chip
-										label="Završeno"
+										label="Done"
 										size="small"
 										color="success"
 										icon={<CheckCircle />}
@@ -379,7 +380,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 							</Box>
 							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 								{isCompleted && (
-									<Tooltip title="Omogući izmjenu">
+									<Tooltip title="Edit">
 										<IconButton
 											size="small"
 											onClick={() => {
@@ -400,7 +401,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									</Tooltip>
 								)}
 								{exercise.sets.length > 1 && (
-									<Tooltip title="Ukloni set">
+									<Tooltip title="Remove set">
 										<IconButton
 											size="small"
 											onClick={() => handleRemoveSet(setIndex)}
@@ -446,7 +447,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 											variant="body2"
 											fontWeight={isMaxEffort ? "bold" : "normal"}
 										>
-											Max Effort (Do otkaza)
+											Max Effort (All max)
 										</Typography>
 									</Box>
 								}
@@ -457,7 +458,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									color="error.main"
 									sx={{ ml: 4, display: "block" }}
 								>
-									Set izveden do maksimalnog zamora
+									Set with max out
 								</Typography>
 							)}
 						</Box>
@@ -519,7 +520,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 								<TextField
 									fullWidth
 									type="number"
-									label="Težina (kg)"
+									label="Weight (kg)"
 									value={set.weight || ""}
 									onChange={(e) =>
 										updateSet(exerciseIndex, setIndex, "weight", e.target.value)
@@ -540,47 +541,53 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 								/>
 							</Grid>
 
-							<Grid size={{ xs: 6 }}>
-								<FormControl fullWidth size="small">
-									<InputLabel>Traka</InputLabel>
-									<Select
-										value={set.band || ""}
-										onChange={(e) =>
-											updateSet(exerciseIndex, setIndex, "band", e.target.value)
-										}
-										label="Traka"
-										disabled={isCompleted && !activeTimer}
-										sx={{ borderRadius: 2 }}
-									>
-										{BAND_OPTIONS.map((option) => (
-											<MenuItem key={option.value} value={option.value}>
-												<Box
-													sx={{
-														display: "flex",
-														alignItems: "center",
-														gap: 1,
-													}}
-												>
-													<FiberManualRecord
+							{userEmail !== "thiernoteresa@gmail.com" && (
+								<Grid size={{ xs: 6 }}>
+									<FormControl fullWidth size="small">
+										<InputLabel>Traka</InputLabel>
+										<Select
+											value={set.band || ""}
+											onChange={(e) =>
+												updateSet(
+													exerciseIndex,
+													setIndex,
+													"band",
+													e.target.value
+												)
+											}
+											label="Traka"
+											disabled={isCompleted && !activeTimer}
+											sx={{ borderRadius: 2 }}
+										>
+											{BAND_OPTIONS.map((option) => (
+												<MenuItem key={option.value} value={option.value}>
+													<Box
 														sx={{
-															fontSize: 16,
-															color: option.color,
+															display: "flex",
+															alignItems: "center",
+															gap: 1,
 														}}
-													/>
-													{option.label}
-												</Box>
-											</MenuItem>
-										))}
-									</Select>
-								</FormControl>
-							</Grid>
-
+													>
+														<FiberManualRecord
+															sx={{
+																fontSize: 16,
+																color: option.color,
+															}}
+														/>
+														{option.label}
+													</Box>
+												</MenuItem>
+											))}
+										</Select>
+									</FormControl>
+								</Grid>
+							)}
 							<Grid size={{ xs: 12 }}>
 								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 									<TextField
 										fullWidth
 										type="number"
-										label="Odmor (s)"
+										label="Rest (s)"
 										value={set.rest || ""}
 										onChange={(e) =>
 											updateSet(exerciseIndex, setIndex, "rest", e.target.value)
@@ -631,7 +638,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 										</Tooltip>
 									)}
 									{!isCompleted && (
-										<Tooltip title="Označi set kao završen">
+										<Tooltip title="Mark set as done">
 											<IconButton
 												size="small"
 												onClick={() => {

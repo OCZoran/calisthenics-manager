@@ -88,6 +88,7 @@ export default function SidebarMobile(props: Props) {
 					<SidebarList
 						open={mobileOpen}
 						isMobile
+						userEmail={props.user.email}
 						onLinkClick={handleDrawerClose}
 					/>
 				</Drawer>

@@ -60,13 +60,13 @@ const WorkoutFormHeader: React.FC<WorkoutFormHeaderProps> = ({
 						</Box>
 						<Box>
 							<Typography variant="h4" fontWeight="bold" color="text.primary">
-								{workout ? "Uredi trening" : "Novi trening"}
+								{workout ? "Edit training" : "New training"}
 							</Typography>
 							<Typography variant="body2" color="text.secondary">
 								{exercisesCount > 0 &&
-									`${exercisesCount} vježbi • ${totalSets(
+									`${exercisesCount} exercises • ${totalSets(
 										workout?.exercises || []
-									)} setova`}
+									)} sets`}
 							</Typography>
 						</Box>
 					</Box>

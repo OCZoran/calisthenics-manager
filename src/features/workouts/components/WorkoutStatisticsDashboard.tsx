@@ -687,7 +687,9 @@ const EnhancedWorkoutDashboard: React.FC<EnhancedWorkoutDashboardProps> = ({
 								cy="50%"
 								outerRadius={80}
 								dataKey="value"
-								label={({ name, percentage }) => `${name} (${percentage}%)`}
+								label={({ name, percent }: any) =>
+									`${name} (${Math.round((percent || 0) * 100)}%)`
+								}
 							>
 								{planStats.workoutTypes.map((entry, index) => (
 									<Cell

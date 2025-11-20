@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"; // good
 
 import React from "react";
 import { Container } from "@mui/material";
@@ -9,49 +9,38 @@ import WorkoutClient from "@/features/workouts/components/WorkoutClient";
 import { Workout } from "@/global/interfaces/workout.interface";
 
 async function getUserFromCookies() {
-	const cookieStore = await cookies();
-	const token = cookieStore.get("token");
+	const cookieStore = cookies(); // ❗ no await
+	const token = (await cookieStore).get("token")?.value;
 
-	if (!token?.value) {
-		throw new Error("No authentication token");
-	}
+	if (!token) throw new Error("No authentication token");
 
-	const decoded = jwt.verify(token.value, process.env.JWT_SECRET as string) as {
+	return jwt.verify(token, process.env.JWT_SECRET!) as {
 		id: string;
 		email: string;
 	};
-	return decoded;
 }
 
-async function getWorkouts(): Promise<Workout[]> {
-	try {
-		const user = await getUserFromCookies();
-		const { db } = await getDatabase();
+async function getWorkouts(userId: string): Promise<Workout[]> {
+	const { db } = await getDatabase();
+	const workouts = await db
+		.collection("workouts")
+		.find({ userId })
+		.sort({ date: -1, createdAt: -1 })
+		.toArray();
 
-		const workouts = await db
-			.collection("workouts")
-			.find({ userId: user.id })
-			.sort({ date: -1, createdAt: -1 })
-			.toArray();
-
-		return workouts.map((workout) => ({
-			...workout,
-			_id: workout._id.toString(),
-		})) as Workout[];
-	} catch (error) {
-		console.error("Error fetching workouts:", error);
-		return [];
-	}
+	return workouts.map((w) => ({
+		...w,
+		_id: w._id.toString(),
+	})) as Workout[];
 }
 
-const WorkoutsPage = async () => {
-	const workouts = await getWorkouts();
+export default async function WorkoutsPage() {
+	const user = await getUserFromCookies(); // ✔ inside request
+	const workouts = await getWorkouts(user.id); // ✔ inside request
 
 	return (
 		<Container maxWidth="lg" sx={{ py: 4 }}>
-			<WorkoutClient initialWorkouts={workouts} />
+			<WorkoutClient initialWorkouts={workouts} userEmail={user.email} />
 		</Container>
 	);
-};
-
-export default WorkoutsPage;
+}

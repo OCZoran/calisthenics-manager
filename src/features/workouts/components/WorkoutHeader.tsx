@@ -54,10 +54,10 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
 						}}
 					>
 						<FitnessCenter sx={{ mr: 2, fontSize: 32 }} />
-						Moji treninzi
+						My Workouts
 					</Typography>
 					<Typography variant="body1" color="text.secondary">
-						{filteredWorkoutsCount} od {workouts.length} treninga
+						{filteredWorkoutsCount} of {workouts.length} workouts
 					</Typography>
 				</Box>
 			</Box>
@@ -71,7 +71,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
 							{workoutStats.totalWorkouts}
 						</Typography>
 						<Typography variant="caption" color="text.secondary">
-							Ukupno treninga
+							Total Workouts
 						</Typography>
 					</Paper>
 				</Grid>
@@ -83,7 +83,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
 							{workoutStats.avgSetsPerWorkout}
 						</Typography>
 						<Typography variant="caption" color="text.secondary">
-							Avg setova
+							Avg Sets per Workout
 						</Typography>
 					</Paper>
 				</Grid>
@@ -95,7 +95,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
 							{workoutStats.totalReps.toLocaleString()}
 						</Typography>
 						<Typography variant="caption" color="text.secondary">
-							Ukupno ponavljanja
+							Total Reps
 						</Typography>
 					</Paper>
 				</Grid>
@@ -118,7 +118,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
 							{workoutStats.totalWeight.toLocaleString()}
 						</Typography>
 						<Typography variant="caption" color="text.secondary">
-							Ukupno kg
+							Total kg
 						</Typography>
 					</Paper>
 				</Grid>

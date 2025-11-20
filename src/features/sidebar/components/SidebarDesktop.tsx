@@ -103,7 +103,7 @@ const Drawer = styled(MuiDrawer, {
 	],
 }));
 
-export default function SidebarDesktop() {
+export default function SidebarDesktop({ userEmail }: { userEmail: string }) {
 	const [open, setOpen] = React.useState(false);
 	const theme = useTheme();
 
@@ -182,7 +182,7 @@ export default function SidebarDesktop() {
 						)}
 					</IconButton>
 				</DrawerHeader>
-				<SidebarList open={open} />
+				<SidebarList open={open} userEmail={userEmail} />
 			</Drawer>
 		</>
 	);

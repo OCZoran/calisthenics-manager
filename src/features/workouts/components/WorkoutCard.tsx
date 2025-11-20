@@ -311,7 +311,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 										{workout.exercises.length}
 									</Typography>
 									<Typography variant="caption" color="text.secondary">
-										Vježbe
+										Exercises
 									</Typography>
 								</Box>
 							</Grid>
@@ -325,7 +325,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 										{workoutStats.totalSets}
 									</Typography>
 									<Typography variant="caption" color="text.secondary">
-										Setovi
+										Sets
 									</Typography>
 								</Box>
 							</Grid>
@@ -339,7 +339,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 										{workoutStats.totalReps}
 									</Typography>
 									<Typography variant="caption" color="text.secondary">
-										Ponavljanja
+										Reps
 									</Typography>
 								</Box>
 							</Grid>
@@ -357,7 +357,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 										{workoutStats.totalWeight || 0}kg
 									</Typography>
 									<Typography variant="caption" color="text.secondary">
-										Težina
+										Weight
 									</Typography>
 								</Box>
 							</Grid>
@@ -378,7 +378,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 						}}
 					>
 						<FitnessCenter />
-						Vježbe ({workout.exercises.length})
+						Exercises ({workout.exercises.length})
 					</Typography>
 
 					<Stack spacing={2}>
@@ -460,7 +460,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 												)}
 
 												{Number(set.rest) > 0 && (
-													<Typography>• {set.rest}s odmor</Typography>
+													<Typography>• {set.rest}s rest</Typography>
 												)}
 											</Box>
 										))}
@@ -487,7 +487,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 												(total, set) => total + (Number(set.weight) || 0),
 												0
 											)}
-											kg ukupno
+											kg total
 										</Typography>
 									)}
 								</Box>

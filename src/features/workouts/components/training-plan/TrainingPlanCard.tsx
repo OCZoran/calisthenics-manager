@@ -15,7 +15,6 @@ import {
 	Grid,
 	Avatar,
 	useTheme,
-	alpha,
 	Stack,
 } from "@mui/material";
 import {
@@ -81,34 +80,26 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 		switch (status) {
 			case "active":
 				return {
-					color: "success" as const,
-					label: "AKTIVAN",
-					bgColor: alpha(theme.palette.success.main, 0.1),
-					borderColor: theme.palette.success.main,
+					label: "ACTIVE",
+					color: "success",
 					icon: <FitnessCenter sx={{ fontSize: 16 }} />,
 				};
 			case "completed":
 				return {
-					color: "primary" as const,
-					label: "ZAVRŠEN",
-					bgColor: alpha(theme.palette.primary.main, 0.1),
-					borderColor: theme.palette.primary.main,
+					label: "DONE",
+					color: "primary",
 					icon: <CheckCircle sx={{ fontSize: 16 }} />,
 				};
 			case "paused":
 				return {
-					color: "warning" as const,
-					label: "PAUZIRAN",
-					bgColor: alpha(theme.palette.warning.main, 0.1),
-					borderColor: theme.palette.warning.main,
+					label: "PAUSE",
+					color: "warning",
 					icon: <Pause sx={{ fontSize: 16 }} />,
 				};
 			default:
 				return {
-					color: "default" as const,
-					label: "NEPOZNATO",
-					bgColor: alpha(theme.palette.grey[500], 0.1),
-					borderColor: theme.palette.grey[500],
+					label: "UNKNOWN",
+					color: "default",
 					icon: <Timeline sx={{ fontSize: 16 }} />,
 				};
 		}
@@ -131,37 +122,18 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 	return (
 		<Card
 			sx={{
-				border: "2px solid",
-				borderColor: statusConfig.borderColor,
+				border: "1px solid #e0e0e0",
 				borderRadius: 3,
 				overflow: "hidden",
 				position: "relative",
-				background: `linear-gradient(135deg, ${
-					statusConfig.bgColor
-				} 0%, ${alpha(statusConfig.borderColor, 0.05)} 100%)`,
-				transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+				backgroundColor: "white",
+				transition: "all 0.3s ease",
 				"&:hover": {
-					boxShadow: `0 12px 32px ${alpha(statusConfig.borderColor, 0.3)}`,
-					transform: "translateY(-4px)",
-					borderColor: statusConfig.borderColor,
+					boxShadow: theme.shadows[4],
+					transform: "translateY(-2px)",
 				},
 			}}
 		>
-			{/* Status Indicator Bar */}
-			<Box
-				sx={{
-					position: "absolute",
-					top: 0,
-					left: 0,
-					right: 0,
-					height: 6,
-					background: `linear-gradient(90deg, ${
-						statusConfig.borderColor
-					}, ${alpha(statusConfig.borderColor, 0.7)})`,
-					borderRadius: "0 0 8px 8px",
-				}}
-			/>
-
 			<Accordion
 				expanded={isExpanded}
 				onChange={() => onToggleExpanded(plan._id!)}
@@ -173,23 +145,12 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 				}}
 			>
 				<AccordionSummary
-					expandIcon={
-						<ExpandMore
-							sx={{
-								color: statusConfig.borderColor,
-								transition: "transform 0.3s ease",
-							}}
-						/>
-					}
+					expandIcon={<ExpandMore sx={{ color: "text.primary" }} />}
 					sx={{
 						padding: "20px 24px",
 						minHeight: "auto",
-						"&.Mui-expanded": {
-							minHeight: "auto",
-						},
-						"& .MuiAccordionSummary-content": {
-							margin: "0",
-						},
+						"&.Mui-expanded": { minHeight: "auto" },
+						"& .MuiAccordionSummary-content": { margin: 0 },
 					}}
 				>
 					<Grid container alignItems="center" spacing={3}>
@@ -198,23 +159,14 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 							<Box
 								sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}
 							>
-								<Avatar
-									sx={{
-										bgcolor: statusConfig.borderColor,
-										width: 40,
-										height: 40,
-									}}
-								>
+								<Avatar sx={{ bgcolor: "#f2f2f2", width: 40, height: 40 }}>
 									{statusConfig.icon}
 								</Avatar>
 								<Box>
 									<Typography
 										variant="h6"
 										fontWeight="700"
-										sx={{
-											color: "text.primary",
-											fontSize: { xs: "1rem", sm: "1.1rem" },
-										}}
+										color="text.primary"
 									>
 										{plan.name}
 									</Typography>
@@ -227,16 +179,9 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 										}}
 									>
 										<CalendarToday
-											sx={{
-												fontSize: 14,
-												color: "text.secondary",
-											}}
+											sx={{ fontSize: 14, color: "text.secondary" }}
 										/>
-										<Typography
-											variant="caption"
-											color="text.secondary"
-											fontWeight="500"
-										>
+										<Typography variant="caption" color="text.secondary">
 											{formatDate(plan.startDate)}
 											{plan.endDate && ` - ${formatDate(plan.endDate)}`}
 										</Typography>
@@ -250,18 +195,8 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 							<Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
 								<Chip
 									label={statusConfig.label}
-									color={statusConfig.color}
-									variant="filled"
+									color={statusConfig.color as any}
 									size="small"
-									icon={statusConfig.icon}
-									sx={{
-										fontWeight: "600",
-										alignSelf: "flex-start",
-										boxShadow: `0 2px 8px ${alpha(
-											statusConfig.borderColor,
-											0.3
-										)}`,
-									}}
 								/>
 								{duration && (
 									<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -305,13 +240,10 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 										sx={{
 											height: 10,
 											borderRadius: 5,
-											bgcolor: alpha(theme.palette.grey[300], 0.3),
+											bgcolor: "#e0e0e0",
 											"& .MuiLinearProgress-bar": {
 												borderRadius: 5,
-												background: `linear-gradient(90deg, ${getProgressColor()}, ${alpha(
-													getProgressColor(),
-													0.7
-												)})`,
+												backgroundColor: getProgressColor(),
 											},
 										}}
 									/>
@@ -331,7 +263,7 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 							>
 								{plan.status === "active" && (
 									<>
-										<Tooltip title="Pauziraj plan" arrow>
+										<Tooltip title="Pauziraj plan">
 											<IconButton
 												size="small"
 												onClick={(e) =>
@@ -339,17 +271,12 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 														onStatusChange(plan, "paused")
 													)
 												}
-												sx={{
-													color: "warning.main",
-													"&:hover": {
-														bgcolor: alpha(theme.palette.warning.main, 0.1),
-													},
-												}}
+												sx={{ color: "warning.main" }}
 											>
 												<Pause />
 											</IconButton>
 										</Tooltip>
-										<Tooltip title="Završi plan" arrow>
+										<Tooltip title="Završi plan">
 											<IconButton
 												size="small"
 												onClick={(e) =>
@@ -357,21 +284,15 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 														onStatusChange(plan, "completed")
 													)
 												}
-												sx={{
-													color: "primary.main",
-													"&:hover": {
-														bgcolor: alpha(theme.palette.primary.main, 0.1),
-													},
-												}}
+												sx={{ color: "primary.main" }}
 											>
 												<Stop />
 											</IconButton>
 										</Tooltip>
 									</>
 								)}
-
 								{plan.status === "paused" && (
-									<Tooltip title="Nastavi plan" arrow>
+									<Tooltip title="Nastavi plan">
 										<IconButton
 											size="small"
 											onClick={(e) =>
@@ -379,43 +300,26 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 													onStatusChange(plan, "active")
 												)
 											}
-											sx={{
-												color: "success.main",
-												"&:hover": {
-													bgcolor: alpha(theme.palette.success.main, 0.1),
-												},
-											}}
+											sx={{ color: "success.main" }}
 										>
 											<PlayArrow />
 										</IconButton>
 									</Tooltip>
 								)}
-
-								<Tooltip title="Uredi plan" arrow>
+								<Tooltip title="Uredi plan">
 									<IconButton
 										size="small"
 										onClick={(e) => handleActionClick(e, () => onEdit(plan))}
-										sx={{
-											color: "primary.main",
-											"&:hover": {
-												bgcolor: alpha(theme.palette.primary.main, 0.1),
-											},
-										}}
+										sx={{ color: "primary.main" }}
 									>
 										<Edit />
 									</IconButton>
 								</Tooltip>
-
-								<Tooltip title="Obriši plan" arrow>
+								<Tooltip title="Obriši plan">
 									<IconButton
 										size="small"
 										onClick={(e) => handleActionClick(e, () => onDelete(plan))}
-										sx={{
-											color: "error.main",
-											"&:hover": {
-												bgcolor: alpha(theme.palette.error.main, 0.1),
-											},
-										}}
+										sx={{ color: "error.main" }}
 									>
 										<Delete />
 									</IconButton>
@@ -425,26 +329,13 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 					</Grid>
 				</AccordionSummary>
 
-				<AccordionDetails
-					sx={{
-						padding: "0 24px 24px 24px",
-						background: alpha(theme.palette.background.paper, 0.8),
-						backdropFilter: "blur(10px)",
-					}}
-				>
-					<Divider sx={{ mb: 3, opacity: 0.6 }} />
+				<AccordionDetails sx={{ padding: "0 24px 24px 24px" }}>
+					<Divider sx={{ mb: 3 }} />
 
 					<Stack spacing={3}>
 						{/* Goal Section */}
 						{plan.goal && (
-							<Box
-								sx={{
-									p: 2,
-									borderRadius: 2,
-									background: alpha(theme.palette.primary.main, 0.05),
-									border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-								}}
-							>
+							<Box sx={{ p: 2, borderRadius: 2, backgroundColor: "#f2f2f2" }}>
 								<Typography
 									variant="subtitle2"
 									gutterBottom
@@ -452,18 +343,12 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 										display: "flex",
 										alignItems: "center",
 										gap: 1,
-										fontWeight: "600",
-										color: "primary.main",
+										fontWeight: 600,
 									}}
 								>
-									<Flag sx={{ fontSize: 18 }} />
-									Cilj plana
+									<Flag sx={{ fontSize: 18 }} /> Cilj plana
 								</Typography>
-								<Typography
-									variant="body2"
-									color="text.secondary"
-									sx={{ lineHeight: 1.6 }}
-								>
+								<Typography variant="body2" color="text.secondary">
 									{plan.goal}
 								</Typography>
 							</Box>
@@ -471,41 +356,23 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 
 						{/* Description Section */}
 						{plan.description && (
-							<Box
-								sx={{
-									p: 2,
-									borderRadius: 2,
-									background: alpha(theme.palette.grey[500], 0.05),
-									border: `1px solid ${alpha(theme.palette.grey[500], 0.1)}`,
-								}}
-							>
+							<Box sx={{ p: 2, borderRadius: 2, backgroundColor: "#f9f9f9" }}>
 								<Typography
 									variant="subtitle2"
 									gutterBottom
-									fontWeight="600"
+									fontWeight={600}
 									color="text.primary"
 								>
 									Opis
 								</Typography>
-								<Typography
-									variant="body2"
-									color="text.secondary"
-									sx={{ lineHeight: 1.6 }}
-								>
+								<Typography variant="body2" color="text.secondary">
 									{plan.description}
 								</Typography>
 							</Box>
 						)}
 
 						{/* Actions */}
-						<Box
-							sx={{
-								display: "flex",
-								gap: 2,
-								flexWrap: "wrap",
-								pt: 1,
-							}}
-						>
+						<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", pt: 1 }}>
 							{onViewProgress && (
 								<Button
 									variant="outlined"
@@ -515,13 +382,12 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 									sx={{
 										borderRadius: 2,
 										textTransform: "none",
-										fontWeight: "500",
+										fontWeight: 500,
 									}}
 								>
 									Prikaži napredak
 								</Button>
 							)}
-
 							{plan.status === "completed" && (
 								<Chip
 									icon={<CheckCircle />}
@@ -529,12 +395,7 @@ const TrainingPlanCard: React.FC<TrainingPlanCardProps> = ({
 									color="success"
 									variant="outlined"
 									size="small"
-									sx={{
-										fontWeight: "500",
-										"& .MuiChip-icon": {
-											color: "success.main",
-										},
-									}}
+									sx={{ fontWeight: 500 }}
 								/>
 							)}
 						</Box>

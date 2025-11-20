@@ -148,33 +148,33 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 	const getEmptyStateMessage = () => {
 		if (viewMode === "current" && !hasActivePlan) {
 			return {
-				title: "Nema aktivnog trening plana",
-				subtitle: "Kreirajte novi plan da biste počeli sa treniranjem",
+				title: "No active training plan",
+				subtitle: "Create a new plan to start training",
 				showCreatePlan: true,
 			};
 		}
 
 		if (viewMode === "current" && hasActivePlan) {
 			return {
-				title: "Još nema treninga u aktivnom planu",
-				subtitle: `Dodajte prvi trening u plan "${activePlan?.name}"`,
+				title: "No workouts in the active plan",
+				subtitle: `Add the first workout to the plan "${activePlan?.name}"`,
 				showCreateWorkout: true,
 			};
 		}
 
 		if (viewMode === "history") {
 			return {
-				title: "Nema treninga u selektovanom planu",
+				title: "No workouts in the selected plan",
 				subtitle: planName
-					? `Plan "${planName}" nema zabilježene treninge`
-					: "Selektovani plan nema treninge",
+					? `The plan "${planName}" has no recorded workouts`
+					: "The selected plan has no workouts",
 				showCreatePlan: false,
 			};
 		}
 
 		return {
-			title: "Nema treninga",
-			subtitle: "Počnite sa kreiranjem trening plana",
+			title: "No workouts",
+			subtitle: "Start by creating a training plan",
 			showCreatePlan: true,
 		};
 	};
@@ -206,7 +206,7 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 							onClick={onCreatePlan}
 							size="large"
 						>
-							Kreiraj trening plan
+							Create training plan
 						</Button>
 					)}
 					{emptyState.showCreateWorkout && onCreateWorkout && (
@@ -216,7 +216,7 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 							onClick={onCreateWorkout}
 							size="large"
 						>
-							Dodaj trening
+							Add workout
 						</Button>
 					)}
 				</Stack>
@@ -238,7 +238,7 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 					icon={<History />}
 					action={
 						<Chip
-							label="PREGLED"
+							label="VIEW"
 							color="primary"
 							size="small"
 							icon={<Visibility />}
@@ -246,10 +246,10 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 					}
 				>
 					<Typography variant="subtitle1" fontWeight="bold">
-						Istorija: {planName}
+						History: {planName}
 					</Typography>
 					<Typography variant="body2">
-						Pregled prethodnih treninga - editovanje nije dostupno
+						Viewing previous workouts – editing is disabled
 					</Typography>
 				</Alert>
 			);
@@ -263,17 +263,17 @@ const WorkoutList: React.FC<WorkoutListProps> = ({
 					icon={<Visibility />}
 					action={
 						<Chip
-							label={`${workouts.length} TRENINGA`}
+							label={`${workouts.length} WORKOUTS`}
 							color="secondary"
 							size="small"
 						/>
 					}
 				>
 					<Typography variant="subtitle1" fontWeight="bold">
-						Svi treninzi
+						All workouts
 					</Typography>
 					<Typography variant="body2">
-						Pregled svih treninga kroz sve planove
+						Viewing all workouts across all plans
 					</Typography>
 				</Alert>
 			);

@@ -112,7 +112,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 			const data = await response.json();
 			setPlans(data.plans || []);
 		} catch (error) {
-			setError("Greška pri učitavanju planova");
+			setError("Error loading plans");
 			console.error("Error fetching plans:", error);
 		} finally {
 			setIsLoading(false);
@@ -165,18 +165,18 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 		const errors: string[] = [];
 
 		if (!formData.name.trim()) {
-			errors.push("Naziv plana je obavezan");
+			errors.push("Routine name is required");
 		}
 
 		if (!formData.startDate) {
-			errors.push("Datum početka je obavezan");
+			errors.push("Start date is required");
 		}
 
 		if (formData.endDate && formData.startDate) {
 			const start = parseISO(formData.startDate);
 			const end = parseISO(formData.endDate);
 			if (isAfter(start, end)) {
-				errors.push("Datum završetka mora biti nakon datuma početka");
+				errors.push("End date must be after start date");
 			}
 		}
 
@@ -184,7 +184,9 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 		if (formData.status === "active" && !editingPlan) {
 			const hasActivePlan = plans.some((p) => p.status === "active");
 			if (hasActivePlan) {
-				errors.push("Već imate aktivan plan. Prvo završite trenutni plan.");
+				errors.push(
+					"You already have an active plan. Please complete the current plan first."
+				);
 			}
 		}
 
@@ -260,9 +262,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 				onPlanSelect(activePlan?._id || null);
 			}
 		} catch (error) {
-			setFormErrors([
-				error instanceof Error ? error.message : "Greška pri čuvanju",
-			]);
+			setFormErrors([error instanceof Error ? error.message : "Error saving"]);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -302,7 +302,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 			}
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		} catch (error) {
-			setError("Greška pri ažuriranju plana");
+			setError("Error updating plan");
 		}
 	};
 
@@ -332,7 +332,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 			}
 		} catch (error) {
 			setFormErrors([
-				error instanceof Error ? error.message : "Greška pri brisanju",
+				error instanceof Error ? error.message : "Error deleting",
 			]);
 		} finally {
 			setIsDeleting(false);
@@ -360,14 +360,14 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 						alignItems: "center",
 						mb: 4,
 						fontWeight: "700",
-						background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+
 						backgroundClip: "text",
 						WebkitBackgroundClip: "text",
 						WebkitTextFillColor: "transparent",
 					}}
 				>
 					<Timeline sx={{ mr: 2, color: "primary.main" }} />
-					Trening planovi
+					Training Plans
 				</Typography>
 				<Stack spacing={3}>
 					{[1, 2, 3].map((i) => (
@@ -410,18 +410,16 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 								display: "flex",
 								alignItems: "center",
 								fontWeight: "700",
-								background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-								backgroundClip: "text",
-								WebkitBackgroundClip: "text",
-								WebkitTextFillColor: "transparent",
+								color: "black",
 								mb: 1,
 							}}
 						>
-							<Timeline sx={{ mr: 2, color: "primary.main" }} />
-							Trening planovi
+							<Timeline sx={{ mr: 2, color: "black" }} />
+							Training Plans
 						</Typography>
-						<Typography variant="subtitle1" color="text.secondary">
-							Upravljajte vašim trening planovima i pratite napredak
+
+						<Typography variant="subtitle1" sx={{ color: "text.secondary" }}>
+							Manage your training plans and track progress
 						</Typography>
 					</Box>
 
@@ -436,7 +434,6 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							py: 1.5,
 							textTransform: "none",
 							fontWeight: "600",
-							background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
 							boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)",
 							"&:hover": {
 								boxShadow: "0 6px 20px rgba(102, 126, 234, 0.6)",
@@ -444,7 +441,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							},
 						}}
 					>
-						Novi plan
+						New Plan
 					</Button>
 				</Box>
 
@@ -464,7 +461,6 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 					<Card
 						sx={{
 							mb: 4,
-							background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
 							color: "white",
 							borderRadius: 3,
 							overflow: "hidden",
@@ -482,100 +478,151 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							},
 						}}
 					>
-						<CardContent sx={{ p: 4, position: "relative", zIndex: 1 }}>
+						<CardContent
+							sx={{
+								p: 4,
+								position: "relative",
+								zIndex: 1,
+								backgroundColor: "white",
+							}}
+						>
 							<Typography
 								variant="h5"
 								gutterBottom
-								sx={{ fontWeight: "600", mb: 3 }}
+								sx={{ fontWeight: "600", mb: 3, color: "black" }}
 							>
-								📊 Pregled planova
+								📊 Plans Overview
 							</Typography>
+
 							<Grid container spacing={3}>
+								{/* Active */}
 								<Grid size={{ xs: 6, sm: 3 }}>
 									<Box sx={{ textAlign: "center" }}>
 										<Avatar
 											sx={{
-												bgcolor: "rgba(255,255,255,0.2)",
+												bgcolor: "#f2f2f2",
 												mx: "auto",
 												mb: 2,
 												width: 60,
 												height: 60,
-												backdropFilter: "blur(10px)",
+												color: "black",
 											}}
 										>
 											<TrendingUp sx={{ fontSize: 28 }} />
 										</Avatar>
-										<Typography variant="h3" fontWeight="bold" sx={{ mb: 1 }}>
+
+										<Typography
+											variant="h3"
+											fontWeight="bold"
+											sx={{ mb: 1, color: "black" }}
+										>
 											{planStats.active}
 										</Typography>
-										<Typography variant="body2" sx={{ opacity: 0.9 }}>
-											Aktivni planovi
+
+										<Typography
+											variant="body2"
+											sx={{ opacity: 0.75, color: "black" }}
+										>
+											Active Plans
 										</Typography>
 									</Box>
 								</Grid>
+
+								{/* Completed */}
 								<Grid size={{ xs: 6, sm: 3 }}>
 									<Box sx={{ textAlign: "center" }}>
 										<Avatar
 											sx={{
-												bgcolor: "rgba(255,255,255,0.2)",
+												bgcolor: "#f2f2f2",
 												mx: "auto",
 												mb: 2,
 												width: 60,
 												height: 60,
-												backdropFilter: "blur(10px)",
+												color: "black",
 											}}
 										>
 											<CheckCircle sx={{ fontSize: 28 }} />
 										</Avatar>
-										<Typography variant="h3" fontWeight="bold" sx={{ mb: 1 }}>
+
+										<Typography
+											variant="h3"
+											fontWeight="bold"
+											sx={{ mb: 1, color: "black" }}
+										>
 											{planStats.completed}
 										</Typography>
-										<Typography variant="body2" sx={{ opacity: 0.9 }}>
-											Završenih
+
+										<Typography
+											variant="body2"
+											sx={{ opacity: 0.75, color: "black" }}
+										>
+											Completed
 										</Typography>
 									</Box>
 								</Grid>
+
+								{/* Paused */}
 								<Grid size={{ xs: 6, sm: 3 }}>
 									<Box sx={{ textAlign: "center" }}>
 										<Avatar
 											sx={{
-												bgcolor: "rgba(255,255,255,0.2)",
+												bgcolor: "#f2f2f2",
 												mx: "auto",
 												mb: 2,
 												width: 60,
 												height: 60,
-												backdropFilter: "blur(10px)",
+												color: "black",
 											}}
 										>
 											<Pause sx={{ fontSize: 28 }} />
 										</Avatar>
-										<Typography variant="h3" fontWeight="bold" sx={{ mb: 1 }}>
+
+										<Typography
+											variant="h3"
+											fontWeight="bold"
+											sx={{ mb: 1, color: "black" }}
+										>
 											{planStats.paused}
 										</Typography>
-										<Typography variant="body2" sx={{ opacity: 0.9 }}>
-											Pauziranih
+
+										<Typography
+											variant="body2"
+											sx={{ opacity: 0.75, color: "black" }}
+										>
+											Paused
 										</Typography>
 									</Box>
 								</Grid>
+
+								{/* Total */}
 								<Grid size={{ xs: 6, sm: 3 }}>
 									<Box sx={{ textAlign: "center" }}>
 										<Avatar
 											sx={{
-												bgcolor: "rgba(255,255,255,0.2)",
+												bgcolor: "#f2f2f2",
 												mx: "auto",
 												mb: 2,
 												width: 60,
 												height: 60,
-												backdropFilter: "blur(10px)",
+												color: "black",
 											}}
 										>
 											<FitnessCenter sx={{ fontSize: 28 }} />
 										</Avatar>
-										<Typography variant="h3" fontWeight="bold" sx={{ mb: 1 }}>
+
+										<Typography
+											variant="h3"
+											fontWeight="bold"
+											sx={{ mb: 1, color: "black" }}
+										>
 											{planStats.total}
 										</Typography>
-										<Typography variant="body2" sx={{ opacity: 0.9 }}>
-											Ukupno planova
+
+										<Typography
+											variant="body2"
+											sx={{ opacity: 0.75, color: "black" }}
+										>
+											Total Plans
 										</Typography>
 									</Box>
 								</Grid>
@@ -591,37 +638,41 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							textAlign: "center",
 							p: 6,
 							borderRadius: 3,
-							background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+							backgroundColor: "white",
+							border: "1px solid #e5e5e5",
 						}}
 					>
 						<FitnessCenter
 							sx={{
 								fontSize: 80,
-								color: "text.secondary",
+								color: "black",
 								mb: 2,
-								opacity: 0.5,
+								opacity: 0.3,
 							}}
 						/>
-						<Typography variant="h5" gutterBottom color="text.secondary">
-							Nemate trening planove
+
+						<Typography variant="h5" gutterBottom sx={{ color: "black" }}>
+							You have no training plans
 						</Typography>
-						<Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-							Kreirajte svoj prvi trening plan i počnite da pratite napredak
+
+						<Typography variant="body1" sx={{ mb: 3, color: "text.secondary" }}>
+							Create your first training plan and start tracking your progress
 						</Typography>
+
 						<Button
 							variant="contained"
 							startIcon={<Add />}
 							onClick={() => handleOpenForm()}
 							size="large"
 							sx={{
-								borderRadius: 3,
+								borderRadius: 2,
 								px: 4,
 								py: 2,
 								textTransform: "none",
 								fontWeight: "600",
 							}}
 						>
-							Kreiraj prvi plan
+							Create First Plan
 						</Button>
 					</Card>
 				)}
@@ -664,46 +715,30 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 				PaperProps={{
 					sx: {
 						borderRadius: isMobile ? 0 : 3,
-						background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+						backgroundColor: "white",
 					},
 				}}
 			>
 				<DialogTitle
 					sx={{
-						background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-						color: "white",
+						backgroundColor: "white",
+						color: "black",
 						p: 3,
+						borderBottom: "1px solid #e5e5e5",
 					}}
 				>
-					<Box
-						sx={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-						}}
-					>
-						<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-							<Avatar sx={{ bgcolor: "rgba(255,255,255,0.2)" }}>
-								<Timeline />
-							</Avatar>
-							<Box>
-								<Typography variant="h5" fontWeight="600">
-									{editingPlan ? "Uredi plan" : "Novi trening plan"}
-								</Typography>
-								<Typography variant="body2" sx={{ opacity: 0.9 }}>
-									{editingPlan
-										? "Ažurirajte informacije o planu"
-										: "Kreirajte novi plan za vaš trening"}
-								</Typography>
-							</Box>
+					<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+						<Avatar sx={{ bgcolor: "#f2f2f2", color: "black" }}>
+							<Delete />
+						</Avatar>
+						<Box>
+							<Typography variant="h6" fontWeight="600">
+								Delete Plan
+							</Typography>
+							<Typography variant="body2" sx={{ opacity: 0.75 }}>
+								This action cannot be undone
+							</Typography>
 						</Box>
-						<IconButton
-							onClick={handleCloseForm}
-							sx={{ color: "white" }}
-							size="large"
-						>
-							<Close />
-						</IconButton>
 					</Box>
 				</DialogTitle>
 
@@ -720,7 +755,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 						<Grid size={{ xs: 12 }}>
 							<TextField
 								fullWidth
-								label="Naziv plana"
+								label="Routine Name"
 								value={formData.name}
 								onChange={(e) =>
 									setFormData({ ...formData, name: e.target.value })
@@ -738,14 +773,14 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 						<Grid size={{ xs: 12 }}>
 							<TextField
 								fullWidth
-								label="Opis"
+								label="Description"
 								multiline
 								rows={4}
 								value={formData.description}
 								onChange={(e) =>
 									setFormData({ ...formData, description: e.target.value })
 								}
-								placeholder="Kratak opis plana, ciljevi, napomene..."
+								placeholder="Brief description of the plan, goals, notes..."
 								variant="outlined"
 								sx={{
 									"& .MuiOutlinedInput-root": {
@@ -759,7 +794,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							<TextField
 								fullWidth
 								type="date"
-								label="Start date"
+								label="Start Date"
 								value={formData.startDate}
 								onChange={(e) =>
 									setFormData({ ...formData, startDate: e.target.value })
@@ -779,7 +814,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							<TextField
 								fullWidth
 								type="date"
-								label="Datum završetka (opciono)"
+								label="End Date (optional)"
 								value={formData.endDate}
 								onChange={(e) =>
 									setFormData({ ...formData, endDate: e.target.value })
@@ -807,9 +842,9 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 										borderRadius: 2,
 									}}
 								>
-									<MenuItem value="active">Aktivan</MenuItem>
-									<MenuItem value="paused">Pauziran</MenuItem>
-									<MenuItem value="completed">Završen</MenuItem>
+									<MenuItem value="active">Active</MenuItem>
+									<MenuItem value="paused">Paused</MenuItem>
+									<MenuItem value="completed">Completed</MenuItem>
 								</Select>
 							</FormControl>
 						</Grid>
@@ -817,12 +852,12 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 						<Grid size={{ xs: 12, sm: 6 }}>
 							<TextField
 								fullWidth
-								label="Cilj"
+								label="Goal"
 								value={formData.goal}
 								onChange={(e) =>
 									setFormData({ ...formData, goal: e.target.value })
 								}
-								placeholder="npr. Povećanje snage, mišićna masa..."
+								placeholder="e.g. Increase strength, muscle mass..."
 								variant="outlined"
 								sx={{
 									"& .MuiOutlinedInput-root": {
@@ -847,7 +882,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							fontWeight: "500",
 						}}
 					>
-						Otkaži
+						Cancel
 					</Button>
 					<Button
 						onClick={handleSubmit}
@@ -860,13 +895,9 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							px: 4,
 							textTransform: "none",
 							fontWeight: "600",
-							background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-							"&:hover": {
-								background: "linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)",
-							},
 						}}
 					>
-						{isSubmitting ? "Čuvam..." : "Sačuvaj plan"}
+						{isSubmitting ? "Saving..." : "Save Plan"}
 					</Button>
 				</DialogActions>
 			</Dialog>
@@ -898,10 +929,10 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 						</Avatar>
 						<Box>
 							<Typography variant="h6" fontWeight="600">
-								Brisanje plana
+								Delete Plan
 							</Typography>
 							<Typography variant="body2" sx={{ opacity: 0.9 }}>
-								Ova akcija se ne može poništiti
+								This action cannot be undone
 							</Typography>
 						</Box>
 					</Box>
@@ -910,17 +941,17 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 				<DialogContent sx={{ p: 4 }}>
 					<Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
 						<Typography variant="body2">
-							⚠️ Ova akcija će trajno obrisati plan i sve povezane podatke!
+							⚠️ This action will permanently delete the plan and all related
+							data!
 						</Typography>
 					</Alert>
 					<Typography variant="body1">
-						Da li ste sigurni da želite da obrišete plan{" "}
+						Are you sure you want to delete the plan{" "}
 						<Typography
 							component="span"
 							fontWeight="bold"
 							color="primary"
 							sx={{
-								background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
 								backgroundClip: "text",
 								WebkitBackgroundClip: "text",
 								WebkitTextFillColor: "transparent",
@@ -945,7 +976,7 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							fontWeight: "500",
 						}}
 					>
-						Otkaži
+						Cancel
 					</Button>
 					<Button
 						onClick={handleDelete}
@@ -959,13 +990,9 @@ const TrainingPlans: React.FC<TrainingPlansProps> = ({
 							px: 4,
 							textTransform: "none",
 							fontWeight: "600",
-							background: "linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)",
-							"&:hover": {
-								background: "linear-gradient(135deg, #ff5252 0%, #d32f2f 100%)",
-							},
 						}}
 					>
-						{isDeleting ? "Brišem..." : "Obriši plan"}
+						{isDeleting ? "Deleting..." : "Delete Plan"}
 					</Button>
 				</DialogActions>
 			</Dialog>
