@@ -435,9 +435,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
 											>
 												{/* Postojeći prikaz */}
 												<Typography>
-													{set.hold
-														? `${set.hold}s hold`
-														: `${set.reps} ponavljanja`}
+													{set.hold ? `${set.hold}s hold` : `${set.reps} reps`}
 												</Typography>
 												{set.weight && (
 													<Typography>× {set.weight}kg</Typography>

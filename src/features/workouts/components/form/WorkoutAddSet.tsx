@@ -494,7 +494,7 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 									<TextField
 										fullWidth
 										type="number"
-										label={isMaxEffort ? "Max Reps" : "Ponavljanja"}
+										label={isMaxEffort ? "Max Reps" : "Reps"}
 										value={set.reps || ""}
 										onChange={(e) =>
 											updateSet(exerciseIndex, setIndex, "reps", e.target.value)
@@ -610,8 +610,8 @@ const WorkoutAddSet: React.FC<WorkoutAddSetProps> = ({
 										<Tooltip
 											title={
 												canStartTimer
-													? "Pokreni odmor"
-													: "Unesite broj ponavljanja, hold vrijeme ili označite Max Effort"
+													? "Start rest"
+													: "Set number of reps, hold time or add Max Effort"
 											}
 										>
 											<IconButton
