@@ -874,6 +874,7 @@ const WorkoutClient = ({ initialWorkouts, userEmail }: WorkoutClientProps) => {
 
 			{showForm && (
 				<WorkoutForm
+					key={`workout-form-${editingWorkout?._id || "new"}-${Date.now()}`}
 					workout={editingWorkout || undefined}
 					onSubmit={handleSubmitWorkout}
 					onCancel={handleCancelForm}

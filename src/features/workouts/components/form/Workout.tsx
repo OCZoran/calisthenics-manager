@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
 	Box,
 	CardContent,
@@ -50,6 +50,8 @@ import {
 	Category,
 	DragIndicator,
 	History,
+	Search,
+	AddCircleOutline,
 } from "@mui/icons-material";
 import { format, parseISO } from "date-fns";
 import {
@@ -64,6 +66,7 @@ import { formatDate } from "@/global/utils/format-date";
 import WorkoutAddSet from "./WorkoutAddSet";
 import WorkoutFormHeader from "./WorkoutFormHeader";
 import { useDraftAutosave } from "../WorkoutDraft";
+import QuickAddExerciseDialog from "../QuickAddExercise";
 
 interface WorkoutFormProps {
 	workout?: Workout;
@@ -132,6 +135,8 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	const [availableExercises, setAvailableExercises] = useState<
 		ExerciseDefinition[]
 	>([]);
+	const availableExercisesRef = useRef<ExerciseDefinition[]>([]); // DODATO
+
 	const [loadingExercises, setLoadingExercises] = useState(false);
 	const [formData, setFormData] = useState<{
 		date: string;
@@ -148,10 +153,15 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		exercises: workout?.exercises || [],
 		planId: workout?.planId || activePlanId || "",
 	});
-
+	const [exerciseSearchTerm, setExerciseSearchTerm] = useState<{
+		[key: number]: string;
+	}>({});
 	const [showDraftDialog, setShowDraftDialog] = useState(false);
 	const [draftData, setDraftData] = useState<WorkoutFormData | null>(null);
-
+	const [showQuickAddDialog, setShowQuickAddDialog] = useState(false);
+	const [quickAddExerciseIndex, setQuickAddExerciseIndex] = useState<
+		number | null
+	>(null);
 	const { hasDraft, loadDraft, clearDraft } = useDraftAutosave(formData, {
 		isEditMode: !!workout,
 		workoutId: workout?._id,
@@ -161,6 +171,8 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 	const [expandedExercises, setExpandedExercises] = useState<number[]>([]);
 	const [showCopyDialog, setShowCopyDialog] = useState(false);
 	const [availableWorkouts, setAvailableWorkouts] = useState<Workout[]>([]);
+
+	const [selectKeys, setSelectKeys] = useState<{ [key: number]: number }>({}); // <-- DODAJ OVO
 
 	useEffect(() => {
 		if (workout) return;
@@ -182,6 +194,8 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 				if (!response.ok) throw new Error("Failed to fetch exercises");
 
 				const data = await response.json();
+				console.log("Učitao vježbe iz API-ja:", data.exercises?.length || 0);
+				availableExercisesRef.current = data.exercises || []; // DODATO
 				setAvailableExercises(data.exercises || []);
 			} catch (error) {
 				console.error("Error fetching exercises:", error);
@@ -193,6 +207,59 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 		fetchExercises();
 	}, []);
 
+	useEffect(() => {
+		console.log("availableExercises se promijenio:", availableExercises.length);
+		availableExercisesRef.current = availableExercises;
+	}, [availableExercises]);
+
+	const handleQuickExerciseAdded = (newExercise: ExerciseDefinition) => {
+		console.log("handleQuickExerciseAdded pozvana sa:", newExercise);
+		console.log(
+			"Trenutni availableExercises (ref):",
+			availableExercisesRef.current.length
+		);
+
+		// Koristi REF umjesto closurea da izbjegneš stale state
+		const updatedExercises = [
+			...availableExercisesRef.current,
+			newExercise,
+		].sort((a, b) => a.name.localeCompare(b.name));
+		console.log("Nova lista vježbi:", updatedExercises.length);
+
+		availableExercisesRef.current = updatedExercises; // Updateuj ref odmah
+		setAvailableExercises(updatedExercises); // Pa tek onda state
+
+		// Ako je bila otvorena za određeni exercise, automatski je selektuj
+		if (quickAddExerciseIndex !== null) {
+			console.log("Auto-selektujem vježbu za index:", quickAddExerciseIndex);
+
+			const index = quickAddExerciseIndex;
+
+			// Odmah updateuj exercise name
+			updateExercise(index, "name", newExercise.name);
+
+			// Forsiraj re-render Select komponente promjenom key-a
+			setSelectKeys((prev) => ({
+				...prev,
+				[index]: (prev[index] || 0) + 1,
+			}));
+
+			// Osiguraj da je exercise expanded
+			if (!expandedExercises.includes(index)) {
+				setExpandedExercises((prev) => [...prev, index]);
+			}
+
+			// Očisti search term
+			setExerciseSearchTerm((prev) => {
+				const updated = { ...prev };
+				delete updated[index];
+				return updated;
+			});
+		}
+
+		setShowQuickAddDialog(false);
+		setQuickAddExerciseIndex(null);
+	};
 	useEffect(() => {
 		if (workout) {
 			setFormData({
@@ -730,24 +797,130 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 																					exerciseIndex + 1
 																				}`}</InputLabel>
 																				<Select
+																					key={selectKeys[exerciseIndex] || 0}
 																					value={exercise.name || ""}
 																					label={`Exercise ${
 																						exerciseIndex + 1
 																					}`}
-																					onChange={(e) =>
-																						updateExercise(
-																							exerciseIndex,
-																							"name",
-																							e.target.value
-																						)
-																					}
-																					sx={{
-																						borderRadius: 2,
-																						backgroundColor: "background.paper",
+																					onChange={(e) => {
+																						if (
+																							e.target.value === "__quick_add__"
+																						) {
+																							setQuickAddExerciseIndex(
+																								exerciseIndex
+																							);
+																							setShowQuickAddDialog(true);
+																						} else {
+																							updateExercise(
+																								exerciseIndex,
+																								"name",
+																								e.target.value
+																							);
+																						}
 																					}}
 																					size={isMobile ? "small" : "medium"}
 																					disabled={loadingExercises}
+																					MenuProps={{
+																						// <-- DODAJ OVO
+																						PaperProps: {
+																							sx: {
+																								maxHeight: 300,
+																							},
+																						},
+																						autoFocus: false,
+																					}}
 																				>
+																					<Box
+																						sx={{
+																							position: "sticky",
+																							top: 0,
+																							backgroundColor:
+																								"background.paper",
+																							zIndex: 1,
+																							p: 1,
+																							borderBottom: "1px solid",
+																							borderColor: "divider",
+																						}}
+																						onMouseDown={(e) => {
+																							e.preventDefault();
+																							e.stopPropagation();
+																						}}
+																						onClick={(e) => {
+																							e.preventDefault();
+																							e.stopPropagation();
+																						}}
+																					>
+																						<TextField
+																							size="small"
+																							fullWidth
+																							placeholder="Search exercises..."
+																							value={
+																								exerciseSearchTerm[
+																									exerciseIndex
+																								] || ""
+																							}
+																							onChange={(e) => {
+																								setExerciseSearchTerm({
+																									...exerciseSearchTerm,
+																									[exerciseIndex]:
+																										e.target.value,
+																								});
+																							}}
+																							onMouseDown={(e) => {
+																								e.stopPropagation();
+																							}}
+																							onClick={(e) => {
+																								e.stopPropagation();
+																							}}
+																							onKeyDown={(e) => {
+																								e.stopPropagation();
+																							}}
+																							InputProps={{
+																								startAdornment: (
+																									<Search
+																										sx={{
+																											mr: 1,
+																											color: "text.secondary",
+																										}}
+																									/>
+																								),
+																								sx: {
+																									borderRadius: 2,
+																								},
+																							}}
+																						/>
+																					</Box>
+																					{/* <MenuItem
+																						value="__quick_add__"
+																						sx={{
+																							backgroundColor: "primary.50",
+																							borderBottom: "2px solid",
+																							borderColor: "primary.main",
+																							"&:hover": {
+																								backgroundColor: "primary.100",
+																							},
+																							position: "sticky",
+																							top: 57, // ispod search box-a
+																							zIndex: 1,
+																						}}
+																					>
+																						<Box
+																							sx={{
+																								display: "flex",
+																								alignItems: "center",
+																								gap: 1,
+																								width: "100%",
+																							}}
+																						>
+																							<AddCircleOutline color="primary" />
+																							<Typography
+																								fontWeight="600"
+																								color="primary"
+																							>
+																								Add New Exercise
+																							</Typography>
+																						</Box>
+																					</MenuItem> */}
 																					{loadingExercises ? (
 																						<MenuItem value="">
 																							Loading exercises...
@@ -761,12 +934,22 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 																						availableExercises
 																							.filter(
 																								(ex) =>
-																									!formData.type ||
-																									!ex.type ||
-																									ex.type.length === 0 ||
-																									ex.type.includes(
-																										formData.type
-																									)
+																									(!formData.type ||
+																										!ex.type ||
+																										ex.type.length === 0 ||
+																										ex.type.includes(
+																											formData.type
+																										)) &&
+																									(!exerciseSearchTerm[
+																										exerciseIndex
+																									] ||
+																										ex.name
+																											.toLowerCase()
+																											.includes(
+																												exerciseSearchTerm[
+																													exerciseIndex
+																												].toLowerCase()
+																											))
 																							)
 																							.map((ex) => (
 																								<MenuItem
@@ -1225,6 +1408,15 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({
 					</Button>
 				</DialogActions>
 			</Dialog>
+			{/* <QuickAddExerciseDialog
+				open={showQuickAddDialog}
+				onClose={() => {
+					setShowQuickAddDialog(false);
+					setQuickAddExerciseIndex(null);
+				}}
+				onExerciseAdded={handleQuickExerciseAdded}
+				workoutType={formData.type}
+			/> */}
 		</Box>
 	);
 };
